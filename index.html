@@ -1476,7 +1476,8 @@ function startMatches(ev,s){
 const isWorkSeries=ev=>(ev.type==='Werk'||ev.type==='Crèche')&&ev.repeat&&ev.repeat!=='none'&&!ev.virtual;
 const offTitle=ev=>ev.type==='Crèche'?'Thuis':'Congé';
 function workOffDay(ev,day){ if(day<ev.date||(ev.until&&day>ev.until)||(ev.skip||[]).includes(day)) return false;
-  const wd=parse(day).getDay(); return wd===0||wd===6||!!feestdag(day)||!!(ev.skipHol&&skipHolOn(ev,day)&&occurs(ev,day)); }
+  /* enkel feestdagen en (school)vakanties; in het weekend staat er niets */
+  const wd=parse(day).getDay(); if(wd===0||wd===6) return false; return !!feestdag(day)||!!(ev.skipHol&&skipHolOn(ev,day)&&occurs(ev,day)); }
 function occurs(ev,day){
   const len=ev.endDate?Math.max(0,diffDays(ev.endDate,ev.date)):0;
   for(let k=0;k<=len;k++){ if(startMatches(ev,addDays(day,-k))) return {k,len}; }
@@ -1826,7 +1827,7 @@ function eventSheet(ev,day,preset){
   let congeBox='';
   if(!isNew&&day&&isWorkSeries(ev)){ const off=workOffDay(ev,day), extra=(ev.werkX||[]).includes(day), cg=(ev.conge||[]).includes(day)||(ev.skip||[]).includes(day);
     const cr=ev.type==='Crèche';
-    const [lab,btn,act,free]=cr?(off?(extra?['Extra crèchedag','Toch thuis','werk-toggle',false]:['Thuis (weekend of feestdag)','Toch naar de crèche','werk-toggle',true]):(cg?['Thuis','Toch naar de crèche','conge-toggle',true]:['Crèchedag','Niet naar de crèche','conge-toggle',false])):(off?(extra?['Extra werkdag','Toch vrij','werk-toggle',false]:['Congé (weekend of feestdag)','Toch werken','werk-toggle',true]):(cg?['Congé','Toch werken','conge-toggle',true]:['Werkdag','Congé deze dag','conge-toggle',false]));
+    const [lab,btn,act,free]=cr?(off?(extra?['Extra crèchedag','Toch thuis','werk-toggle',false]:['Thuis (feestdag)','Toch naar de crèche','werk-toggle',true]):(cg?['Thuis','Toch naar de crèche','conge-toggle',true]:['Crèchedag','Niet naar de crèche','conge-toggle',false])):(off?(extra?['Extra werkdag','Toch vrij','werk-toggle',false]:['Congé (feestdag of vakantie)','Toch werken','werk-toggle',true]):(cg?['Congé','Toch werken','conge-toggle',true]:['Werkdag','Congé deze dag','conge-toggle',false]));
     congeBox=`<div class="conge-box ${free?'on':''}"><div><b>${lab}</b><span>${dlong(day)}</span></div><button type="button" class="btn ${free?'':'primary'}" data-act="${act}" data-v="${esc(ev.id)}|${day}">${btn}</button></div><p class="set-note" style="margin:-6px 0 12px">Let op: wat je hieronder aanpast en opslaat, geldt voor élke week.</p>`; }
   if(!canEdit){
     openSheet(ev.title,`<div class="form"><div class="row">${avs(ev.who)}<span>${esc(names(ev.who))}</span></div>
