@@ -1316,6 +1316,13 @@ html[data-kid] .conge-box{border-radius:16px}
 svg.rti{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:9;stroke-linecap:round;stroke-linejoin:round;vertical-align:-2px;margin-right:4px;flex:none}
 .tt-rt span{display:inline-flex;align-items:center}
 .wd2-rt span svg.rti{width:12px;height:12px;margin-right:2px;color:var(--text)}
+
+/* producten aanpassen */
+.emo-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(40px,1fr));gap:4px;max-height:190px;overflow-y:auto;padding:2px}
+.emo{border:1px solid transparent;background:var(--surface-2);font-size:22px;height:40px;cursor:pointer;border-radius:10px;padding:0}
+.emo.on{border-color:var(--ink,#141414);background:var(--surface)}
+html[data-style="bauhaus"] .emo{border-radius:0}
+.tiles-s.lib-edit .stile{outline:2px dashed var(--line);outline-offset:-4px}
 </style>
 
 </head><body>
@@ -2070,7 +2077,51 @@ const CATALOG=[
 ].map(([name,e,items])=>({name,e,items:items.split('|').map(s=>{const i=s.indexOf(' ');return {e:s.slice(0,i),n:s.slice(i+1)}})}));
 const LIBMAP={}; CATALOG.forEach(c=>c.items.forEach(i=>LIBMAP[i.n.toLowerCase()]={e:i.e,c:c.name}));
 const customItems=()=>setting('customItems').list||[];
-function itemInfo(name){ const k=(name||'').toLowerCase().trim(); return LIBMAP[k]||{e:'🛒',c:'Eigen items'}; }
+/* ---------- productenbibliotheek: standaardlijst + eigen producten + aanpassingen (naam, afbeelding, categorie) ---------- */
+const prodOv=()=>setting('products').map||{};
+let _libC=null;
+function libCats(){
+  const ov=prodOv(), cu=customItems(), ck=JSON.stringify([setting('products').at||0,setting('customItems').at||0,cu.length,Object.keys(ov).length]);
+  if(_libC&&_libC.k===ck) return _libC.v;
+  const cats=[{name:'Eigen items',e:'🛒',items:[]},...CATALOG.map(c=>({name:c.name,e:c.e,items:[]}))], byName=Object.fromEntries(cats.map(c=>[c.name,c]));
+  for(const c of CATALOG) for(const i of c.items){ const key=i.n.toLowerCase(), o=ov[key]||{}; if(o.hidden) continue;
+    (byName[o.c]||byName[c.name]).items.push({n:o.n||i.n,e:o.e||i.e,key,custom:false,orig:i.n,oc:c.name}); }
+  for(const i of cu){ (byName[i.c]||byName['Eigen items']).items.push({n:i.n,e:i.e||'🛒',key:i.n.toLowerCase(),custom:true}); }
+  const v=cats.filter(c=>c.items.length); _libC={k:ck,v}; return v;
+}
+const libFlat=()=>libCats().flatMap(c=>c.items.map(i=>Object.assign({c:c.name},i)));
+function itemInfo(name){ const k=(name||'').toLowerCase().trim(); const hit=libFlat().find(i=>i.n.toLowerCase()===k); return hit?{e:hit.e,c:hit.c}:LIBMAP[k]||{e:'🛒',c:'Eigen items'}; }
+const PROD_EMO='🍎 🍐 🍊 🍋 🍌 🍉 🍇 🍓 🫐 🍒 🍑 🥭 🍍 🥥 🥝 🍅 🥑 🥦 🥬 🥒 🌶️ 🫑 🌽 🥕 🧄 🧅 🥔 🍠 🍄 🥜 🫘 🍞 🥐 🥖 🫓 🥯 🥞 🧇 🧀 🥚 🧈 🥛 🍼 🥩 🍗 🍖 🥓 🌭 🍔 🍟 🍕 🌮 🌯 🥙 🥗 🍝 🍜 🍲 🍛 🍚 🍙 🍣 🐟 🦐 🍤 🥫 🧂 🫒 🍯 🍫 🍪 🍩 🧁 🍰 🎂 🍦 🍨 🍬 🍭 🍿 🥨 🧃 🥤 🧋 ☕ 🍵 🍺 🍷 🥂 💧 🧊 🧴 🧼 🧽 🧻 🪥 🦷 🧺 🗑️ 💊 🩹 🐶 🐱 🦴 🌸 🎁 🔋 💡 🕯️ ✏️ 📦 🛍️ 🛒'.split(' ');
+function prodSheet(key){
+  const it=key?libFlat().find(i=>i.key===key):null, isNew=!it, cats=['Eigen items',...CATALOG.map(c=>c.name)];
+  const cur={n:it?it.n:'',e:it?it.e:'🛒',c:it?it.c:'Eigen items'};
+  const body=`<div class="form">
+    <div class="row" style="gap:14px;align-items:center"><span id="p-prev" style="font-size:46px;line-height:1">${cur.e}</span><label class="field" style="flex:1"><span>Naam</span><input class="in" id="p-name" value="${esc(cur.n)}" placeholder="bv. Havermelk"></label></div>
+    <div class="field"><span>Afbeelding</span><div class="emo-grid">${PROD_EMO.map(e=>`<button type="button" class="emo ${e===cur.e?'on':''}" data-emo="${e}">${e}</button>`).join('')}</div>
+      <input class="in" id="p-emo" value="${esc(cur.e)}" maxlength="8" style="margin-top:8px;max-width:160px" aria-label="Of typ of plak zelf een emoji"></div>
+    <label class="field"><span>Categorie</span><select class="in" id="p-cat">${cats.map(c=>`<option ${c===cur.c?'selected':''}>${esc(c)}</option>`).join('')}</select></label>
+    ${it&&!it.custom&&prodOv()[it.key]?`<button type="button" class="btn sm ghost" id="p-reset" style="align-self:flex-start">Terug naar standaard</button>`:''}
+  </div>`;
+  openSheet(isNew?'Nieuw product':'Product aanpassen',body,{saveLabel:'Bewaren',
+    mount:pn=>{ const prev=pn.querySelector('#p-prev'), inp=pn.querySelector('#p-emo');
+      pn.querySelectorAll('.emo').forEach(b=>b.addEventListener('click',()=>{pn.querySelectorAll('.emo.on').forEach(x=>x.classList.remove('on'));b.classList.add('on');inp.value=b.dataset.emo;prev.textContent=b.dataset.emo;}));
+      inp.addEventListener('input',()=>{prev.textContent=inp.value||'🛒'});
+      const rs=pn.querySelector('#p-reset'); if(rs) rs.addEventListener('click',async()=>{const m=Object.assign({},prodOv());delete m[it.key];await put('settings','products',{map:m,by:me,at:Date.now()});closeSheet();toast('Standaard hersteld');}); },
+    onDelete:isNew?null:async()=>{
+      if(it.custom){ await put('settings','customItems',{list:customItems().filter(c=>c.n.toLowerCase()!==it.key),by:me,at:Date.now()}); }
+      else { const m=Object.assign({},prodOv()); m[it.key]=Object.assign({},m[it.key]||{},{hidden:true}); await put('settings','products',{map:m,by:me,at:Date.now()}); }
+      toast(`${it.n} verwijderd uit de bibliotheek`); },
+    onSave:async pn=>{
+      const n=pn.querySelector('#p-name').value.trim(), e=(pn.querySelector('#p-emo').value||'🛒').trim(), c=pn.querySelector('#p-cat').value;
+      if(!n){toast('Geef het product een naam.');return false}
+      const nk=n.toLowerCase(), clash=libFlat().find(i=>i.n.toLowerCase()===nk&&(!it||i.key!==it.key));
+      if(clash){toast(`${n} bestaat al in de bibliotheek.`);return false}
+      if(isNew||it.custom){ const list=customItems().filter(x=>!it||x.n.toLowerCase()!==it.key); list.push({n,e,c}); await put('settings','customItems',{list:list.slice(-300),by:me,at:Date.now()}); }
+      else { const m=Object.assign({},prodOv()); const o={e,c}; if(n!==it.orig) o.n=n; if(c===it.oc) delete o.c; m[it.key]=o; await put('settings','products',{map:m,by:me,at:Date.now()}); }
+      if(it&&it.n!==n) for(const x of S.shopping.filter(x=>x.name.toLowerCase()===it.n.toLowerCase())) await upd('shopping',x.id,{name:n});
+      toast(isNew?`${n} toegevoegd`:'Product aangepast');
+    }});
+}
 const openItem=name=>S.shopping.find(x=>!x.done&&x.name.toLowerCase()===name.toLowerCase());
 let shopStore=ls.get('tb_store','')||null;
 const curStore=()=>{const st=stores();return st.includes(shopStore)?shopStore:''};   /* winkel is optioneel: standaard geen */
@@ -2082,7 +2133,7 @@ async function addItem(name,extra={}){
   if(prev){ await upd('shopping',prev.id,Object.assign({done:false,by:me,at:Date.now(),qty:'',recipe:'',store:prev.store||curStore()},extra)); }
   else { await add('shopping',Object.assign({name,qty:'',store:curStore(),done:false},extra)); }
   const k=name.toLowerCase();
-  if(!LIBMAP[k] && !customItems().some(c=>c.n.toLowerCase()===k)){
+  if(!libFlat().some(i=>i.n.toLowerCase()===k)){
     await put('settings','customItems',{list:[...customItems(),{n:name}].slice(-150),by:me,at:Date.now()});
   }
 }
@@ -2110,17 +2161,18 @@ function renderShop(){
   if(!open.length) h+=`<div class="card"><p class="empty"><b>Het lijstje is leeg.</b> Tik hieronder op wat je nodig hebt, of zoek bovenaan. Tik op een rood tegeltje als het in je kar ligt.</p></div>`;
   const groups=['',...st,...new Set(open.map(i=>i.store).filter(s=>s&&!st.includes(s)))];
   for(const g of groups){
-    const its=open.filter(i=>(i.store||'')===g).sort((a,b)=>CATALOG.findIndex(c=>c.name===itemInfo(a.name).c)-CATALOG.findIndex(c=>c.name===itemInfo(b.name).c)||a.name.localeCompare(b.name));
+    const CO=libCats().map(c=>c.name);const its=open.filter(i=>(i.store||'')===g).sort((a,b)=>CO.indexOf(itemInfo(a.name).c)-CO.indexOf(itemInfo(b.name).c)||a.name.localeCompare(b.name));
     if(!its.length) continue;
     h+=`${g?`<div class="store-h">${icon('cart')}${esc(g)} <span class="n">${its.length}</span></div>`:''}<div class="tiles-s" ${g?'':'style="margin-top:10px"'}>${its.map(i=>tile(i.name,itemInfo(i.name).e,{on:true,qty:i.qty||(i.recipe?'voor '+i.recipe:''),id:i.id,act:'shop-bought'})).join('')}</div>`;
   }
   const seen=new Set(), recent=items.filter(x=>x.done).sort((a,b)=>(b.doneAt||0)-(a.doneAt||0)).filter(x=>{const k=x.name.toLowerCase();if(seen.has(k)||openItem(x.name))return false;seen.add(k);return true}).slice(0,18);
   if(recent.length) h+=`<div class="sec-h"><h2>Recent gekocht</h2><span class="sp"></span><button class="btn sm ghost" data-act="shop-clear">Wissen</button></div><div class="tiles-s">${recent.map(i=>tile(i.name,itemInfo(i.name).e,{sub:i.store})).join('')}</div>`;
-  h+=`<div class="sec-h"><h2>Bibliotheek</h2></div>
-    <div class="filters cat-nav">${[...(customItems().length?[{name:'Eigen items',e:'🛒'}]:[]),...CATALOG].map((c,i)=>`<button class="chip" data-act="cat-jump" data-v="${esc(c.name)}"><span aria-hidden="true">${c.e}</span>${esc(c.name)}</button>`).join('')}</div>`;
-  const cats=[...(customItems().length?[{name:'Eigen items',e:'🛒',items:customItems().map(c=>({n:c.n,e:'🛒'}))}]:[]),...CATALOG];
-  for(const c of cats){
-    h+=`<div class="cat-sec" data-cat="${esc(c.name)}"><div class="store-h"><span aria-hidden="true">${c.e}</span>${esc(c.name)}</div><div class="tiles-s">${c.items.map(i=>{const o=openItem(i.n);return tile(i.n,i.e,{on:!!o,qty:o?o.qty:''})}).join('')}</div></div>`;
+  const LE=!!ui.libEdit&&isParent(me);
+  h+=`<div class="sec-h"><h2>Bibliotheek</h2><span class="sp"></span>${isParent(me)?`<button class="btn sm" data-act="prod-new">${icon('plus')} Product</button><button class="btn sm ${LE?'primary':''}" data-act="lib-edit">${LE?'Klaar':'Aanpassen'}</button>`:''}</div>
+    ${LE?'<p class="set-note" style="margin:-4px 0 8px">Tik op een product om de naam, de afbeelding of de categorie te veranderen.</p>':''}
+    <div class="filters cat-nav">${libCats().map((c,i)=>`<button class="chip" data-act="cat-jump" data-v="${esc(c.name)}"><span aria-hidden="true">${c.e}</span>${esc(c.name)}</button>`).join('')}</div>`;
+  for(const c of libCats()){
+    h+=`<div class="cat-sec" data-cat="${esc(c.name)}"><div class="store-h"><span aria-hidden="true">${c.e}</span>${esc(c.name)}</div><div class="tiles-s ${LE?'lib-edit':''}">${c.items.map(i=>{const o=openItem(i.n);return LE?tile(i.n,i.e,{id:i.key,act:'prod-edit'}):tile(i.n,i.e,{on:!!o,qty:o?o.qty:''})}).join('')}</div></div>`;
   }
   return h+'</div>';
 }
@@ -2128,7 +2180,7 @@ function shopSearch(q){
   const res=$('#s-results'), norm=$('#s-normal'); if(!res) return;
   q=q.trim().toLowerCase();
   if(!q){res.hidden=true;norm.hidden=false;return}
-  const all=[...customItems().map(c=>({n:c.n,e:'🛒'})),...CATALOG.flatMap(c=>c.items)];
+  const all=libFlat();
   const hits=all.filter(i=>i.n.toLowerCase().includes(q)).sort((a,b)=>a.n.toLowerCase().indexOf(q)-b.n.toLowerCase().indexOf(q)).slice(0,30);
   const exact=hits.some(i=>i.n.toLowerCase()===q);
   const raw=$('#s-q').value.trim();
@@ -3205,7 +3257,7 @@ function answer(raw){
   /* toevoegen aan lijstje */
   let m=q.match(/^(?:zet|doe|voeg|schrijf)\s+(.+?)\s+(?:op|bij|aan|toe aan)\s+(?:het |de |mijn )?(?:boodschappen ?lijst(?:je)?|lijst(?:je)?|boodschappen)(?: toe)?$/)||q.match(/^(?:we hebben|ik heb|er is)\s+(?:geen|nog)\s+(.+?)\s+(?:meer|nodig)$/)||(!/^(wat|welke|hoeveel|staat|staan|is|zijn|wie|hoe|waar|wanneer)\b/.test(q)&&q.match(/^(.+?)\s+(?:op|bij) (?:het |de )?(?:lijstje|lijst|boodschappen)$/));
   if(m){ const items=m[1].split(/,| en | & /).map(s=>s.replace(/^(nog |wat |een |de |het |extra )+/,'').trim()).filter(Boolean).slice(0,15);
-    const lib=[...customItems().map(c=>c.n),...CATALOG.flatMap(c=>c.items.map(i=>i.n))];
+    const lib=libFlat().map(i=>i.n);
     const named=items.map(it=>lib.find(n=>n.toLowerCase()===it)||it[0].toUpperCase()+it.slice(1));
     const dup=named.filter(n=>openItem(n)), fresh=named.filter(n=>!openItem(n));
     if(!fresh.length) return R(`${dup.join(', ')} ${dup.length>1?'staan':'staat'} al op het lijstje.`,['boodschappen']);
@@ -4121,8 +4173,11 @@ const ACT={
     if(it) toast(`${itemInfo(it.name).e} ${it.name} in de kar`,null,()=>upd('shopping',v,{done:false}));
     if(!S.shopping.some(x=>!x.done)){ setTimeout(()=>{confetti();chime(523);setTimeout(()=>chime(659),110);setTimeout(()=>chime(784),220);toast('🛒 Alles in de kar! Het lijstje is leeg.')},400); }},
   'shop-edit':v=>{const i=S.shopping.find(x=>x.id===v);if(i)shopItemSheet(i)},
+  'lib-edit':()=>{ui.libEdit=!ui.libEdit;vib(8);render()},
+  'prod-edit':v=>prodSheet(v),
+  'prod-new':()=>prodSheet(null),
   'lib-tap':async(v,t)=>{const fromSearch=!!t.closest('#s-results');const o=openItem(v);if(fromSearch){ui.shopQ='';}if(o&&!fromSearch)await boughtItem(o.id);else if(!o)await addItem(v);else toast(`${v} staat al op het lijstje`);if(fromSearch)scheduleRender()},
-  'shop-add-q':async()=>{const q=($('#s-q')?.value||'').trim();if(!q)return;const hit=[...customItems(),...CATALOG.flatMap(c=>c.items)].find(i=>i.n.toLowerCase()===q.toLowerCase());ui.shopQ='';await addItem(hit?hit.n:q[0].toUpperCase()+q.slice(1));scheduleRender()},
+  'shop-add-q':async()=>{const q=($('#s-q')?.value||'').trim();if(!q)return;const hit=libFlat().find(i=>i.n.toLowerCase()===q.toLowerCase());ui.shopQ='';await addItem(hit?hit.n:q[0].toUpperCase()+q.slice(1));scheduleRender()},
   'stock-go':v=>{closeSheet();ui.view='food';ui.foodTab='voorraad';vib(8);render();setTimeout(()=>{const el=document.querySelector(`.stock[data-sid="${CSS.escape(v)}"]`);if(!el)return;el.scrollIntoView({behavior:'smooth',block:'center'});el.classList.remove('flash');void el.offsetWidth;el.classList.add('flash')},60)},
   'stock-edit':v=>{closeSheet();stockSheet(v?S.stock.find(x=>x.id===v):null)},
   'stock-tpl':v=>{const t=STOCK_TEMPLATES[Number(v)];if(t)stockSheet(null,Object.assign({},t))},
