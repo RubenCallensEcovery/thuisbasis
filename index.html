@@ -1189,6 +1189,16 @@ html[data-style="bauhaus"] .chip[aria-pressed="true"]{background:color-mix(in sr
 html[data-style="bauhaus"] .chip[aria-pressed="true"] .dot{background:var(--cc)!important}
 html[data-style="bauhaus"] #sheet .panel{border-top:3px solid var(--bh-blue)}
 html[data-style="bauhaus"] .ev{border-left:3px solid var(--evc);border-top:1px solid var(--line);border-right:1px solid var(--line);border-bottom:1px solid var(--line)}
+/* home-tegels in dezelfde vorm als de agenda: rechte hoeken, dunne lijn, kleurstreep links */
+html[data-style="bauhaus"] .tt-rt span,html[data-style="bauhaus"] .wd2-rt span,html[data-style="bauhaus"] .mini-chips span,html[data-style="bauhaus"] .pill-ev{border-radius:0}
+html[data-style="bauhaus"] .tt-rt span{background:var(--surface-2);padding:4px 10px}
+html[data-style="bauhaus"] .today-t .tt-now{border-radius:0;background:var(--surface);border:1px solid var(--line);border-left:3px solid var(--mecol)}
+html[data-style="bauhaus"] .tt-list{gap:6px}
+html[data-style="bauhaus"] .tt-row{border-radius:0;background:var(--surface);box-shadow:none;border:1px solid var(--line);border-left:3px solid var(--evc);padding:8px 10px}
+html[data-style="bauhaus"] .pill-ev{background:var(--surface);border:1px solid var(--line);border-left:3px solid var(--evc)}
+html[data-style="bauhaus"] .food-d{border-radius:0;background:var(--surface);border:1px solid var(--line);border-left:3px solid var(--c-nant)}
+html[data-style="bauhaus"] .food-d:active{transform:none;background:var(--surface-2)}
+html[data-style="bauhaus"] .food-school{border-radius:0;background:var(--surface-2)}
 html[data-style="bauhaus"] .mcell{border-color:var(--line)}
 html[data-style="bauhaus"] .mcell[aria-pressed="true"]{outline:2px solid var(--ink);outline-offset:-2px}
 html[data-style="bauhaus"] .mcell.vacd::before{background:color-mix(in srgb,var(--bh-yellow) 35%,transparent);border-color:color-mix(in srgb,var(--bh-yellow) 80%,#000 10%)}
