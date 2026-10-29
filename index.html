@@ -2234,11 +2234,11 @@ function renderStock(){
     const onList=!!openItem(s.name);
     return `<div class="stock card" data-sid="${esc(s.id)}" style="--sc:${st==='late'?'var(--danger)':st==='soon'?'var(--warn)':'var(--ok)'}">
       <div class="row" style="align-items:flex-start"><span class="sem" aria-hidden="true">${stockEmoji(s)}</span>
-        <div class="main" style="flex:1;min-width:0"><div class="t" style="font-weight:700;font-size:16px">${esc(s.name)}</div><div class="s muted" style="font-size:13px">${esc(stockLine(s))}</div></div>
+        <div class="main ${kid?'':'tap'}" style="flex:1;min-width:0" ${kid?'':`data-act="stock-edit" data-v="${s.id}" role="button" tabindex="0" title="Aanpassen"`}><div class="t" style="font-weight:700;font-size:16px">${esc(s.name)}</div><div class="s muted" style="font-size:13px">${esc(stockLine(s))}</div></div>
         <span class="tag ${st}">${tagTxt}</span></div>
       <div class="gauge" role="img" aria-label="Geschatte voorraad ${c?Math.round(c.frac*100):0}%"><i style="width:${c?Math.round(c.frac*100):0}%"></i></div>
       <div class="row" style="font-size:13px;flex-wrap:wrap"><span class="muted">${!c?'Tik op "Net gekocht" om te starten.':c.remaining!=null?`Nog ±${fmtNum(c.remaining)} ${esc(s.unit)} · op rond ${dshort(c.due)}`:`Volgende keer: ${dshort(c.due)}`}</span><span class="sp"></span>${onList?'<span class="tag" style="background:var(--listed);color:var(--on-listed)">op het lijstje</span>':''}</div>
-      ${kid?'':`<div class="row" style="flex-wrap:wrap;gap:8px"><button class="btn sm primary" data-act="stock-bought" data-v="${s.id}">${icon('check')} Net gekocht</button><button class="btn sm" data-act="stock-adjust" data-v="${s.id}">Bijstellen</button><span class="sp"></span><button class="icon-btn sm" data-act="stock-edit" data-v="${s.id}" aria-label="Instellingen">${icon('file')}</button></div>`}
+      ${kid?'':`<div class="row" style="flex-wrap:wrap;gap:8px"><button class="btn sm primary" data-act="stock-bought" data-v="${s.id}">${icon('check')} Net gekocht</button><button class="btn sm" data-act="stock-adjust" data-v="${s.id}">Bijstellen</button><span class="sp"></span><button class="btn sm" data-act="stock-edit" data-v="${s.id}">Aanpassen</button></div>`}
     </div>`}).join('')}</div>`;
   if(!kid){
     const used=new Set(S.stock.map(s=>s.name.toLowerCase()));
