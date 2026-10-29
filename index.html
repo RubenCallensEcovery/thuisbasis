@@ -1918,7 +1918,7 @@ const customItems=()=>setting('customItems').list||[];
 function itemInfo(name){ const k=(name||'').toLowerCase().trim(); return LIBMAP[k]||{e:'🛒',c:'Eigen items'}; }
 const openItem=name=>S.shopping.find(x=>!x.done&&x.name.toLowerCase()===name.toLowerCase());
 let shopStore=ls.get('tb_store','')||null;
-const curStore=()=>{const st=stores();return st.includes(shopStore)?shopStore:st[0]};
+const curStore=()=>{const st=stores();return st.includes(shopStore)?shopStore:''};   /* winkel is optioneel: standaard geen */
 
 async function addItem(name,extra={}){
   name=name.trim(); if(!name) return;
@@ -1947,17 +1947,17 @@ function renderShop(){
   let h=`<div class="shop-search card">
     <div class="row"><input class="in" id="s-q" value="${esc(ui.shopQ||'')}" placeholder="Zoek of typ iets nieuws…" autocomplete="off" enterkeyhint="done" aria-label="Zoek in de bibliotheek">
     <button class="btn primary" data-act="shop-add-q" aria-label="Toevoegen">${icon('plus')}</button></div>
-    <div class="row" style="flex-wrap:wrap;gap:6px"><span class="lbl">Nieuwe items naar</span><select class="in sm-sel" id="s-store" aria-label="Winkel voor nieuwe items">${st.map(x=>`<option ${cs===x?'selected':''}>${esc(x)}</option>`).join('')}</select><span class="sp"></span><button class="btn sm" data-act="stores">Winkels</button></div>
+    <div class="row" style="flex-wrap:wrap;gap:6px"><span class="lbl">Winkel (optioneel)</span><select class="in sm-sel" id="s-store" aria-label="Winkel voor nieuwe items"><option value="" ${cs?'':'selected'}>Geen winkel</option>${st.map(x=>`<option ${cs===x?'selected':''}>${esc(x)}</option>`).join('')}</select><span class="sp"></span><button class="btn sm" data-act="stores">Winkels</button></div>
   </div>
   <div id="s-results" hidden><div class="sec-h"><h2>Zoekresultaten</h2></div><div class="tiles-s" id="s-res-tiles"></div></div>
   <div id="s-normal">${stockLowStrip()}
   <div class="sec-h"><h2>Op het lijstje</h2><span class="tag">${open.length}</span><span class="sp"></span></div>`;
   if(!open.length) h+=`<div class="card"><p class="empty"><b>Het lijstje is leeg.</b> Tik hieronder op wat je nodig hebt, of zoek bovenaan. Tik op een rood tegeltje als het in je kar ligt.</p></div>`;
-  const groups=[...st,...new Set(open.map(i=>i.store).filter(s=>!st.includes(s)))];
+  const groups=['',...st,...new Set(open.map(i=>i.store).filter(s=>s&&!st.includes(s)))];
   for(const g of groups){
-    const its=open.filter(i=>(i.store||'Andere')===g).sort((a,b)=>CATALOG.findIndex(c=>c.name===itemInfo(a.name).c)-CATALOG.findIndex(c=>c.name===itemInfo(b.name).c)||a.name.localeCompare(b.name));
+    const its=open.filter(i=>(i.store||'')===g).sort((a,b)=>CATALOG.findIndex(c=>c.name===itemInfo(a.name).c)-CATALOG.findIndex(c=>c.name===itemInfo(b.name).c)||a.name.localeCompare(b.name));
     if(!its.length) continue;
-    h+=`<div class="store-h">${icon('cart')}${esc(g)} <span class="n">${its.length}</span></div><div class="tiles-s">${its.map(i=>tile(i.name,itemInfo(i.name).e,{on:true,qty:i.qty||(i.recipe?'voor '+i.recipe:''),id:i.id,act:'shop-bought'})).join('')}</div>`;
+    h+=`${g?`<div class="store-h">${icon('cart')}${esc(g)} <span class="n">${its.length}</span></div>`:''}<div class="tiles-s" ${g?'':'style="margin-top:10px"'}>${its.map(i=>tile(i.name,itemInfo(i.name).e,{on:true,qty:i.qty||(i.recipe?'voor '+i.recipe:''),id:i.id,act:'shop-bought'})).join('')}</div>`;
   }
   const seen=new Set(), recent=items.filter(x=>x.done).sort((a,b)=>(b.doneAt||0)-(a.doneAt||0)).filter(x=>{const k=x.name.toLowerCase();if(seen.has(k)||openItem(x.name))return false;seen.add(k);return true}).slice(0,18);
   if(recent.length) h+=`<div class="sec-h"><h2>Recent gekocht</h2><span class="sp"></span><button class="btn sm ghost" data-act="shop-clear">Wissen</button></div><div class="tiles-s">${recent.map(i=>tile(i.name,itemInfo(i.name).e,{sub:i.store})).join('')}</div>`;
@@ -1984,9 +1984,9 @@ function shopItemSheet(it){
   const st=stores();
   openSheet(it.name,`<div class="form">
     <label class="field"><span>Hoeveel / welke</span><input class="in" id="si-qty" value="${esc(it.qty||'')}" placeholder="Bv. 2 stuks, 1 kg, de bio-versie"></label>
-    <div class="field"><span>Winkel</span>${chips('store',st.map(s=>({v:s,l:s})),[it.store||st[0]],false)}</div>
+    <div class="field"><span>Winkel</span>${chips('store',[{v:'-',l:'Geen'},...st.map(s=>({v:s,l:s}))],[it.store||'-'],false)}</div>
     <p class="muted" style="font-size:13px;margin:0">Op het lijstje gezet door ${esc(nm(it.by))} · ${ago(it.at)}${it.recipe?' · voor '+esc(it.recipe):''}</p></div>`,{
-    onSave:async p=>{ await upd('shopping',it.id,{qty:p.querySelector('#si-qty').value.trim(),store:chipVals(p,'store')[0]||it.store}); },
+    onSave:async p=>{ await upd('shopping',it.id,{qty:p.querySelector('#si-qty').value.trim(),store:(v=>v==='-'?'':v)(chipVals(p,'store')[0]||'-')}); },
     onDelete:async()=>del('shopping',it.id)});
 }
 
@@ -2114,7 +2114,7 @@ function stockSheet(s,tpl){
     <div class="frow"><label class="field"><span>Je koopt telkens</span><input class="in" id="k-buy" type="number" step="0.01" min="0" inputmode="decimal" value="${esc(s.buyQty)}"></label>
       <label class="field"><span>Waarschuw … dagen vooraf</span><input class="in" id="k-warn" type="number" min="0" value="${esc(s.warnDays??2)}"></label></div>
     <p class="muted" id="k-calc" style="margin:0;font-size:13.5px"></p>
-    <label class="field"><span>Winkel</span><select class="in" id="k-store">${st.map(x=>`<option ${s.store===x?'selected':''}>${esc(x)}</option>`).join('')}</select></label>
+    <label class="field"><span>Winkel</span><select class="in" id="k-store"><option value="" ${s.store?'':'selected'}>Geen winkel</option>${st.map(x=>`<option ${s.store===x?'selected':''}>${esc(x)}</option>`).join('')}</select></label>
     <label class="check"><input type="checkbox" id="k-auto" ${s.auto!==false?'checked':''}> Automatisch op het boodschappenlijstje zetten</label>
     ${isNew?`<label class="field"><span>Laatst gekocht (om de teller te starten)</span><input class="in" type="date" id="k-last" value="${today()}"></label>`:''}
   </div>`;
@@ -2800,7 +2800,7 @@ function stateDump(){
   L.push(`Vandaag is ${dlong(t)} ${parse(t).getFullYear()} (${t}), het is ${hhmm(Date.now())}. De gebruiker die vraagt is ${nm(me)} (${par?'ouder':'kind'}).`);
   L.push(`Gezin: ${MEMBERS.map(m=>`${m.name}${m.label?' ('+m.label+')':''}${m.born?' geboren '+m.born:''}`).join(', ')}. Huisdieren: ${pets().map(p=>p.name).join(', ')||'geen'}.`);
   L.push(`\nAGENDA (komende 60 dagen, per dag):\n${agendaDump(t,60)}`);
-  L.push(`\nBOODSCHAPPENLIJST: ${S.shopping.filter(x=>!x.done).map(x=>`${x.name}${x.qty?' ('+x.qty+')':''} [${x.store}]`).join('; ')||'leeg'}`);
+  L.push(`\nBOODSCHAPPENLIJST: ${S.shopping.filter(x=>!x.done).map(x=>`${x.name}${x.qty?' ('+x.qty+')':''}${x.store?' ['+x.store+']':''}`).join('; ')||'leeg'}`);
   const low=lowStock(); if(low.length) L.push(`BIJNA OP: ${low.map(({s,c})=>`${s.name} (${c.left} d)`).join(', ')}`);
   if(par){
     L.push(`KLUSJES OPEN: ${S.tasks.filter(x=>!x.done).map(x=>`${x.title}${x.prio==='hoog'?' (belangrijk)':''}${x.who&&x.who!=='samen'?' → '+nm(x.who):''}${x.due?' tegen '+x.due:''}`).join('; ')||'geen'}`);
@@ -3143,7 +3143,7 @@ function answer(raw){
   /* boodschappenlijst / voorraad */
   if(hasPart(q,'bijna op','voorraad','raakt op','op is')){ const low=lowStock(); return R(low.length?`Bijna op: ${low.map(({s,c})=>`**${s.name}** (${c.left<=0?'op':c.left===1?'morgen':'nog '+c.left+' dagen'})`).join(', ')}.`:'Niets is bijna op volgens de voorraad.',['voorraad']); }
   if(hasPart(q,'boodschap','lijstje','lijst','kopen','winkel')){ const open=S.shopping.filter(x=>!x.done); if(!open.length) return R('Het boodschappenlijstje is leeg.',['boodschappen']);
-    const by={}; open.forEach(x=>(by[x.store||'Andere']=by[x.store||'Andere']||[]).push(x.name+(x.qty?' ('+x.qty+')':'')));
+    const by={}; open.forEach(x=>(by[x.store||'Zonder winkel']=by[x.store||'Zonder winkel']||[]).push(x.name+(x.qty?' ('+x.qty+')':'')));
     return R(`Er staan ${open.length} dingen op het lijstje:\n${Object.entries(by).map(([s,l])=>`- **${s}**: ${l.join(', ')}`).join('\n')}`,['boodschappen']); }
 
   /* regelen / klusjes / ritme */
