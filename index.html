@@ -648,6 +648,10 @@ a.btn{text-decoration:none;color:inherit}
 .rem b{font-variant-numeric:tabular-nums}.rem .rem-w{color:var(--muted);font-weight:500}
 .rem.done{background:var(--surface-2);color:var(--muted);text-decoration:line-through}
 .rem-done{display:flex;gap:4px;flex-wrap:wrap}
+.rem-line{display:flex;align-items:center;gap:6px}
+.rem-tick{flex:none;width:24px;height:24px;border:1.5px solid var(--muted);border-radius:50%;background:var(--surface);cursor:pointer;padding:0}
+.rem-tick:hover{border-color:var(--ok);background:color-mix(in srgb,var(--ok) 12%,var(--surface))}
+html[data-style="bauhaus"] .rem-tick{border-radius:0;border:1px solid var(--line)}
 .rem-ok{border:0;width:24px;height:24px;border-radius:50%;display:grid;place-items:center;background:color-mix(in srgb,var(--ok) 14%,var(--surface));color:var(--ok);cursor:pointer;padding:0}
 .rem-ok svg.i{width:13px;height:13px}
 html[data-style="bauhaus"] .rem-ok{border-radius:0;background:var(--surface-2);color:var(--muted);border:1px solid var(--line)}
@@ -1434,7 +1438,7 @@ const remsOn=d=>(S.reminders||[]).filter(r=>r.date===d&&(isParent(me)||(r.who||[
 const remDue=r=>{const now=new Date(), t=today(); if(r.done) return false; if(r.date<t) return true; if(r.date>t) return false; return hhmm(now.getTime())>=(r.time||'08:00');};
 function remChips(d){ const rs=remsOn(d); if(!rs.length) return '';
   const open=rs.filter(r=>!r.done), done=rs.filter(r=>r.done);
-  return `<div class="rem-row">${open.map(r=>`<button class="rem" data-act="rem-edit" data-v="${esc(r.id)}" title="Herinnering"><span class="rem-i">🔔</span>${r.time?`<b>${esc(r.time)}</b> `:''}${esc(r.title)}${(r.who||[]).length&&!(r.who.length===1&&r.who[0]===me)?` <span class="rem-w">· ${esc(names(r.who))}</span>`:''}</button>`).join('')}${done.length?`<div class="rem-done">${done.map(r=>`<button class="rem-ok" data-act="rem-edit" data-v="${esc(r.id)}" title="Voltooid: ${esc(r.title)}" aria-label="Voltooide herinnering: ${esc(r.title)}">${icon('check')}</button>`).join('')}</div>`:''}</div>`; }
+  return `<div class="rem-row">${open.map(r=>`<div class="rem-line"><button class="rem-tick" data-act="rem-done" data-v="${esc(r.id)}" aria-label="${esc(r.title)} afvinken" title="Afvinken"></button><button class="rem" data-act="rem-edit" data-v="${esc(r.id)}" title="Herinnering"><span class="rem-i">🔔</span>${r.time?`<b>${esc(r.time)}</b> `:''}${esc(r.title)}${(r.who||[]).length&&!(r.who.length===1&&r.who[0]===me)?` <span class="rem-w">· ${esc(names(r.who))}</span>`:''}</button></div>`).join('')}${done.length?`<div class="rem-done">${done.map(r=>`<button class="rem-ok" data-act="rem-edit" data-v="${esc(r.id)}" title="Voltooid: ${esc(r.title)}" aria-label="Voltooide herinnering: ${esc(r.title)}">${icon('check')}</button>`).join('')}</div>`:''}</div>`; }
 function reminderSheet(r,day,preset){
   const isNew=!r; r=r||Object.assign({title:'',date:day||today(),time:'',who:[me],done:false},preset||{});
   const opts=MEMBERS.filter(m=>isParent(me)||m.id===me).map(m=>({v:m.id,l:m.name,c:col(m.id),dot:1}));
