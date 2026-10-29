@@ -20,7 +20,7 @@
     const s = document.createElement('style'); s.id = 'tb-login-css';
     s.textContent = `#tb-login{position:fixed;inset:0;z-index:100;display:grid;place-items:center;background:#F4F0E6;font-family:Jost,Futura,system-ui,sans-serif;padding:24px}
 #tb-login form{width:100%;max-width:360px;display:flex;flex-direction:column;gap:12px}
-#tb-login .lg{display:flex;gap:6px;align-items:center;margin-bottom:6px}#tb-login .lg i{width:16px;height:16px;display:inline-block}
+#tb-login .lg{display:flex;justify-content:center;margin-bottom:14px}#tb-login .lg i{width:16px;height:16px;display:inline-block}
 #tb-login h1{font-size:28px;font-weight:500;margin:0 0 4px;color:#141414}#tb-login p{margin:0 0 8px;color:#5E5A52;font-size:15px;line-height:1.4}
 #tb-login input{font:inherit;font-size:16px;padding:12px 14px;border:1px solid rgba(20,20,20,.25);background:#fff;border-radius:0}
 #tb-login button{font:inherit;font-size:16px;padding:12px;border:0;background:#141414;color:#fff;cursor:pointer}
@@ -31,8 +31,8 @@
     return new Promise(resolve => {
       css();
       const d = document.createElement('div'); d.id = 'tb-login';
-      d.innerHTML = `<form autocomplete="on"><div class="lg"><i style="background:#D7301F;border-radius:50%"></i><i style="background:#1D4E9E"></i><i style="width:0;height:0;border-left:8px solid transparent;border-right:8px solid transparent;border-bottom:15px solid #F3C11B"></i></div>
-        ${ENV === 'test' ? '<div class="env">Testversie</div>' : ''}<h1>Thuisbasis</h1><p>Log één keer in met het gezinsaccount. Daarna kies je gewoon wie je bent.</p>
+      d.innerHTML = `<form autocomplete="on"><div class="lg"><svg viewBox="125 95 770 725" width="120" height="113" fill="none" stroke="#141414" stroke-width="36" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M400 293 L419 130 Q482 200 503 272"/><path d="M548 295 L565 130 Q628 200 650 280 Q790 330 798 552"/><path d="M355 348 Q395 290 470 282 L548 295"/><circle cx="178" cy="305" r="29"/><path d="M355 348 L204 326 L182 432 L224 402 L258 437 L292 410 L326 440 L360 410 L396 440 L420 414 L455 498"/><path d="M455 498 L426 516 L396 494 L362 524 L330 494 L296 524 L262 494 L228 524 L194 494 L210 580 L465 606 L610 546 L562 512 L652 466 L582 432 L662 402"/><path d="M455 375 Q490 330 525 380"/><path d="M364 622 L322 676 L404 690 L350 722 L426 706 L378 790"/><path d="M735 515 L862 622 L768 602 L857 716"/><path d="M711 680 L744 754"/></svg></div>
+        ${ENV === 'test' ? '<div class="env">Testversie</div>' : ''}<p>Log één keer in met het gezinsaccount. Daarna kies je gewoon wie je bent.</p>
         <input type="email" name="email" placeholder="E-mailadres gezinsaccount" autocomplete="username" required>
         <input type="password" name="password" placeholder="Wachtwoord" autocomplete="current-password" required>
         <div class="err" role="alert"></div><button type="submit">Inloggen</button></form>`;
