@@ -4,6 +4,8 @@
 import { createClient } from "npm:@supabase/supabase-js@2.117.3";
 import webpush from "npm:web-push@3.6.7";
 
+// publieke push-sleutel (mag publiek zijn; staat ook in de app)
+const VAPID_PUBLIC = "BCwJmmh6jsmr2uKlwLha5DxQGrlFxLpOPitqGWaDY7YWpyYbGIMGKs5LvoRurLom2efREUKbT5fNYEqhKOaLphs";
 const PARENTS = ["charlotte", "ruben"];
 const KIDS = ["nant", "abel", "max"];
 const NAMES: Record<string, string> = { charlotte: "Charlotte", ruben: "Ruben", nant: "Nant", abel: "Abel", max: "Max" };
@@ -18,9 +20,13 @@ const HOLIDAYS: [string, string, string?][] =[ /* bron: vlaanderen.be, schoolvak
 ];
 
 Deno.serve(async (req) => {
-  if (req.headers.get("x-cron-secret") !== Deno.env.get("CRON_SECRET")) return new Response("nee", { status: 401 });
+  const cronSecret = String(Deno.env.get("CRON_SECRET") || "").split("=").pop()!.replace(/["'\s]/g, "");
+  if (!cronSecret || req.headers.get("x-cron-secret") !== cronSecret) return new Response("nee", { status: 401 });
   const sb = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
-  webpush.setVapidDetails(Deno.env.get("VAPID_SUBJECT") || "mailto:gezin@example.com", Deno.env.get("VAPID_PUBLIC")!, Deno.env.get("VAPID_PRIVATE")!);
+  // geheimen opkuisen (spaties of "NAAM =" die per ongeluk mee geplakt werden)
+  const clean = (v?: string) => String(v || "").split("=").pop()!.replace(/["'\s]/g, "");
+  const subj = String(Deno.env.get("VAPID_SUBJECT") || "").match(/mailto:\S+/)?.[0] || "mailto:gezin@example.com";
+  webpush.setVapidDetails(subj, VAPID_PUBLIC, clean(Deno.env.get("VAPID_PRIVATE")));
 
   const { data: subs } = await sb.from("push_subs").select("*");
   if (!subs || !subs.length) return new Response("geen toestellen");

@@ -18,7 +18,7 @@ Deno.serve(async (req) => {
   const { data: who, error: authErr } = await admin.auth.getUser(jwt);
   if (authErr || !who || !who.user) return json({ error: { message: "Niet ingelogd" } }, 401);
 
-  const key = Deno.env.get("ANTHROPIC_API_KEY");
+  const key = String(Deno.env.get("ANTHROPIC_API_KEY") || "").split("=").pop()!.replace(/["'\s]/g, "");
   if (!key) return json({ error: { message: "ANTHROPIC_API_KEY ontbreekt in de Supabase-geheimen." } }, 500);
 
   let body: any;
