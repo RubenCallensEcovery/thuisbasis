@@ -1375,7 +1375,7 @@ function scheduleRender(){ if(rq) return; if(ui.view==='settings'&&ui.dirty) ret
 function birthdays(){
   return MEMBERS.filter(m=>m.born).map(m=>({id:'bd-'+m.id,virtual:true,title:'Verjaardag '+m.name,who:[m.id],date:m.born,repeat:'yearly',allDay:true,type:'Feest'}));
 }
-const allEvents=()=>[...S.events,...birthdays(),...holidayEvents(),...careEvents()];
+const allEvents=()=>[...S.events,...birthdays(),...holidayEvents(),...feestdagEvents(),...careEvents()];
 function startMatches(ev,s){
   const dd=diffDays(s,ev.date); if(dd<0) return false;
   if(ev.until && s>ev.until) return false;
@@ -1706,6 +1706,7 @@ function eventSheet(ev,day,preset){
   const isNew=!ev; ev=ev||Object.assign({who:[],type:'Afspraak',date:day||today(),allDay:false,start:'',end:'',repeat:'none'},preset||{});
   if(ev.virtual==='waste'){ wasteSheet(); return; }
   if(ev.virtual==='school'||ev.virtual==='schoolx'){ schoolDaySheet(day); return; }
+  if(ev.virtual==='holiday'&&ev.fd){ openSheet(ev.title,`<p>${dlong(ev.date)}</p><p class="muted">${ev.fd==='wettelijk'?'Wettelijke feestdag in België: een vrije dag.':'Feestdag in België (geen vrije dag).'} Die staat automatisch in de agenda.</p>`); return; }
   if(ev.virtual==='holiday'){ openSheet(ev.title,`<p>${ev.endDate?`${dlong(ev.date)} tot en met ${dlong(ev.endDate)}`:dlong(ev.date)}</p><p class="muted">Officiële schoolvakantie of vrije dag in Vlaanderen. Die staat automatisch in de agenda; je zet ze uit bij Instellingen → School.</p>`); return; }
   if(ev.virtual){ openSheet(evTitle(ev,day),`<p>${dlong(day)}</p><p class="muted">Verjaardagen staan automatisch in de agenda. Je past ze aan bij Instellingen → Gezin.</p>`); return; }
   const canEdit=isParent(me);
@@ -2343,7 +2344,7 @@ const EV_EMO={Opvang:'🧸',Afval:'🗑️',Match:'⚽',Training:'🏅',Vrij:'�
 function nextFun(kid){
   const t=today();
   for(let i=0;i<=90;i++){ const d=addDays(t,i);
-    const o=eventsOn(d,kid?new Set([me]):null).find(o=>o.k===0&&(isBd(o.ev)||FUN_TYPES.includes(o.ev.type)));
+    const o=eventsOn(d,kid?new Set([me]):null).find(o=>o.k===0&&(isBd(o.ev)||(FUN_TYPES.includes(o.ev.type)&&(!o.ev.fd||['Sinterklaas','Kerstavond','Pasen','Halloween'].includes(o.ev.title)))));
     if(o) return {...o,n:i};
   }
   return null;
@@ -2615,6 +2616,25 @@ const SKIPHOL={'':'Niets overslaan',feest:'Wettelijke feestdagen overslaan',scho
 function skipHolOn(ev,d){ return ev.skipHol==='school'?!!(holidayOn(d)||feestdag(d)):ev.skipHol==='feest'?!!feestdag(d):false; }
 const daysTxt=ds=>{const a=[...(ds||[])].map(Number).sort((x,y)=>((x+6)%7)-((y+6)%7));const k=a.join();if(k==='1,2,3,4,5')return 'ma–vr';if(k==='1,2,3,4,5,6,0')return 'elke dag';return a.map(x=>DAYS[x]).join(', ')};
 function holidayOn(d){ for(const [t,a,b] of HOLIDAYS){ if(d>=a&&d<=(b||a)) return {title:t,date:a,endDate:b||''}; } return null; }
+/* alle feestdagen in België: de 10 wettelijke (vrije dagen) + Pasen, Pinksteren en de gekende gezinsfeestdagen */
+let _fdCache=null;
+function feestdagEvents(){
+  const y0=new Date().getFullYear(); if(_fdCache&&_fdCache.y===y0) return _fdCache.list;
+  const out=[], hol=new Set(HOLIDAYS.filter(h=>!h[2]).map(h=>h[1]));
+  const nthSun=(y,m,n)=>{let d=new Date(Date.UTC(y,m-1,1));while(d.getUTCDay()!==0)d.setUTCDate(d.getUTCDate()+1);d.setUTCDate(d.getUTCDate()+7*(n-1));return d.toISOString().slice(0,10)};
+  for(let y=y0-1;y<=y0+2;y++){
+    const e=easter(y), L=[
+      [`${y}-01-01`,'Nieuwjaar',1],[addDays(e,1),'Paasmaandag',1],[`${y}-05-01`,'Dag van de Arbeid',1],[addDays(e,39),'O.-H.-Hemelvaart',1],
+      [addDays(e,50),'Pinkstermaandag',1],[`${y}-07-21`,'Nationale feestdag',1],[`${y}-08-15`,'O.-L.-V.-Hemelvaart',1],[`${y}-11-01`,'Allerheiligen',1],
+      [`${y}-11-11`,'Wapenstilstand',1],[`${y}-12-25`,'Kerstmis',1],
+      [e,'Pasen',0],[addDays(e,49),'Pinksteren',0],[`${y}-07-11`,'Feest van de Vlaamse Gemeenschap',0],[`${y}-01-06`,'Driekoningen',0],
+      [`${y}-02-14`,'Valentijn',0],[nthSun(y,5,2),'Moederdag',0],[nthSun(y,6,2),'Vaderdag',0],[`${y}-10-31`,'Halloween',0],
+      [`${y}-11-02`,'Allerzielen',0],[`${y}-12-06`,'Sinterklaas',0],[`${y}-12-24`,'Kerstavond',0],[`${y}-12-26`,'Tweede kerstdag',0],[`${y}-12-31`,'Oudejaarsavond',0]];
+    for(const [d,t,legal] of L){ if(legal&&hol.has(d)) continue;
+      out.push({id:'fd-'+d+'-'+t.length,virtual:'holiday',fd:legal?'wettelijk':'feest',title:t,who:[...ALL],date:d,endDate:'',repeat:'none',allDay:true,type:legal?'Vrij':'Feest'}); }
+  }
+  _fdCache={y:y0,list:out}; return out;
+}
 function holidayEvents(){
   const c=schoolCfg(); if(!c.holidays) return [];
   const who=schoolKidsOn(); if(!who.length) return [];
