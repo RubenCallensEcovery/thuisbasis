@@ -1306,6 +1306,12 @@ html[data-kid] .nav button[aria-current="page"]{color:color-mix(in srgb,var(--kc
 .ti-item span{font-weight:400;color:var(--muted)}
 .ti-sep{color:var(--muted)}
 html[data-kid] .ter-info{border-radius:14px;border-left:0}
+
+/* congé op een werkdag */
+.conge-box{display:flex;align-items:center;gap:12px;justify-content:space-between;padding:12px 14px;margin-bottom:14px;background:var(--surface-2)}
+.conge-box div{display:flex;flex-direction:column}.conge-box span{font-size:13px;color:var(--muted)}
+.conge-box.on{background:color-mix(in srgb,var(--ok,#2f9e44) 14%,var(--surface))}
+html[data-kid] .conge-box{border-radius:16px}
 </style>
 
 </head><body>
@@ -1473,7 +1479,7 @@ function eventsOn(day,filter){
     if(!ev||!ev.date) continue;
     if(ev.squad&&ev.sel==='nee') continue;
     if(filter && !(ev.who||[]).some(w=>filter.has(w))) continue;
-    const o=occurs(ev,day); if(o&&(!ev.care||careRuns(ev,day))&&!(ev.skipHol&&skipHolOn(ev,day))) out.push({ev,day,...o});
+    const o=occurs(ev,day); if(o&&(!ev.care||careRuns(ev,day))&&!(ev.skipHol&&skipHolOn(ev,day))) out.push({ev:(ev.conge||[]).includes(day)?Object.assign({},ev,{title:'Congé',start:'',end:'',allDay:true,congeDay:day}):ev,day,...o});
   }
   for(const ev of wasteEntries(day)){ if(filter && !ev.who.some(w=>filter.has(w))) continue; out.push({ev,day,k:0,len:0}); }
   for(const ev of schoolEntries(day)){ if(filter && !ev.who.some(w=>filter.has(w))) continue; out.push({ev,day,k:0,len:0}); }
@@ -1786,13 +1792,15 @@ function eventSheet(ev,day,preset){
   if(ev.virtual==='holiday'){ openSheet(ev.title,`<p>${ev.endDate?`${dlong(ev.date)} tot en met ${dlong(ev.endDate)}`:dlong(ev.date)}</p><p class="muted">Officiële schoolvakantie of vrije dag in Vlaanderen. Die staat automatisch in de agenda; je zet ze uit bij Instellingen → School.</p>`); return; }
   if(ev.virtual){ openSheet(evTitle(ev,day),`<p>${dlong(day)}</p><p class="muted">Verjaardagen staan automatisch in de agenda. Je past ze aan bij Instellingen → Gezin.</p>`); return; }
   const canEdit=isParent(me);
+  const cg=!isNew&&ev.type==='Werk'&&ev.repeat&&ev.repeat!=='none'&&day?(ev.conge||[]).includes(day):null;
+  const congeBox=cg===null?'':`<div class="conge-box ${cg?'on':''}"><div><b>${cg?'Congé':'Werkdag'}</b><span>${dlong(day)}</span></div><button type="button" class="btn ${cg?'':'primary'}" data-act="conge-toggle" data-v="${esc(ev.id)}|${day}">${cg?'Toch werken':'Congé deze dag'}</button></div><p class="set-note" style="margin:-6px 0 12px">Let op: wat je hieronder aanpast en opslaat, geldt voor élke werkweek.</p>`;
   if(!canEdit){
     openSheet(ev.title,`<div class="form"><div class="row">${avs(ev.who)}<span>${esc(names(ev.who))}</span></div>
       <div><b>${dlong(day)}</b>${ev.allDay?'':' · '+esc(ev.start||'')+(ev.end?' – '+esc(ev.end):'')}</div>
       ${ev.place?`<div class="row">${icon('pin')} ${esc(ev.place)} <a class="btn sm" href="${esc(extLink.route(ev.place).url)}" target="_blank" rel="noopener noreferrer">🧭 Route</a></div>`:''}${ev.note?`<p>${esc(ev.note)}</p>`:''}
       <p class="muted" style="font-size:13px">Toegevoegd door ${esc(nm(ev.by))}.</p></div>`); return;
   }
-  const body=`<div class="form">
+  const body=`${congeBox}<div class="form">
     ${!isNew&&ev.squad?`<div class="match-box form" style="gap:8px"><div class="field"><span>Selectie ${esc(names((ev.who||[]).filter(w=>!PARENTS.includes(w))))} · ${esc(ev.squad)}${ev.sel==='ja'?' · ✅ speelt':ev.sel==='nee'?' · speelt niet':' · nog niet bekend'}</span>
       <div class="row" style="gap:6px;flex-wrap:wrap"><button type="button" class="btn sm ${ev.sel==='ja'?'primary':''}" data-act="squad-pick" data-v="${esc(ev.id)}|ja">✅ Speelt deze match</button><button type="button" class="btn sm ${ev.sel==='nee'?'primary':''}" data-act="squad-pick" data-v="${esc(ev.id)}|nee">❌ Speelt niet</button>${ev.sel?`<button type="button" class="btn sm ghost" data-act="squad-pick" data-v="${esc(ev.id)}|reset">↺ Nog niet bekend</button>`:''}</div></div>
       <p class="set-note" style="margin:0">Uit de RBFA-kalender (via foot24.be), wekelijks bijgewerkt. Duid per match aan of Nant speelt: hij kan ook voor beide ploegen geselecteerd zijn. Een match waarvoor hij niet speelt, verdwijnt uit de agenda.</p></div>`:''}
@@ -3005,7 +3013,7 @@ function parsePeople(q){
 }
 const whoName=ids=>ids.length===1&&ids[0]===me?'je':names(ids);
 function evShort(o){ const ev=o.ev; return `${ev.allDay||!ev.start?'hele dag':ev.start+(ev.end?'–'+ev.end:'')}: ${evTitle(ev,o.day)}${(ev.who||[]).length&&(ev.who||[]).length<ALL.length?' ('+names(ev.who)+')':''}`; }
-function busyFor(o,who){ const ev=o.ev; if(!(ev.who||[]).includes(who)) return false; if(ev.allDay&&(ev.type==='Vakantie'||ev.virtual==='holiday'||ev.virtual==='schoolx'||isBd(ev)||ev.virtual==='waste')) return false; return true; }
+function busyFor(o,who){ const ev=o.ev; if(ev.congeDay) return false; if(!(ev.who||[]).includes(who)) return false; if(ev.allDay&&(ev.type==='Vakantie'||ev.virtual==='holiday'||ev.virtual==='schoolx'||isBd(ev)||ev.virtual==='waste')) return false; return true; }
 const link=(k,date)=>({k,date:date||'',label:NAV_TARGETS[k]+(date?' ('+dshort(date)+')':'')});
 
 
@@ -4009,6 +4017,7 @@ const ACT={
   'ag-sel':v=>{ if(ui.agSel===v&&isParent(me)){ vib(8); eventSheet(null,v); return; } ui.agSel=v; render(); },
   'ag-filter':v=>{ if(ui.filter.size===ALL.length){ui.filter=new Set([v])} else if(ui.filter.has(v)){ui.filter.delete(v); if(!ui.filter.size) ui.filter=new Set(ALL)} else ui.filter.add(v); render(); },
   'ev-new':v=>{closeSheet();eventSheet(null,v||(ui.view==='agenda'&&ui.agMode==='month'?ui.agSel:today()))},
+  'conge-toggle':async v=>{const [id,day]=v.split('|');const ev=S.events.find(x=>x.id===id);if(!ev)return;const l=new Set(ev.conge||[]);const on=!l.has(day);on?l.add(day):l.delete(day);await upd('events',id,{conge:[...l].filter(d=>d>=addDays(today(),-60)).sort()});closeSheet();vib(12);toast(on?`Congé op ${dshort(day)} 🌴`:`Toch werken op ${dshort(day)}`);if(on)log(`neemt congé op ${dshort(day)}`)},
   'ev-edit':v=>{const [id,day]=v.split('|');if(id.startsWith('care-')){const c=S.care.find(x=>'care-'+x.id===id);if(c){if(isParent(me))careSheet(c,day);else openSheet(careKind(c.kind)[2]+' '+(c.carer||'Opvang'),`<p>${dlong(day)}${c.start?' · '+esc(c.start)+'–'+esc(c.end||''):''}</p>${c.note?`<p>${esc(c.note)}</p>`:''}`)}return}if(id.startsWith('waste-')){wasteSheet();return}if(id.startsWith('sch-')||id.startsWith('schx-')){schoolDaySheet(day);return}const ev=allEvents().find(e=>e.id===id);if(ev)eventSheet(ev,day)},
   'school-save':()=>schoolSave(),
   'waste-open':()=>wasteSheet(),
