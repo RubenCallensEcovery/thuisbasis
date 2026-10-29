@@ -12,7 +12,7 @@ alter table public.docs replica identity full;
 
 -- velden samenvoegen (gedeeltelijk bijwerken)
 create or replace function public.doc_merge(p_col text, p_id text, p_patch jsonb)
-returns void language sql security invoker as $$
+returns void language sql security invoker set search_path = public as $$
   insert into public.docs(col, id, data) values (p_col, p_id, p_patch)
   on conflict (col, id) do update set data = public.docs.data || excluded.data, updated_at = now();
 $$;
