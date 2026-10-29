@@ -8,8 +8,8 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Thuisbasis">
 <link rel="manifest" href="manifest.webmanifest">
-<link rel="icon" href="icons/icon-192.png">
-<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="icon" href="icons/v2/icon-192.png">
+<link rel="apple-touch-icon" href="icons/v2/apple-touch-icon.png">
 <style>
 /* vlakke (flat) emoji op elk toestel: Twemoji, enkel voor emoji-tekens */
 @font-face{font-family:"TBEmoji";src:url("fonts/twemoji.woff2") format("woff2");font-display:swap;
@@ -1237,6 +1237,7 @@ html[data-style="bauhaus"] .cb.bot{border-color:var(--line)}
 </style>
 
 </head><body>
+<div id="splash" aria-hidden="true" style="position:fixed;inset:0;z-index:90;display:grid;place-items:center;background:#F4F0E6;transition:opacity .3s"><img src="icons/v2/icon-512.png" alt="" width="220" height="220" style="width:220px;height:220px"></div>
 <div id="root" class="app"></div>
 <script>if(window.TB_ENV==='test'){const r=document.createElement('div');r.textContent='TESTVERSIE';r.style.cssText='position:fixed;top:calc(env(safe-area-inset-top,0px) + 4px);left:50%;transform:translateX(-50%);z-index:60;background:#D7301F;color:#fff;font:600 10px/1 system-ui;letter-spacing:.14em;padding:4px 8px;pointer-events:none';document.body.appendChild(r);document.title='Thuisbasis TEST';}</script>
 <div id="sheet" hidden></div>
@@ -1490,6 +1491,7 @@ const mealOf=day=>S.meals.find(m=>m.id===day);
 /* ============ render ============ */
 function render(){
   const root=$('#root');
+  { const sp=document.getElementById('splash'); if(sp&&!sp.dataset.go){ sp.dataset.go=1; const wait=Math.max(0,700-(performance.now()||0)); setTimeout(()=>{sp.style.opacity='0';setTimeout(()=>sp.remove(),320)},wait); } }
   if(!me){ root.innerHTML=renderLogin(); return; }
   document.documentElement.style.setProperty('--mecol',col(me));
   const kid=!isParent(me);
