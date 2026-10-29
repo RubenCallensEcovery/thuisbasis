@@ -1495,8 +1495,30 @@ function render(){
   if(ui.view==='food'&&ui.foodTab==='lijst'&&ui.shopQ) shopSearch(ui.shopQ);
   if(ui.view==='food'&&ui.foodTab==='recepten'&&ui.recQ) recFilter(ui.recQ);
   if(ui.view==='settings'){ const st=document.querySelector('.stab[aria-selected="true"]'); if(st&&st.parentNode){ const bar=st.parentNode;  } }
+  histSync();
   tick();
 }
+/* ---------- terug-knop / terug-swipe: naar het vorige scherm in de app i.p.v. de app sluiten ---------- */
+const navHist={key:null};
+const histKey=()=>JSON.stringify({v:ui.view,f:ui.foodTab,h:ui.houseTab});
+function histSync(){
+  const k=histKey();
+  try{
+    if(navHist.key===null){ history.replaceState({tb:k,root:1},''); history.pushState({tb:k},''); navHist.key=k; return; }
+    if(k!==navHist.key){ history.pushState({tb:k},''); navHist.key=k; }
+  }catch(e){}
+}
+window.addEventListener('popstate',e=>{
+  const st=e.state&&e.state.tb?e.state:null;
+  if(!me) return;
+  const sh=$('#sheet');
+  if(sh&&!sh.hidden){ closeSheet(); try{history.pushState({tb:navHist.key},'')}catch(x){} return; }   /* eerst het open venster sluiten */
+  if(!st) return;
+  if(st.root&&st.tb===navHist.key){ toast('Nog eens terug om de app te sluiten'); return; }
+  const o=JSON.parse(st.tb); navHist.key=st.tb;
+  ui.view=o.v; if(o.f) ui.foodTab=o.f; if(o.h) ui.houseTab=o.h; ui.dirty=false;
+  render(); window.scrollTo(0,0);
+});
 
 function renderLogin(){
   return `<div class="login">
