@@ -1320,7 +1320,7 @@ const MEMBERS=[
 const MID=Object.fromEntries(MEMBERS.map(m=>[m.id,m]));
 const ALL=MEMBERS.map(m=>m.id), PARENTS=['charlotte','ruben'], SCHOOLKIDS=['nant','abel'];
 const col=id=>`var(--c-${id})`;
-const nm=id=>MID[id]?.name||(id==='auto'?'Voorraad':'Iemand');
+const nm=id=>MID[id]?.name||(id==='auto'?'Voorraad':id==='sync'?'Google Agenda':'Iemand');
 const names=ids=>{ if(!ids||!ids.length) return ''; if(ALL.every(i=>ids.includes(i))) return 'iedereen'; const n=ids.map(nm); return n.length>1? n.slice(0,-1).join(', ')+' en '+n.at(-1) : n[0]; };
 const isParent=id=>PARENTS.includes(id);
 

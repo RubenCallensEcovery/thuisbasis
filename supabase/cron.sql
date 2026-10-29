@@ -10,3 +10,14 @@ select cron.schedule(
        body := '{}'::jsonb
      ); $$
 );
+
+-- Google Agenda → Thuisbasis, elke 15 minuten (functie gcal; geheimen GCAL_RUBEN en GCAL_CHARLOTTE = geheime iCal-adressen).
+select cron.schedule(
+  'thuisbasis-agenda-sync',
+  '*/15 * * * *',
+  $$ select net.http_post(
+       url := 'PROJECT_URL/functions/v1/gcal',
+       headers := jsonb_build_object('Content-Type', 'application/json', 'x-cron-secret', 'CRON_SECRET'),
+       body := '{}'::jsonb, timeout_milliseconds := 60000
+     ); $$
+);

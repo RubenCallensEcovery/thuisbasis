@@ -27,3 +27,6 @@ Live zetten = `test` samenvoegen in `main` (pull request), opnieuw met controle.
 
 ## Emoji
 Vlakke emoji via het Twemoji-lettertype (`fonts/twemoji.woff2`, twemoji-colr-font 15.0.3). Grafiek © Twitter/X en medewerkers, CC-BY 4.0; lettertype onder SIL OFL (zie `fonts/LICENSE-twemoji.txt`).
+
+## Google Agenda-synchronisatie
+Functie `supabase/functions/gcal` haalt elke 15 minuten de agenda's van Ruben en Charlotte op via hun geheime iCal-adres (geheimen `GCAL_RUBEN` en `GCAL_CHARLOTTE`) en zet nieuwe afspraken in Thuisbasis. Eén richting; dubbels worden overgeslagen; titels om te negeren staan in `settings/gcal.ignore`.
