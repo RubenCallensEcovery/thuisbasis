@@ -1806,7 +1806,7 @@ function renderAgenda(){
       ${infos.length?`<div class="ter-info">${infos.map(o=>`<button class="ti-item" data-act="ev-edit" data-v="${esc(o.ev.id)}|${sel}">${esc(o.ev.title)}${o.ev.endDate&&o.ev.endDate!==o.ev.date?` <span>${dshort(o.ev.date)} – ${dshort(o.ev.endDate)}</span>`:''}</button>`).join('<span class="ti-sep">·</span>')}</div>`:''}
       ${meal?`<div class="meal-line">${icon('food').replace('class="i "','class="i " style="width:16px;height:16px"')}<b>${esc(meal.title)}</b></div>`:''}${smOf(sel)?`<div class="meal-line"><span>School: <b>${esc(smText(smOf(sel)))}</b></span></div>`:''}
       ${remChips(sel)}<div class="evlist">${evList(evs,sel,'<p class="empty">Niks extra gepland op deze dag.</p>')}</div>
-      <button class="btn rem-btn" style="margin-top:12px;margin-right:6px" data-act="rem-new" data-v="${sel}" aria-label="Herinnering instellen" title="Herinnering">${icon('bell')}</button>${isParent(me)?`<button class="btn primary" style="margin-top:12px" data-act="ev-new" data-v="${sel}">${icon('plus')} Nieuwe afspraak op ${dshort(sel)}</button><p class="set-note">Tip: tik nog eens op een gekozen dag om meteen iets toe te voegen.</p>`:''}</div></div>`;
+      <button class="btn rem-btn" style="margin-top:12px;margin-right:6px" data-act="rem-new" data-v="${sel}" aria-label="Herinnering instellen" title="Herinnering">${icon('bell')}</button>${isParent(me)?`<button class="btn primary" style="margin-top:12px" data-act="ev-new" data-v="${sel}">${icon('plus')} Nieuwe afspraak op ${dshort(sel)}</button>`:''}</div></div>`;
   }
   return h;
 }
