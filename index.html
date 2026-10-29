@@ -739,7 +739,7 @@ html[data-style="bauhaus"] .rem-ok{border-radius:0;background:var(--surface-2);c
 /* maand inklappen */
 .day-nav{gap:6px}
 .day-nav .icon-btn{background:var(--surface-2);flex:none}
-.day-nav .dn{min-width:0}
+.day-nav .dn{min-width:0;min-height:2.5em;display:flex;align-items:center}
 .ag-split{display:flex;flex-direction:column;gap:14px;overflow-x:clip;overflow-clip-margin:6px}
 @media (min-width:900px){.ag-split{display:grid;grid-template-columns:1.4fr 1fr;gap:18px;align-items:start}}
 .mc-bar{display:flex;align-items:center;gap:4px;margin-bottom:6px}
@@ -1510,8 +1510,19 @@ function render(){
   if(ui.view==='food'&&ui.foodTab==='recepten'&&ui.recQ) recFilter(ui.recQ);
   if(ui.view==='settings'){ const st=document.querySelector('.stab[aria-selected="true"]'); if(st&&st.parentNode){ const bar=st.parentNode;  } }
   histSync();
+  fitDayPanel();
   tick();
 }
+/* dagpaneel in de agenda: altijd minstens tot onderaan het scherm, zodat de pagina niet verspringt bij het swipen tussen dagen */
+function fitDayPanel(){
+  const dp=document.querySelector('.day-panel'); if(!dp) return;
+  if(innerWidth>=900){ dp.style.minHeight=''; return; }
+  const nav=document.querySelector('.nav'), navH=nav?nav.getBoundingClientRect().height:0;
+  const top=dp.getBoundingClientRect().top+scrollY;
+  const keep=ui._keepH||0; ui._keepH=0;   /* bij swipen tussen dagen: niet korter worden dan de vorige dag */
+  dp.style.minHeight=Math.max(240,keep,Math.round(innerHeight-navH-top-16))+'px';
+}
+addEventListener('resize',()=>fitDayPanel());
 /* ---------- terug-knop / terug-swipe: naar het vorige scherm in de app i.p.v. de app sluiten ---------- */
 const navHist={key:null};
 const histKey=()=>JSON.stringify({v:ui.view,f:ui.foodTab,h:ui.houseTab});
@@ -3884,7 +3895,7 @@ const ACT={
   'ag-step':v=>{ const n=Number(v); if(ui.agMode==='week'){ ui.agStart=addDays(ui.agStart||today(),7*n); ui.agAnchor=ui.agStart; ui.wkReset=1; } else {const a=parse(ui.agAnchor);ui.agAnchor=iso(new Date(a.getFullYear(),a.getMonth()+n,1)); ui.agSel=ui.agAnchor;} render(); },
   'ag-month':v=>{const a=parse(ui.agAnchor);const d=iso(new Date(a.getFullYear(),a.getMonth()+Number(v),1));const t=today();ui.agAnchor=d.slice(0,7)===t.slice(0,7)?t:d;ui.agSel=ui.agAnchor;if(ui.agMode==='week'){ui.agStart=ui.agAnchor;ui.wkReset=1;}vib(8);render()},
   'ag-today':()=>{ui.agAnchor=today();ui.agSel=today();ui.agStart=today();ui.wkReset=1;render()},
-  'ag-day':v=>{ui.agSel=addDays(ui.agSel,Number(v));ui.agAnchor=ui.agSel;vib(8);render()},
+  'ag-day':v=>{const dp=document.querySelector('.day-panel');ui._keepH=dp?Math.round(dp.getBoundingClientRect().height):0;ui.agSel=addDays(ui.agSel,Number(v));ui.agAnchor=ui.agSel;vib(8);render()},
   'ag-coll':()=>{ui.mColl=!ui.mColl;ls.set('tb_mcoll2',ui.mColl);vib(8);render()},
   'ag-wk':v=>{ui.agSel=addDays(ui.agSel,7*Number(v));ui.agAnchor=ui.agSel;render()},
   'ag-sel':v=>{ if(ui.agSel===v&&isParent(me)){ vib(8); eventSheet(null,v); return; } ui.agSel=v; render(); },
