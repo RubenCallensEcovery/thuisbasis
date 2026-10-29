@@ -1495,6 +1495,9 @@ function eventsOn(day,filter){
       if((ev.werkX||[]).includes(day)&&workOffDay(ev,day)){ out.push({ev,day,k:0,len:0}); continue; }
       if(workOffDay(ev,day)){ const key=(ev.who||[]).join(',')+'|'+ev.type; if(!offSeen.has(key)){ offSeen.add(key); out.push({ev:congeOf(ev,{offDay:true}),day,k:0,len:0}); } continue; }
       if(runs) out.push({ev:(ev.conge||[]).includes(day)?congeOf(ev):ev,day,...o});
+      /* één dag weggehaald ('enkel deze dag' of verwijderd) = ook congé, tenzij er die dag een aparte werk-afspraak staat */
+      else if((ev.skip||[]).includes(day)&&startMatches(Object.assign({},ev,{skip:[]}),day)&&!(ev.skipHol&&skipHolOn(ev,day))&&!S.events.some(x=>x.id!==ev.id&&x.type===ev.type&&x.date===day&&(x.who||[]).some(w=>(ev.who||[]).includes(w))))
+        out.push({ev:congeOf(ev,{skipped:true}),day,k:0,len:0});
       continue;
     }
     if(runs) out.push({ev,day,...o});
@@ -1821,7 +1824,7 @@ function eventSheet(ev,day,preset){
   if(ev.virtual){ openSheet(evTitle(ev,day),`<p>${dlong(day)}</p><p class="muted">Verjaardagen staan automatisch in de agenda. Je past ze aan bij Instellingen → Gezin.</p>`); return; }
   const canEdit=isParent(me);
   let congeBox='';
-  if(!isNew&&day&&isWorkSeries(ev)){ const off=workOffDay(ev,day), extra=(ev.werkX||[]).includes(day), cg=(ev.conge||[]).includes(day);
+  if(!isNew&&day&&isWorkSeries(ev)){ const off=workOffDay(ev,day), extra=(ev.werkX||[]).includes(day), cg=(ev.conge||[]).includes(day)||(ev.skip||[]).includes(day);
     const cr=ev.type==='Crèche';
     const [lab,btn,act,free]=cr?(off?(extra?['Extra crèchedag','Toch thuis','werk-toggle',false]:['Thuis (weekend of feestdag)','Toch naar de crèche','werk-toggle',true]):(cg?['Thuis','Toch naar de crèche','conge-toggle',true]:['Crèchedag','Niet naar de crèche','conge-toggle',false])):(off?(extra?['Extra werkdag','Toch vrij','werk-toggle',false]:['Congé (weekend of feestdag)','Toch werken','werk-toggle',true]):(cg?['Congé','Toch werken','conge-toggle',true]:['Werkdag','Congé deze dag','conge-toggle',false]));
     congeBox=`<div class="conge-box ${free?'on':''}"><div><b>${lab}</b><span>${dlong(day)}</span></div><button type="button" class="btn ${free?'':'primary'}" data-act="${act}" data-v="${esc(ev.id)}|${day}">${btn}</button></div><p class="set-note" style="margin:-6px 0 12px">Let op: wat je hieronder aanpast en opslaat, geldt voor élke week.</p>`; }
@@ -4057,7 +4060,7 @@ const ACT={
   'ag-filter':v=>{ if(ui.filter.size===ALL.length){ui.filter=new Set([v])} else if(ui.filter.has(v)){ui.filter.delete(v); if(!ui.filter.size) ui.filter=new Set(ALL)} else ui.filter.add(v); render(); },
   'ev-new':v=>{closeSheet();eventSheet(null,v||(ui.view==='agenda'&&ui.agMode==='month'?ui.agSel:today()))},
   'werk-toggle':async v=>{const [id,day]=v.split('|');const ev=S.events.find(x=>x.id===id);if(!ev)return;const l=new Set(ev.werkX||[]);const on=!l.has(day);on?l.add(day):l.delete(day);await upd('events',id,{werkX:[...l].filter(d=>d>=addDays(today(),-60)).sort()});closeSheet();vib(12);const cr=ev.type==='Crèche', who=names(ev.who);toast(cr?(on?`${who} gaat toch naar de crèche op ${dshort(day)}`:`${who} blijft thuis op ${dshort(day)}`):(on?`Toch werken op ${dshort(day)}`:`Vrij op ${dshort(day)} 🌴`));if(on)log(cr?`${who} gaat toch naar de crèche op ${dshort(day)}`:`werkt toch op ${dshort(day)}`)},
-  'conge-toggle':async v=>{const [id,day]=v.split('|');const ev=S.events.find(x=>x.id===id);if(!ev)return;const l=new Set(ev.conge||[]);const on=!l.has(day);on?l.add(day):l.delete(day);await upd('events',id,{conge:[...l].filter(d=>d>=addDays(today(),-60)).sort()});closeSheet();vib(12);const cr=ev.type==='Crèche', who=names(ev.who);toast(cr?(on?`${who} blijft thuis op ${dshort(day)}`:`${who} gaat toch naar de crèche op ${dshort(day)}`):(on?`Congé op ${dshort(day)} 🌴`:`Toch werken op ${dshort(day)}`));if(on)log(cr?`${who} gaat niet naar de crèche op ${dshort(day)}`:`neemt congé op ${dshort(day)}`)},
+  'conge-toggle':async v=>{const [id,day]=v.split('|');const ev=S.events.find(x=>x.id===id);if(!ev)return;const l=new Set(ev.conge||[]);const on=!(l.has(day)||(ev.skip||[]).includes(day));on?l.add(day):l.delete(day);await upd('events',id,Object.assign({conge:[...l].filter(d=>d>=addDays(today(),-60)).sort()},(ev.skip||[]).includes(day)?{skip:(ev.skip||[]).filter(d=>d!==day)}:{}));closeSheet();vib(12);const cr=ev.type==='Crèche', who=names(ev.who);toast(cr?(on?`${who} blijft thuis op ${dshort(day)}`:`${who} gaat toch naar de crèche op ${dshort(day)}`):(on?`Congé op ${dshort(day)} 🌴`:`Toch werken op ${dshort(day)}`));if(on)log(cr?`${who} gaat niet naar de crèche op ${dshort(day)}`:`neemt congé op ${dshort(day)}`)},
   'ev-edit':v=>{const [id,day]=v.split('|');if(id.startsWith('care-')){const c=S.care.find(x=>'care-'+x.id===id);if(c){if(isParent(me))careSheet(c,day);else openSheet(careKind(c.kind)[2]+' '+(c.carer||'Opvang'),`<p>${dlong(day)}${c.start?' · '+esc(c.start)+'–'+esc(c.end||''):''}</p>${c.note?`<p>${esc(c.note)}</p>`:''}`)}return}if(id.startsWith('waste-')){wasteSheet();return}if(id.startsWith('sch-')||id.startsWith('schx-')){schoolDaySheet(day);return}const ev=allEvents().find(e=>e.id===id);if(ev)eventSheet(ev,day)},
   'school-save':()=>schoolSave(),
   'waste-open':()=>wasteSheet(),
