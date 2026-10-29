@@ -1312,6 +1312,10 @@ html[data-kid] .ter-info{border-radius:14px;border-left:0}
 .conge-box div{display:flex;flex-direction:column}.conge-box span{font-size:13px;color:var(--muted)}
 .conge-box.on{background:color-mix(in srgb,var(--ok,#2f9e44) 14%,var(--surface))}
 html[data-kid] .conge-box{border-radius:16px}
+
+svg.rti{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:9;stroke-linecap:round;stroke-linejoin:round;vertical-align:-2px;margin-right:4px;flex:none}
+.tt-rt span{display:inline-flex;align-items:center}
+.wd2-rt span svg.rti{width:12px;height:12px;margin-right:2px;color:var(--text)}
 </style>
 
 </head><body>
@@ -1692,7 +1696,7 @@ function renderHome(){
   const nowEv=timed.find(o=>o.ev.start<=hm&&(o.ev.end||'23:59')>hm), nextEv=timed.find(o=>o.ev.start>hm);
   h+=T('w2 h2 today-t','nav','agenda',`${head('📅','Vandaag','var(--mecol)')}
     ${nowEv||nextEv?`<div class="tt-now">${nowEv?`<span class="tt-k">Nu</span><b>${esc(evTitle(nowEv.ev,t))}</b><span>tot ${esc(nowEv.ev.end||'?')}</span>`:`<span class="tt-k">Straks · ${esc(nextEv.ev.start)}</span><b>${esc(evTitle(nextEv.ev,t))}</b><span>${nextEv.ev.place?esc(nextEv.ev.place):names(nextEv.ev.who)}</span>`}</div>`:''}
-    ${todayRt.length?`<div class="tt-rt">${todayRt.map(o=>`<span title="${esc(rtLabel(o.ev))}">${esc(o.ev.virtual==='school'?'School':(o.ev.congeDay?'Congé ':'')+(o.ev.who||[]).map(nm).join(', '))}</span>`).join('')}</div>`:''}
+    ${todayRt.length?`<div class="tt-rt">${todayRt.map(o=>`<span title="${esc(rtLabel(o.ev))}">${rtIco(o.ev)}${esc(o.ev.virtual==='school'?'School':(o.ev.congeDay?'Congé ':'')+(o.ev.who||[]).map(nm).join(', '))}</span>`).join('')}</div>`:''}
     <div class="tt-list">${todayEv.length?todayEv.slice(0,6).map(o=>`<div class="tt-row ${!o.ev.allDay&&o.ev.start&&(o.ev.end||o.ev.start)<hm?'past':''}" style="--evc:${evColor(o.ev)}"><span class="tt-time">${o.ev.allDay||!o.ev.start?'dag':esc(o.ev.start)}</span><span class="tt-title">${esc(evTitle(o.ev,t))}</span><span class="tt-dots">${(o.ev.who||[]).slice(0,4).map(w=>`<em style="background:${col(w)}"></em>`).join('')}</span></div>`).join(''):`<p class="empty" style="padding:6px 0">Niks gepland. ${kid?'Lekker vrij!':''}</p>`}${todayEv.length>6?`<span class="muted" style="font-size:12px">+${todayEv.length-6} meer</span>`:''}</div>
     ${tomEv.length?`<div class="tt-tom"><span class="lbl">Morgen</span> ${tomEv.slice(0,3).map(o=>`<span class="pill-ev" style="--evc:${evColor(o.ev)}">${o.ev.start&&!o.ev.allDay?esc(o.ev.start)+' ':''}${esc(evTitle(o.ev,addDays(t,1)))}</span>`).join('')}</div>`:''}`);
   /* één ding */
@@ -2517,6 +2521,14 @@ function personSheet(id){
 
 /* vaste routine (werk, crèche) niet in het weekoverzicht */
 const isRoutine=ev=>(ev.virtual==='school'&&!ev.exc)||(ev.repeat&&ev.repeat!=='none'&&(ev.info||ev.type==='Werk'||ev.type==='Crèche'||(ev.care&&/cr[eè]che|kinderopvang/i.test(ev.title+' '+(S.care.find(c=>c.id===ev.careId)||{}).kind))));
+/* kleine getekende icoontjes (zelfde stijl als Jonah) voor werk, school, crèche, congé */
+const RT_I={werk:'<rect x="12" y="32" width="76" height="52" rx="7"/><path d="M36 32 V20 H64 V32"/><path d="M12 54 H88"/><path d="M46 54 V62 H54 V54"/>',
+ school:'<path d="M10 46 L50 16 L90 46"/><path d="M20 40 V86 H80 V40"/><path d="M42 86 V64 H58 V86"/><circle cx="50" cy="40" r="6"/>',
+ creche:'<circle cx="28" cy="30" r="10"/><circle cx="72" cy="30" r="10"/><circle cx="50" cy="56" r="28"/><path d="M41 62 Q50 72 59 62"/><path d="M40 48 v1 M60 48 v1"/>',
+ conge:'<circle cx="50" cy="50" r="16"/><path d="M50 10 V20 M50 80 V90 M10 50 H20 M80 50 H90 M22 22 L29 29 M71 71 L78 78 M22 78 L29 71 M71 29 L78 22"/>',
+ info:'<path d="M14 48 L50 16 L86 48"/><path d="M24 40 V84 H76 V40"/>'};
+const rtKey=ev=>ev.congeDay?'conge':ev.info?'info':ev.virtual==='school'?'school':ev.care||ev.type==='Crèche'?'creche':'werk';
+const rtIco=ev=>`<svg class="rti" viewBox="0 0 100 100" aria-hidden="true">${RT_I[rtKey(ev)]}</svg>`;
 const rtEmo=ev=>ev.info?(ev.e||'🏠'):ev.virtual==='school'?'🏫':ev.care||ev.type==='Crèche'?'🧸':'💼';
 const rtLabel=ev=>ev.virtual==='school'?'School':ev.care?(S.care.find(c=>c.id===ev.careId)||{}).carer||'Opvang':ev.title;
 function rtChips(list,day){ if(!list.length) return '';
@@ -2541,7 +2553,7 @@ function weekStrip(kid){
       ${band.length?`<span class="wd2-band" style="--evc:${evColor(band[0].ev)}">${EV_EMO[band[0].ev.type]||'✨'} ${esc(band[0].ev.title)}</span>`:''}
       <span class="wd2-list">${show.map(o=>`<span class="wd2-ev" style="--evc:${evColor(o.ev)}"><i class="wd2-dots">${(o.ev.who||[]).slice(0,4).map(w=>`<em style="background:${col(w)}"></em>`).join('')}</i><span class="wd2-tt">${isBd(o.ev)?'🎂 ':o.ev.type==='Match'||o.ev.type==='Training'?sportOf(o.ev).e+' ':o.ev.virtual==='schoolx'?'🎈 ':''}${o.ev.allDay||!o.ev.start?'':`<b>${esc(o.ev.start)}</b> `}${esc(isBd(o.ev)?'Verjaardag':o.ev.type==='Match'?(o.ev.squad?o.ev.squad.replace(/^U\d+\s*/,'')+' ':'')+(o.ev.opponent?'vs '+o.ev.opponent:o.ev.title)+(isCand(o.ev)?' ❔':''):o.ev.type==='Training'?(o.ev.title||'Training'):o.ev.title)}</span></span>`).join('')}
       ${items.length>max?`<span class="wd2-more">+${items.length-max} meer</span>`:''}${!items.length&&!band.length?'<span class="wd2-free">Vrij</span>':''}</span>
-      ${(()=>{const r=evs.filter(o=>isRoutine(o.ev));if(!r.length)return '';const g={};r.forEach(o=>{const e=rtEmo(o.ev);g[e]=(g[e]||[]).concat(o.ev.who||[])});return `<span class="wd2-rt">${Object.entries(g).map(([e,w])=>`<span>${e}${[...new Set(w)].slice(0,3).map(x=>`<em style="background:${col(x)}"></em>`).join('')}</span>`).join('')}</span>`})()}
+      ${(()=>{const r=evs.filter(o=>isRoutine(o.ev));if(!r.length)return '';const g={};r.forEach(o=>{const e=rtIco(o.ev);g[e]=(g[e]||[]).concat(o.ev.who||[])});return `<span class="wd2-rt">${Object.entries(g).map(([e,w])=>`<span>${e}${[...new Set(w)].slice(0,3).map(x=>`<em style="background:${col(x)}"></em>`).join('')}</span>`).join('')}</span>`})()}
       ${meal?`<span class="wd2-meal">🍽️ ${esc(meal.title)}</span>`:''}
     </button>`;
   }
