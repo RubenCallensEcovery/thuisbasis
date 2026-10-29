@@ -3196,6 +3196,8 @@ function briefing(){
   return out+`\n${P.length?'Samen krijgen we dat vlot geregeld. Zal ik je ergens mee helpen?':'Geniet ervan! Vraag maar als je iets wil weten.'}`;
 }
 function chatSheet(prefill){
+  /* elke keer dat Jonah opent: een nieuw gesprek */
+  if(!chat.busy){ if(chat.ctl) try{chat.ctl.abort()}catch(e){} chat.turns=[]; chat.links=[]; chat.actions=[]; chat.intro=''; }
   openSheet('Vraag het Jonah',`<div class="chat"><div class="chat-log" id="chat-log" aria-live="polite"></div>
     <form class="chat-in" id="chat-form"><input class="in" id="chat-q" placeholder="Bv. Ben ik vrijdagavond vrij?" autocomplete="off" enterkeyhint="send"><button class="btn primary" id="chat-send" type="submit" aria-label="Verstuur">${icon('right')}</button><button class="btn" id="chat-stop" type="button" hidden>Stop</button></form>
     ${chat.turns.length?'<button type="button" class="btn sm ghost" id="chat-new" style="align-self:center">Nieuw gesprek</button>':''}</div>`,{lead:WOLF(),mount:p=>{
