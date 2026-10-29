@@ -1088,10 +1088,13 @@ html[data-style="bauhaus"] .top{background:var(--bg);backdrop-filter:none;-webki
 html[data-style="bauhaus"] .brand{font-weight:600;text-transform:uppercase;letter-spacing:.12em;font-size:16px}
 html[data-style="bauhaus"] .brand .dots{gap:4px}
 html[data-style="bauhaus"] .brand .dots i{width:11px;height:11px;border-radius:0}
-html[data-style="bauhaus"] .brand .dots i:nth-child(1){background:var(--bh-red);border-radius:50%}
-html[data-style="bauhaus"] .brand .dots i:nth-child(2){background:var(--bh-blue)}
-html[data-style="bauhaus"] .brand .dots i:nth-child(3){background:transparent;width:0;height:0;border-left:6px solid transparent;border-right:6px solid transparent;border-bottom:11px solid var(--bh-yellow)}
-html[data-style="bauhaus"] .brand .dots i:nth-child(n+4){display:none}
+/* vijf vormen, één per gezinslid, in de kleur van die persoon */
+html[data-style="bauhaus"] .brand .dots{align-items:center}
+html[data-style="bauhaus"] .brand .dots i{background:var(--mc)}
+html[data-style="bauhaus"] .brand .dots i:nth-child(1){border-radius:50%}
+html[data-style="bauhaus"] .brand .dots i:nth-child(3){background:transparent;width:0;height:0;border-left:6px solid transparent;border-right:6px solid transparent;border-bottom:11px solid var(--mc)}
+html[data-style="bauhaus"] .brand .dots i:nth-child(4){width:12px;height:6px;border-radius:12px 12px 0 0;align-self:center}
+html[data-style="bauhaus"] .brand .dots i:nth-child(5){width:8px;height:8px;transform:rotate(45deg);margin:0 1px}
 /* grote titels: strak, hoofdletters */
 html[data-style="bauhaus"] .hello h1{font-weight:600;text-transform:uppercase;letter-spacing:.02em;font-size:clamp(28px,7vw,40px);line-height:1}
 html[data-style="bauhaus"] .hello h1 em{color:var(--bh-red)}
@@ -1343,7 +1346,7 @@ async function del(c,id){
   }catch(e){ failed(e); }
 }
 const setting=id=>S.settings.find(x=>x.id===id)||{};
-const DEFAULT_STORES=['Colruyt','Delhaize','Aldi','Lidl','Bakker','Slager','Apotheek','Andere'];
+const DEFAULT_STORES=['Colruyt','Delhaize','Carrefour','Aldi','Lidl','Bakker','Slager','Apotheek','Andere'];
 const stores=()=>{const l=setting('stores').list;return l&&l.length?l:DEFAULT_STORES};
 
 /* meldingen */
