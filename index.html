@@ -10,7 +10,11 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icons/icon-192.png">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
-<style>[hidden]:not([hidden=until-found i]){display:none!important}body{margin:0}html{padding-top:env(safe-area-inset-top,0px)}</style>
+<style>
+/* vlakke (flat) emoji op elk toestel: Twemoji, enkel voor emoji-tekens */
+@font-face{font-family:"TBEmoji";src:url("fonts/twemoji.woff2") format("woff2");font-display:swap;
+  unicode-range:U+203C,U+2049,U+2139,U+2194-2199,U+21A9-21AA,U+231A-231B,U+2328,U+23CF,U+23E9-23F3,U+23F8-23FA,U+24C2,U+25AA-25AB,U+25B6,U+25C0,U+25FB-25FE,U+2600-27BF,U+2934-2935,U+2B05-2B07,U+2B1B-2B1C,U+2B50,U+2B55,U+3030,U+303D,U+3297,U+3299,U+200D,U+20E3,U+FE0F,U+1F000-1FAFF,U+E0020-E007F}
+[hidden]:not([hidden=until-found i]){display:none!important}body{margin:0}html{padding-top:env(safe-area-inset-top,0px)}</style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.3/dist/umd/supabase.js"></script>
 <script src="config.js"></script>
 <script src="runtime.js"></script>
@@ -23,8 +27,8 @@
   --bg:#F1F4F9; --surface:#FFFFFF; --surface-2:#E8EDF5; --ink:#151B31; --muted:#5B6480; --line:#DCE2ED;
   --primary:#151B31; --on-primary:#FFFFFF; --danger:#CC3535; --ok:#178F52; --warn:#B86E00;
   --listed:#D9483B; --on-listed:#FFFFFF; --c-charlotte:#DB3F76; --c-ruben:#2C6FCB; --c-nant:#CF8600; --c-abel:#1F9858; --c-max:#8550D3; --c-all:#4A5370;
-  --f-display:"Fredoka","Trebuchet MS",system-ui,sans-serif;
-  --f-body:"Figtree",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --f-display:"TBEmoji","Fredoka","Trebuchet MS",system-ui,sans-serif;
+  --f-body:"TBEmoji","Figtree",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
   --r:18px; --nav-h:68px;
   --shadow:0 1px 2px rgba(21,27,49,.06),0 6px 20px rgba(21,27,49,.06);
 }
@@ -734,7 +738,7 @@ a.btn{text-decoration:none;color:inherit}
 .ag-mnav .mc-toggle{margin-left:10px;flex:none}
 .mc-foot{display:flex;justify-content:flex-end;align-items:center;gap:10px;margin-top:6px}
 .mc-foot .today-btn{margin-left:0;width:32px;height:34px}
-.mc-up{border:0;width:36px;height:36px;border-radius:50%;background:var(--surface-2);display:grid;place-items:center;cursor:pointer;color:var(--text)}
+.mc-up{border:0;width:34px;height:34px;border-radius:8px;background:var(--surface-2);display:grid;place-items:center;cursor:pointer;color:var(--text)}
 .mc-up svg.i{transform:rotate(-90deg);width:20px;height:20px;transition:transform .2s}
 .mc-up.down svg.i{transform:rotate(90deg)}
 .mc-up:hover{background:color-mix(in srgb,var(--text) 12%,var(--surface-2))}
@@ -865,8 +869,8 @@ a.btn{text-decoration:none;color:inherit}
   --bg:#F2F2F7; --surface:#FFFFFF; --surface-2:#EDEDF2; --ink:#1C1C1E; --text:var(--ink); --muted:#8A8A8E; --line:rgba(60,60,67,.13);
   --primary:#007AFF; --on-primary:#FFFFFF; --danger:#FF3B30; --ok:#34C759; --warn:#FF9500;
   --c-charlotte:#FF375F; --c-ruben:#0A84FF; --c-nant:#FF9F0A; --c-abel:#30B455; --c-max:#AF52DE; --c-all:#8E8E93;
-  --f-display:-apple-system,BlinkMacSystemFont,"SF Pro Display","Inter",system-ui,sans-serif;
-  --f-body:-apple-system,BlinkMacSystemFont,"SF Pro Text","Inter",system-ui,sans-serif;
+  --f-display:"TBEmoji",-apple-system,BlinkMacSystemFont,"SF Pro Display","Inter",system-ui,sans-serif;
+  --f-body:"TBEmoji",-apple-system,BlinkMacSystemFont,"SF Pro Text","Inter",system-ui,sans-serif;
   --r:14px; --shadow:0 0 0 .5px rgba(0,0,0,.035),0 1px 2px rgba(0,0,0,.035);
 }
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
@@ -1053,7 +1057,7 @@ html[data-style="bauhaus"]{
   --bg:var(--bh-paper); --surface:#FFFFFF; --surface-2:#ECE6D8; --ink:var(--bh-black); --text:var(--ink); --muted:#5E5A52; --line:var(--bh-black);
   --primary:var(--bh-black); --on-primary:#FFFFFF; --danger:var(--bh-red); --ok:#2E7D32; --warn:#C98A00;
   --c-charlotte:#D7301F; --c-ruben:#1D4E9E; --c-nant:#E8A800; --c-abel:#2E7D4F; --c-max:#6B3FA0; --c-all:#141414;
-  --f-display:"Jost","Futura","Century Gothic",system-ui,sans-serif; --f-body:"Jost","Futura","Century Gothic",system-ui,sans-serif;
+  --f-display:"TBEmoji","Jost","Futura","Century Gothic",system-ui,sans-serif; --f-body:"TBEmoji","Jost","Futura","Century Gothic",system-ui,sans-serif;
   --r:0px; --shadow:none; --bw:2px;
 }
 @media (prefers-color-scheme: dark){html[data-style="bauhaus"]:not([data-theme="light"]){
@@ -1183,6 +1187,7 @@ html[data-style="bauhaus"] .btn.sm{font-size:13px}
 html[data-style="bauhaus"] .btn.ghost{text-decoration:none}
 html[data-style="bauhaus"] .seg button,html[data-style="bauhaus"] .stab{text-transform:none;letter-spacing:0;font-size:13px;font-weight:500}
 html[data-style="bauhaus"] .nav button{text-transform:none;letter-spacing:0;font-size:10.5px;font-weight:500}
+@media (max-width:440px){.nav button,html[data-style="bauhaus"] .nav button{font-size:9.5px;letter-spacing:-.02em;overflow:visible}}
 html[data-style="bauhaus"] .nav button[aria-current="page"] .pill{background:none!important;box-shadow:inset 0 -3px 0 var(--bh-yellow);width:40px}
 html[data-style="bauhaus"] .stab[aria-selected="true"]{background:var(--surface);color:var(--ink);border-color:var(--line);box-shadow:inset 3px 0 0 var(--bh-blue)}
 html[data-style="bauhaus"] .chip[aria-pressed="true"]{background:color-mix(in srgb,var(--cc,var(--bh-yellow)) 16%,var(--surface));color:var(--ink);border-color:var(--cc,var(--ink))}
@@ -1204,7 +1209,7 @@ html[data-style="bauhaus"] .mcell[aria-pressed="true"]{outline:2px solid var(--i
 html[data-style="bauhaus"] .mcell.vacd::before{background:color-mix(in srgb,var(--bh-yellow) 35%,transparent);border-color:color-mix(in srgb,var(--bh-yellow) 80%,#000 10%)}
 html[data-style="bauhaus"] .rem{background:color-mix(in srgb,var(--bh-yellow) 30%,var(--surface))}
 html[data-style="bauhaus"] .day-h .today-tag{background:transparent;color:var(--bh-red);padding:0;font-size:12px}
-html[data-style="bauhaus"] .mc-up{background:var(--surface);color:var(--ink);border:1px solid var(--line)}
+html[data-style="bauhaus"] .mc-up{background:var(--surface);color:var(--ink);border:1px solid var(--line);border-radius:0}
 html[data-style="bauhaus"] .fab{border:0;width:54px;height:54px}
 html[data-style="bauhaus"] .cb.bot{border-color:var(--line)}
 </style>
@@ -1337,7 +1342,7 @@ function onData(c){
 /* ============ state ============ */
 let me=ls.get('tb_me',null);
 if(me && !MID[me]) me=null;
-const ui={mColl:ls.get('tb_mcoll2',true),houseTab:'ritme',energy:ls.get('tb_energy','all'),shopQ:'',view:'home',agMode:'month',agAnchor:today(),agSel:today(),filter:new Set(ALL),foodTab:'menu',menuStart:monday(today()),schoolKid:null,doneOpen:false};
+const ui={mColl:ls.get('tb_mcoll2',true),houseTab:'regelen',energy:ls.get('tb_energy','all'),shopQ:'',view:'home',agMode:'month',agAnchor:today(),agSel:today(),filter:new Set(ALL),foodTab:'lijst',menuStart:monday(today()),schoolKid:null,doneOpen:false};
 let rq=0;
 function scheduleRender(){ if(rq) return; if(ui.view==='settings'&&ui.dirty) return; rq=requestAnimationFrame(()=>{rq=0;render();}); }
 
@@ -1464,7 +1469,7 @@ function render(){
   document.documentElement.style.setProperty('--mecol',col(me));
   const kid=!isParent(me);
   if(kid && (ui.view==='house'||ui.view==='opvang')) ui.view='home';
-  const tabs=[['home','Home','home'],['agenda','Agenda','cal'],['food','Eten','food'],...(kid?[]:[['house','Huishouden','house'],['opvang','Opvang','heart']]),['school','Rugzak','bag']];
+  const tabs=[['home','Home','home'],['agenda','Agenda','cal'],['food','Boodschappen','cart'],...(kid?[]:[['house','Huishouden','house'],['opvang','Opvang','heart']]),['school','Rugzak','bag']];
   const unread=unreadCount()+doneTimers().length;
   const wks=document.getElementById('wk-scroll'), wkx=wks&&!ui.wkReset?wks.scrollLeft:0; ui.wkReset=0;
   const y=window.scrollY, ae=document.activeElement, aeId=ae&&ae.id&&ae.closest&&ae.closest('#main')?ae.id:null, aeSel=aeId&&ae.selectionStart!=null?ae.selectionStart:null;
@@ -1475,8 +1480,8 @@ function render(){
   const fab = (ui.view==='home'||(!kid&&(ui.view==='agenda'||ui.view==='opvang'))||ui.view==='school') ? `<button class="fab" data-act="${ui.view==='agenda'?'ev-new':ui.view==='opvang'?'care-new':ui.view==='school'?'school-new':'quick'}" aria-label="Toevoegen">${icon('plus')}</button>`:'';
   root.innerHTML=`
   <header class="top"><div class="top-in">
-    <div class="brand"><span class="dots">${ALL.map(i=>`<i style="--mc:${col(i)}"></i>`).join('')}</span>Thuisbasis</div>
-    <span class="sync ${mode!=='db'?'local':''}"><i></i>${mode==='db'?'gedeeld':mode==='local'?'enkel dit toestel':'verbinden…'}</span>
+    <div class="brand"><span class="dots">${ALL.map(i=>`<i style="--mc:${col(i)}"></i>`).join('')}</span><span class="sr">Thuisbasis</span></div>
+    ${mode==='db'?'':`<span class="sync ${mode!=='db'?'local':''}"><i></i>${mode==='local'?'enkel dit toestel':'verbinden…'}</span>`}
     <button class="icon-btn spark-btn" data-act="chat" aria-label="Vraag het Jonah">${WOLF()}</button>
     <button class="icon-btn" data-act="nav" data-v="settings" aria-label="Instellingen" ${ui.view==='settings'?'aria-current="page"':''}>${icon('gear')}</button>
     <button class="icon-btn" data-act="notifs" aria-label="Meldingen">${icon('bell')}${unread?`<span class="badge">${unread>9?'9+':unread}</span>`:''}</button>
@@ -1509,7 +1514,7 @@ function renderHome(){
   const meal=mealOf(t), mealTom=mealOf(addDays(t,1));
   let i=0; const T=(cls,act,v,inner,style='')=>`<div class="bt ${cls}" style="--i:${i++};${style}" ${act?`data-act="${act}" ${v!=null?`data-v="${esc(v)}"`:''} role="button" tabindex="0"`:''}>${inner}</div>`;
   const head=(ic,label,col_,extra='')=>`<div class="bt-h"><span class="bt-ic" style="--tc:${col_}">${ic}</span><span class="bt-l">${label}</span>${extra}<span class="bt-go" aria-hidden="true">${icon('right')}</span></div>`;
-  let h=`<section class="hello"><div><h1>${greet()}, <em>${esc(nm(me))}</em></h1><div class="date">${dlong(t)}</div></div></section>`;
+  let h=`<section class="hello"><div><div class="date">${dlong(t)}</div></div></section>`;
   h+=`<div class="bento">`;
   /* let op */
   if(!kid){ const cs=[...upcomingConflicts(14),...wxWarnings(7)].sort((a,b)=>a.d.localeCompare(b.d)), st=stockWarnings().sort((a,b)=>a.left-b.left), n=cs.length+(st.length?1:0);
@@ -1526,7 +1531,7 @@ function renderHome(){
   const nowEv=timed.find(o=>o.ev.start<=hm&&(o.ev.end||'23:59')>hm), nextEv=timed.find(o=>o.ev.start>hm);
   h+=T('w2 h2 today-t','nav','agenda',`${head('📅','Vandaag','var(--mecol)')}
     ${nowEv||nextEv?`<div class="tt-now">${nowEv?`<span class="tt-k">Nu</span><b>${esc(evTitle(nowEv.ev,t))}</b><span>tot ${esc(nowEv.ev.end||'?')}</span>`:`<span class="tt-k">Straks · ${esc(nextEv.ev.start)}</span><b>${esc(evTitle(nextEv.ev,t))}</b><span>${nextEv.ev.place?esc(nextEv.ev.place):names(nextEv.ev.who)}</span>`}</div>`:''}
-    ${todayRt.length?`<div class="tt-rt">${todayRt.map(o=>`<span title="${esc(rtLabel(o.ev))}">${rtEmo(o.ev)} ${esc(o.ev.virtual==='school'?'School':(o.ev.who||[]).map(nm).join(', '))}</span>`).join('')}</div>`:''}
+    ${todayRt.length?`<div class="tt-rt">${todayRt.map(o=>`<span title="${esc(rtLabel(o.ev))}">${esc(o.ev.virtual==='school'?'School':(o.ev.who||[]).map(nm).join(', '))}</span>`).join('')}</div>`:''}
     <div class="tt-list">${todayEv.length?todayEv.slice(0,6).map(o=>`<div class="tt-row ${!o.ev.allDay&&o.ev.start&&(o.ev.end||o.ev.start)<hm?'past':''}" style="--evc:${evColor(o.ev)}"><span class="tt-time">${o.ev.allDay||!o.ev.start?'dag':esc(o.ev.start)}</span><span class="tt-title">${esc(evTitle(o.ev,t))}</span><span class="tt-dots">${(o.ev.who||[]).slice(0,4).map(w=>`<em style="background:${col(w)}"></em>`).join('')}</span></div>`).join(''):`<p class="empty" style="padding:6px 0">Niks gepland. ${kid?'Lekker vrij!':''}</p>`}${todayEv.length>6?`<span class="muted" style="font-size:12px">+${todayEv.length-6} meer</span>`:''}</div>
     ${tomEv.length?`<div class="tt-tom"><span class="lbl">Morgen</span> ${tomEv.slice(0,3).map(o=>`<span class="pill-ev" style="--evc:${evColor(o.ev)}">${o.ev.start&&!o.ev.allDay?esc(o.ev.start)+' ':''}${esc(evTitle(o.ev,addDays(t,1)))}</span>`).join('')}</div>`:''}`);
   /* één ding */
@@ -1538,7 +1543,7 @@ function renderHome(){
   /* eten */
   h+=T('w2 food-t','nav','food',`${head('🍽️','Wat eten we?','var(--c-nant)')}
     <div class="food-b"><button class="food-d" data-act="meal-pick" data-v="${t}"><span class="lbl">Vanavond</span><b>${meal?esc(meal.title):'<span class="muted">Nog kiezen</span>'}</b></button><button class="food-d" data-act="meal-pick" data-v="${addDays(t,1)}"><span class="lbl">Morgen</span><b>${mealTom?esc(mealTom.title):'<span class="muted">Nog kiezen</span>'}</b></button></div>
-    ${(()=>{const sd=[t,addDays(t,1)].find(d=>smOf(d)&&(d>t||new Date().getHours()<13));return sd?`<button class="food-school" data-act="food-tab" data-v="school">🏫 <span>${sd===t?'Vandaag':'Morgen'} op school: <b>${esc(smOf(sd).hoofd||smOf(sd).soep)}</b></span></button>`:''})()}`);
+    ${(()=>{const sd=[t,addDays(t,1)].find(d=>smOf(d)&&(d>t||new Date().getHours()<13));return sd?`<button class="food-school" data-act="food-tab" data-v="school"><span>${sd===t?'Vandaag':'Morgen'} op school: <b>${esc(smOf(sd).hoofd||smOf(sd).soep)}</b></span></button>`:''})()}`);
   /* aftelling */
   const f=nextFun(kid);
   if(f){ const e=isBd(f.ev)?'🎂':(EV_EMO[f.ev.type]||'✨'), n=f.n;
@@ -1602,8 +1607,8 @@ function renderAgenda(){
     h+=`<div class="wk-scroll" id="wk-scroll" data-start="${s}">`;
     for(let i=0;i<N;i++){
       const d=addDays(s,i), evs=eventsOn(d,ui.filter), meal=mealOf(d), we=parse(d).getDay()%6===0;
-      h+=`<section class="card day wkc ${d===t?'is-today':''} ${we?'we':''}" data-d="${d}"><div class="day-h"><span class="dn">${dshort(d)}</span>${d===t?'<span class="today-tag">vandaag</span>':''}<span class="sp"></span><button class="day-rem" data-act="rem-new" data-v="${d}" aria-label="Herinnering op ${dlong(d)}" title="Herinnering">🔔</button>${isParent(me)?`<button class="day-add" data-act="ev-new" data-v="${d}" aria-label="Nieuwe afspraak op ${dlong(d)}">${icon('plus')}</button>`:''}</div>
-        ${meal?`<div class="meal-line">${icon('food').replace('class="i "','class="i " style="width:16px;height:16px"')}<b>${esc(meal.title)}</b></div>`:''}${smOf(d)?`<div class="meal-line">🏫 <span>School: <b>${esc(smOf(d).hoofd||smOf(d).soep)}</b></span></div>`:''}
+      h+=`<section class="card day wkc ${d===t?'is-today':''} ${we?'we':''}" data-d="${d}"><div class="day-h"><span class="dn">${dshort(d)}</span>${d===t?'<span class="today-tag">vandaag</span>':''}<span class="sp"></span><button class="day-rem" data-act="rem-new" data-v="${d}" aria-label="Herinnering op ${dlong(d)}" title="Herinnering">${icon('bell')}</button>${isParent(me)?`<button class="day-add" data-act="ev-new" data-v="${d}" aria-label="Nieuwe afspraak op ${dlong(d)}">${icon('plus')}</button>`:''}</div>
+        ${meal?`<div class="meal-line">${icon('food').replace('class="i "','class="i " style="width:16px;height:16px"')}<b>${esc(meal.title)}</b></div>`:''}${smOf(d)?`<div class="meal-line"><span>School: <b>${esc(smOf(d).hoofd||smOf(d).soep)}</b></span></div>`:''}
         ${remChips(d)}<div class="evlist">${evList(evs,d,isParent(me)?`<button class="day-empty" data-act="ev-new" data-v="${d}">${icon('plus')} Niks extra gepland</button>`:'<span class="muted" style="font-size:14px">Niks extra gepland</span>')}</div></section>`;
     }
     h+=`<div class="wk-more"><button class="btn" data-act="ag-step" data-v="3">Verder ${icon('right')}</button></div></div>`;
@@ -1626,9 +1631,9 @@ function renderAgenda(){
     const sel=ui.agSel, evs=eventsOn(sel,ui.filter), meal=mealOf(sel);
     h+=`<div class="ag-split"><div class="mgrid-wrap">${g}<div class="mc-foot"><button class="today-btn" data-act="ag-today" aria-label="Naar vandaag" title="Vandaag"><i></i><b>${parse(t).getDate()}</b></button><button class="mc-up ${coll?'down':''}" data-act="ag-coll" aria-expanded="${!coll}" aria-label="${coll?'Hele maand tonen':'Kalender inklappen'}" title="${coll?'Hele maand':'Inklappen'}">${icon('right')}</button></div></div>
       <div class="card day-panel"><div class="day-h day-nav"><button class="icon-btn sm" data-act="ag-day" data-v="-1" aria-label="Vorige dag">${icon('left')}</button><span class="dn">${dlong(sel)}</span>${sel===t?'<span class="today-tag">vandaag</span>':''}<span class="sp"></span><button class="icon-btn sm" data-act="ag-day" data-v="1" aria-label="Volgende dag">${icon('right')}</button></div>
-      ${meal?`<div class="meal-line">${icon('food').replace('class="i "','class="i " style="width:16px;height:16px"')}<b>${esc(meal.title)}</b></div>`:''}${smOf(sel)?`<div class="meal-line">🏫 <span>School: <b>${esc(smText(smOf(sel)))}</b></span></div>`:''}
+      ${meal?`<div class="meal-line">${icon('food').replace('class="i "','class="i " style="width:16px;height:16px"')}<b>${esc(meal.title)}</b></div>`:''}${smOf(sel)?`<div class="meal-line"><span>School: <b>${esc(smText(smOf(sel)))}</b></span></div>`:''}
       ${remChips(sel)}<div class="evlist">${evList(evs,sel,'<p class="empty">Niks extra gepland op deze dag.</p>')}</div>
-      <button class="btn" style="margin-top:12px;margin-right:6px" data-act="rem-new" data-v="${sel}">🔔 Herinnering</button>${isParent(me)?`<button class="btn primary" style="margin-top:12px" data-act="ev-new" data-v="${sel}">${icon('plus')} Nieuwe afspraak op ${dshort(sel)}</button><p class="set-note">Tip: tik nog eens op een gekozen dag om meteen iets toe te voegen.</p>`:''}</div></div>`;
+      <button class="btn rem-btn" style="margin-top:12px;margin-right:6px" data-act="rem-new" data-v="${sel}" aria-label="Herinnering instellen" title="Herinnering">${icon('bell')}</button>${isParent(me)?`<button class="btn primary" style="margin-top:12px" data-act="ev-new" data-v="${sel}">${icon('plus')} Nieuwe afspraak op ${dshort(sel)}</button><p class="set-note">Tip: tik nog eens op een gekozen dag om meteen iets toe te voegen.</p>`:''}</div></div>`;
   }
   return h;
 }
@@ -1731,8 +1736,8 @@ function eventSheet(ev,day,preset){
 /* ---------- ETEN ---------- */
 function renderFood(){
   const tab=ui.foodTab, kid=!isParent(me);
-  let h=`<div class="ag-bar"><h1 class="ag-title" style="font-size:26px">Eten</h1>
-    <div class="seg"><button data-act="food-tab" data-v="menu" aria-pressed="${tab==='menu'}">Weekmenu</button><button data-act="food-tab" data-v="lijst" aria-pressed="${tab==='lijst'}">Boodschappen</button><button data-act="food-tab" data-v="recepten" aria-pressed="${tab==='recepten'}">Recepten</button><button data-act="food-tab" data-v="voorraad" aria-pressed="${tab==='voorraad'}">Voorraad</button><button data-act="food-tab" data-v="school" aria-pressed="${tab==='school'}">Schoolmenu</button></div></div>`;
+  let h=`<div class="ag-bar"><h1 class="ag-title" style="font-size:26px">Boodschappen</h1>
+    <div class="seg"><button data-act="food-tab" data-v="lijst" aria-pressed="${tab==='lijst'}">Boodschappen</button><button data-act="food-tab" data-v="voorraad" aria-pressed="${tab==='voorraad'}">Voorraad</button><button data-act="food-tab" data-v="menu" aria-pressed="${tab==='menu'}">Weekmenu</button><button data-act="food-tab" data-v="recepten" aria-pressed="${tab==='recepten'}">Recepten</button><button data-act="food-tab" data-v="school" aria-pressed="${tab==='school'}">Schoolmenu</button></div></div>`;
   if(tab==='menu'){
     const s=ui.menuStart, t=today();
     h+=`<div class="row" style="margin-bottom:10px"><button class="icon-btn" data-act="menu-step" data-v="-7" aria-label="Vorige week">${icon('left')}</button><b style="font-family:var(--f-display);font-size:18px">${weekTitle(s)}</b><button class="icon-btn" data-act="menu-step" data-v="7" aria-label="Volgende week">${icon('right')}</button><span class="sp"></span></div>
@@ -2351,7 +2356,7 @@ function rtChips(list,day){ if(!list.length) return '';
   return [kids,adults].filter(g=>g.length).map((g,gi)=>rtGroup(g,day,gi===0&&kids.length?'kids':'')).join('');
 }
 function rtGroup(list,day,cls){
-  return `<div class="rt-row ${cls}">${list.map(o=>`<button class="rt" data-act="ev-edit" data-v="${esc(o.ev.id)}|${day}" title="Tik om deze dag aan te passen"><span class="rt-l">${rtEmo(o.ev)} ${esc(rtLabel(o.ev))}${o.ev.info?'':(o.ev.who||[]).length&&o.ev.virtual!=='school'||(o.ev.who||[]).length<3?` <b>${esc((o.ev.who||[]).map(nm).join(', '))}</b>`:''}</span>${o.ev.start?`<span class="rt-t">${esc(o.ev.start)}–${esc(o.ev.end||'')}</span>`:''}</button>`).join('')}</div>`; }
+  return `<div class="rt-row ${cls}">${list.map(o=>`<button class="rt" data-act="ev-edit" data-v="${esc(o.ev.id)}|${day}" title="Tik om deze dag aan te passen"><span class="rt-l">${esc(rtLabel(o.ev))}${o.ev.info?'':(o.ev.who||[]).length&&o.ev.virtual!=='school'||(o.ev.who||[]).length<3?` <b>${esc((o.ev.who||[]).map(nm).join(', '))}</b>`:''}</span>${o.ev.start?`<span class="rt-t">${esc(o.ev.start)}–${esc(o.ev.end||'')}</span>`:''}</button>`).join('')}</div>`; }
 function evList(evs,day,empty){ const main=evs.filter(o=>!isRoutine(o.ev)), rt=evs.filter(o=>isRoutine(o.ev)); return rtChips(rt,day)+(main.length?main.map(evCard).join(''):empty); }
 function weekStrip(kid){
   const t=today(), flt=kid?new Set([me]):null;
@@ -2654,7 +2659,8 @@ function wasteEntries(day){
 const wasteEmo=types=>(types||[]).map(t=>WASTE[t]?.e||'🗑️').join('');
 const GFT_SVG='<svg class="wico" viewBox="0 0 64 64" aria-label="GFT" role="img"><path d="M24 9 Q24 4 32 4 Q40 4 40 9" fill="none" stroke="#1e6b2e" stroke-width="3.2" stroke-linecap="round"/><rect x="9" y="10" width="46" height="10" rx="4" fill="#2f9e44"/><rect x="9" y="17" width="46" height="3" fill="#1e7a33" opacity=".5"/><path d="M12 21 H52 L49 57 Q48.6 60 45.5 60 H18.5 Q15.4 60 15 57 Z" fill="#40c057"/><path d="M12 21 H52 L51.6 25 H12.4 Z" fill="#2f9e44"/><path d="M41 25 L38.8 57" stroke="#fff" stroke-opacity=".18" stroke-width="3"/><path d="M32 31 C40 31 43 37 41 46 C33 47 28 44 28 37 Q28 31 32 31 Z" fill="#fff" opacity=".92"/><path d="M27.5 51 Q31 44 39 38" fill="none" stroke="#40c057" stroke-width="2" stroke-linecap="round"/></svg>';
 const REST_SVG='<svg class="wico" viewBox="0 0 64 64" aria-label="Restafval" role="img"><path d="M25 8 Q25 3.5 32 3.5 Q39 3.5 39 8" fill="none" stroke="#B38600" stroke-width="3" stroke-linecap="round"/><rect x="15" y="8" width="34" height="9" rx="3.5" fill="#F5C518"/><rect x="15" y="14" width="34" height="3" fill="#D9A900" opacity=".7"/><path d="M17 18 H47 L45 59 Q44.7 61.5 42 61.5 H22 Q19.3 61.5 19 59 Z" fill="#4A4F57"/><path d="M17 18 H47 L46.8 21.5 H17.2 Z" fill="#363A41"/><path d="M26 27 V54 M32 27 V54 M38 27 V54" stroke="#5D636C" stroke-width="2.6" stroke-linecap="round"/><path d="M42 22 L40.6 58" stroke="#fff" stroke-opacity=".12" stroke-width="2.5"/></svg>';
-const wasteIco=types=>(types||[]).map(t=>t==='gft'?GFT_SVG:t==='rest'?REST_SVG:(WASTE[t]?.e||'🗑️')).join('');
+const PMD_SVG='<svg class="wico" viewBox="0 0 64 64" aria-label="PMD" role="img"><path d="M26 11 L19 1 L31 7 Z M38 11 L45 1 L33 7 Z" fill="#1C5DB8"/><path d="M26 9 H38 L37 14 H27 Z" fill="#1C5DB8"/><path d="M27 14 H37 C52 21 60 35 59 49 C58.4 59 50 63 32 63 C14 63 5.6 59 5 49 C4 35 12 21 27 14 Z" fill="#2F7DE1"/><path d="M27 14 H37 C42 16.5 46 20 49 24 H15 C18 20 22 16.5 27 14 Z" fill="#1C5DB8"/><rect x="13" y="35" width="38" height="13" rx="2" fill="#fff"/><text x="32" y="45.5" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-weight="700" font-size="11" fill="#1C5DB8">PMD</text></svg>';
+const wasteIco=types=>(types||[]).map(t=>t==='gft'?GFT_SVG:t==='rest'?REST_SVG:t==='pmd'?PMD_SVG:(WASTE[t]?.e||'🗑️')).join('');
 function nextWaste(){ const t=today(); return S.waste.filter(x=>(x.date||x.id)>=t).sort((a,b)=>(a.date||a.id).localeCompare(b.date||b.id))[0]; }
 function wasteCard(){
   const n=nextWaste(); if(!n||!wasteCfg().show) return '';
@@ -3318,7 +3324,7 @@ let ASSETS=null, SAMPLE_IMG=false;
 const smKey=d=>'m-'+d.slice(0,7);
 const smDoc=d=>S.schoolmenu.find(x=>x.id===smKey(d));
 function smOf(d){ const m=smDoc(d); const x=m&&m.days&&m.days[d]; return x&&(x.hoofd||x.soep||x.dessert)?x:null; }
-const smText=x=>[x.soep&&('🥣 '+x.soep),x.hoofd&&('🍽️ '+x.hoofd),x.dessert&&('🍮 '+x.dessert)].filter(Boolean).join(' · ');
+const smText=x=>[x.soep,x.hoofd,x.dessert].filter(Boolean).join(' · ');
 function schoolDaysOfMonth(ym){ const [y,m]=ym.split('-').map(Number), out=[]; const last=new Date(y,m,0).getDate(); for(let i=1;i<=last;i++){ const d=iso(new Date(y,m-1,i)), wd=parse(d).getDay(); if(wd===0||wd===6||holidayOn(d)) continue; out.push(d);} return out; }
 let smEdit=false, smBusy='', smPreview=null;
 function renderSchoolMenu(){
@@ -3338,7 +3344,7 @@ function renderSchoolMenu(){
     const any=days.some(d=>data[d]&&(data[d].hoofd||data[d].soep));
     if(!any) return h+`<div class="card" style="margin-top:12px"><p class="empty"><b>Nog geen schoolmenu voor ${MONL[mo-1]}.</b> ${par?'Upload het maandmenu of vul het zelf in.':'Mama of papa kan het menu toevoegen.'}</p></div>`;
     const t=today();
-    h+=`<div class="sm-grid" style="margin-top:12px">${days.map(d=>{const x=data[d]||{};return `<div class="sm-card ${d===t?'today':''} ${d<t?'past':''}"><div class="sm-d"><b>${DAYS[parse(d).getDay()]}</b><span>${parse(d).getDate()}</span></div><div class="sm-b">${x.hoofd?`<b>${esc(x.hoofd)}</b>`:'<span class="muted">—</span>'}${x.soep?`<span>🥣 ${esc(x.soep)}</span>`:''}${x.dessert?`<span>🍮 ${esc(x.dessert)}</span>`:''}</div></div>`}).join('')}</div>`;
+    h+=`<div class="sm-grid" style="margin-top:12px">${days.map(d=>{const x=data[d]||{};return `<div class="sm-card ${d===t?'today':''} ${d<t?'past':''}"><div class="sm-d"><b>${DAYS[parse(d).getDay()]}</b><span>${parse(d).getDate()}</span></div><div class="sm-b">${x.hoofd?`<b>${esc(x.hoofd)}</b>`:'<span class="muted">—</span>'}${x.soep?`<span>Soep: ${esc(x.soep)}</span>`:''}${x.dessert?`<span>Dessert: ${esc(x.dessert)}</span>`:''}</div></div>`}).join('')}</div>`;
   }
   return h;
 }
@@ -3597,11 +3603,11 @@ function weekScore(){
   return c;
 }
 function renderHouse(){
-  const t=today(), tab=ui.houseTab||'ritme';
+  const t=today(), tab=ui.houseTab||'regelen';
   const nRitme=dueChores().length, nTask=S.tasks.filter(x=>!x.done).length, nAdm=S.admin.filter(x=>!x.done).length;
   const lateAdm=S.admin.filter(x=>!x.done&&x.due&&x.due<t).length, hiTask=S.tasks.filter(x=>!x.done&&x.prio==='hoog').length;
   const run=S.timers.length, ready=doneTimers().length;
-  const TABS=[['ritme','🔁','Ritme',nRitme,''],['klusjes','🧹','Klusjes',nTask,hiTask?'hot':''],['regelen','📋','Te regelen',nAdm,lateAdm?'hot':''],['machines','🫧','Machines',run,ready?'ok':'']];
+  const TABS=[['regelen','📋','Te regelen',nAdm,lateAdm?'hot':''],['klusjes','🧹','Klusjes',nTask,hiTask?'hot':''],['machines','🫧','Machines',run,ready?'ok':''],['ritme','🔁','Ritme',nRitme,'']];
   let h=`<div class="ag-bar" style="margin-bottom:6px"><h1 class="ag-title" style="font-size:26px">Huishouden</h1></div>
   <div class="htabs" role="tablist">${TABS.map(([v,e,l,n,cls])=>`<button role="tab" class="htab" data-act="house-tab" data-v="${v}" aria-selected="${tab===v}"><span class="ht-e" aria-hidden="true">${e}</span><span class="ht-l">${l}</span>${n?`<span class="ht-n ${cls}">${n}</span>`:''}</button>`).join('')}</div>
   <div class="htab-body" key="${tab}">`;

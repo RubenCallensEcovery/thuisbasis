@@ -24,3 +24,6 @@ Live zetten = `test` samenvoegen in `main` (pull request), opnieuw met controle.
 
 ## Geheimen (enkel in Supabase → Edge Functions → Secrets, nooit in deze repo)
 `ANTHROPIC_API_KEY`, `VAPID_PUBLIC`, `VAPID_PRIVATE`, `VAPID_SUBJECT`, `CRON_SECRET` (optioneel `JONAH_MODEL`).
+
+## Emoji
+Vlakke emoji via het Twemoji-lettertype (`fonts/twemoji.woff2`, twemoji-colr-font 15.0.3). Grafiek © Twitter/X en medewerkers, CC-BY 4.0; lettertype onder SIL OFL (zie `fonts/LICENSE-twemoji.txt`).
