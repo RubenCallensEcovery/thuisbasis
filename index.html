@@ -20,7 +20,7 @@
 <script src="runtime.js"></script>
 <title>Thuisbasis</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Jost:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Jost:wght@400;500;600&family=Fredoka:wght@400;500;600;700&display=swap">
 <style>
 /* Layout: app shell — sticky header, content column, bottom tab bar on phone / left rail on tablet. Family colours carry identity; ink-navy carries actions. */
 :root{
@@ -1237,6 +1237,67 @@ html[data-style="bauhaus"] .day-h .today-tag{background:transparent;color:var(--
 html[data-style="bauhaus"] .mc-up{background:var(--surface);color:var(--ink);border:1px solid var(--line);border-radius:0}
 html[data-style="bauhaus"] .fab{border:0;width:54px;height:54px}
 html[data-style="bauhaus"] .cb.bot{border-color:var(--line)}
+
+/* ================= KINDERWEERGAVE: kleurrijk, rond en duidelijk ================= */
+html[data-kid]{--f-display:"TBEmoji","Fredoka","Trebuchet MS",system-ui,sans-serif;--f-body:"TBEmoji","Fredoka","Trebuchet MS",system-ui,sans-serif;
+  --kc:var(--mecol);--kbg:color-mix(in srgb,var(--mecol) 9%,#FFFBF2);--kline:color-mix(in srgb,var(--mecol) 38%,#fff);
+  --k1:#FF5A5F;--k2:#3BA7FF;--k3:#FFC531;--k4:#33C28A;--k5:#A66CFF;--k6:#FF8A3D}
+html[data-kid] body{background:var(--kbg)!important;font-size:17px}
+html[data-kid] body, html[data-kid] button, html[data-kid] input, html[data-kid] select{font-family:var(--f-body)}
+html[data-kid] h1,html[data-kid] h2,html[data-kid] .ag-title{font-family:var(--f-display);font-weight:600;text-transform:none!important;letter-spacing:0!important;color:var(--ink)}
+html[data-kid] .top{background:var(--kbg)!important;border-bottom:0!important}
+html[data-kid] .kid-hi{font-size:clamp(34px,9vw,48px)!important;font-weight:700!important;line-height:1.05}
+html[data-kid] .kid-hi em{color:var(--kc)!important}
+html[data-kid] .kid-hi::after{display:none!important}
+html[data-kid] .hello .date{font-size:16px;font-weight:600;letter-spacing:.02em;color:color-mix(in srgb,var(--kc) 70%,#333)}
+/* kaarten: rond, dikke gekleurde rand, vrolijke schaduw */
+html[data-kid] .card,html[data-kid] .bt,html[data-kid] .wd2,html[data-kid] .stock{border-radius:24px!important;border:2.5px solid var(--kline)!important;background:#fff!important;box-shadow:0 5px 0 var(--kline)!important}
+html[data-kid] .bento .bt:nth-child(6n+1){--kt:var(--k1)} html[data-kid] .bento .bt:nth-child(6n+2){--kt:var(--k2)} html[data-kid] .bento .bt:nth-child(6n+3){--kt:var(--k3)}
+html[data-kid] .bento .bt:nth-child(6n+4){--kt:var(--k4)} html[data-kid] .bento .bt:nth-child(6n+5){--kt:var(--k5)} html[data-kid] .bento .bt:nth-child(6n){--kt:var(--k6)}
+html[data-kid] .bento .bt{border-color:color-mix(in srgb,var(--kt) 45%,#fff)!important;box-shadow:0 5px 0 color-mix(in srgb,var(--kt) 45%,#fff)!important}
+html[data-kid] .bt-ic{width:40px!important;height:40px!important;border-radius:50%!important;background:color-mix(in srgb,var(--kt,var(--kc)) 22%,#fff)!important;font-size:22px;display:grid;place-items:center}
+html[data-kid] .bt-l{font-family:var(--f-display);font-size:19px!important;font-weight:600!important;text-transform:none!important;letter-spacing:0!important;color:var(--ink)}
+html[data-kid] .bt-h{gap:10px}
+/* week en dag */
+html[data-kid] .wd2{min-height:150px}
+html[data-kid] .wd2.today{border-color:var(--kc)!important;box-shadow:0 5px 0 var(--kc)!important;background:color-mix(in srgb,var(--kc) 10%,#fff)!important}
+html[data-kid] .wd2-rt span{border-radius:999px!important}
+html[data-kid] .tt-row{border-radius:16px!important;border:0!important;background:color-mix(in srgb,var(--evc) 16%,#fff)!important;box-shadow:inset 6px 0 0 var(--evc)!important;padding:10px 12px!important;font-size:16px}
+html[data-kid] .tt-time{font-weight:700;color:color-mix(in srgb,var(--evc) 75%,#222)!important}
+html[data-kid] .today-t .tt-now{border-radius:18px!important;border:0!important;background:color-mix(in srgb,var(--kc) 16%,#fff)!important}
+html[data-kid] .tt-now b{font-size:22px}
+html[data-kid] .tt-rt span,html[data-kid] .pill-ev,html[data-kid] .mini-chips span{border-radius:999px!important;border:0!important;background:color-mix(in srgb,var(--evc,var(--kc)) 16%,#fff)!important}
+html[data-kid] .food-d{border-radius:18px!important;border:0!important;background:color-mix(in srgb,var(--k3) 22%,#fff)!important}
+html[data-kid] .food-school{border-radius:16px!important;background:color-mix(in srgb,var(--k2) 18%,#fff)!important}
+html[data-kid] .cd-n{font-size:30px!important}
+/* agenda */
+html[data-kid] .mcell{border-radius:16px!important;border:2px solid var(--kline)!important;box-shadow:none!important}
+html[data-kid] .mcell.today .n{background:var(--kc)!important;color:#fff;border-radius:50%}
+html[data-kid] .mcell[aria-pressed="true"]{outline:3px solid var(--kc)!important;outline-offset:-3px}
+html[data-kid] .mcell.vacd::before{border-radius:18px!important}
+html[data-kid] .mcell.vacd::after{border-radius:14px!important}
+html[data-kid] .ev{border-radius:18px!important;border:0!important;background:color-mix(in srgb,var(--evc) 15%,#fff)!important;box-shadow:inset 7px 0 0 var(--evc)!important;padding:12px 14px!important}
+html[data-kid] .ev .t,html[data-kid] .ev b{font-size:18px}
+html[data-kid] .rt{border-radius:14px!important}
+html[data-kid] .day-nav .icon-btn,html[data-kid] .mc-up,html[data-kid] .today-btn{border-radius:14px!important}
+html[data-kid] .day-h .today-tag{border-radius:999px!important;background:var(--kc)!important;color:#fff!important;padding:3px 10px;white-space:nowrap;flex:none}
+/* knoppen en tabs */
+html[data-kid] .btn{border-radius:999px!important;text-transform:none!important;letter-spacing:0!important;font-size:15px!important;font-weight:600}
+html[data-kid] .btn.primary{background:var(--kc)!important;color:#fff!important;border:0!important}
+html[data-kid] .seg{border-radius:999px!important;border:2px solid var(--kline)!important;background:#fff!important;padding:3px!important}
+html[data-kid] .seg button{border-radius:999px!important;text-transform:none!important;letter-spacing:0!important;font-size:14px!important}
+html[data-kid] .seg button[aria-pressed="true"]{background:var(--kc)!important;color:#fff!important}
+html[data-kid] .stile,html[data-kid] .tile{border-radius:20px!important;border:2px solid var(--kline)!important}
+html[data-kid] .chip{border-radius:999px!important}
+html[data-kid] .in{border-radius:14px!important}
+html[data-kid] .tag{border-radius:999px!important}
+html[data-kid] #sheet .panel{border-radius:26px 26px 0 0!important;border-top:6px solid var(--kc)!important}
+html[data-kid] .fab{background:var(--kc)!important;border:0!important;box-shadow:0 5px 0 color-mix(in srgb,var(--kc) 60%,#000)!important}
+html[data-kid] .top .spark-btn{border-radius:16px!important;border:2.5px solid var(--kc)!important;box-shadow:0 4px 0 var(--kc)!important;background:#fff!important}
+/* menubalk onderaan: actieve knop in je eigen kleur */
+html[data-kid] .nav{background:#fff!important;border-top:2.5px solid var(--kline)!important}
+html[data-kid] .nav button[aria-current="page"] .pill{background:color-mix(in srgb,var(--kc) 22%,#fff)!important;box-shadow:none!important;border-radius:16px!important;width:58px!important}
+html[data-kid] .nav button[aria-current="page"]{color:color-mix(in srgb,var(--kc) 70%,#111)!important}
 </style>
 
 </head><body>
@@ -1498,6 +1559,7 @@ function render(){
   if(!me){ root.innerHTML=renderLogin(); return; }
   document.documentElement.style.setProperty('--mecol',col(me));
   const kid=!isParent(me);
+  if(kid) document.documentElement.dataset.kid='1'; else delete document.documentElement.dataset.kid;
   if(kid && (ui.view==='house'||ui.view==='opvang')) ui.view='home';
   const tabs=[['home','Home','home'],['agenda','Agenda','cal'],['food','Boodschappen','cart'],...(kid?[]:[['house','Huishouden','house'],['opvang','Opvang','heart']]),['school','Rugzak','bag']];
   const unread=unreadCount()+doneTimers().length;
@@ -1576,7 +1638,7 @@ function renderHome(){
   const meal=mealOf(t), mealTom=mealOf(addDays(t,1));
   let i=0; const T=(cls,act,v,inner,style='')=>`<div class="bt ${cls}" style="--i:${i++};${style}" ${act?`data-act="${act}" ${v!=null?`data-v="${esc(v)}"`:''} role="button" tabindex="0"`:''}>${inner}</div>`;
   const head=(ic,label,col_,extra='')=>`<div class="bt-h"><span class="bt-ic" style="--tc:${col_}">${ic}</span><span class="bt-l">${label}</span>${extra}<span class="bt-go" aria-hidden="true">${icon('right')}</span></div>`;
-  let h=`<section class="hello"><div><div class="date">${dlong(t)}</div></div></section>`;
+  let h=`<section class="hello">${kid?`<div><h1 class="kid-hi">Hoi <em>${esc(nm(me))}</em>! <span aria-hidden="true">👋</span></h1><div class="date">${dlong(t)}</div></div>`:`<div><div class="date">${dlong(t)}</div></div>`}</section>`;
   h+=`<div class="bento">`;
   /* let op */
   if(!kid){ const cs=[...upcomingConflicts(14),...wxWarnings(7)].sort((a,b)=>a.d.localeCompare(b.d)), st=stockWarnings().sort((a,b)=>a.left-b.left), n=cs.length+(st.length?1:0);
@@ -3919,7 +3981,7 @@ const chipVals=(root,g)=>[...root.querySelectorAll(`.chips[data-group="${g}"] .c
 
 /* ============ acties ============ */
 const ACT={
-  nav:v=>{ui.dirty=false;if(ui.view!==v)vib(8);ui.view=v;closeSheet();render();window.scrollTo(0,0)},
+  nav:v=>{ui.dirty=false;if(ui.view!==v)vib(8);if(v==='agenda'&&ui.view!=='agenda'&&innerWidth>=700)ui.mColl=false;ui.view=v;closeSheet();render();window.scrollTo(0,0)},
   login:v=>{ const pins=setting('pins'); if(isParent(v)&&pins[v]) pinSheet(v,'check'); else doLogin(v); },
   logout:()=>{closeSheet();me=null;ls.set('tb_me',null);render()},
   'sheet-close':()=>closeSheet(),
