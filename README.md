@@ -5,8 +5,8 @@ Gezinsplanner van de familie Callens — agenda, eten, huishouden, opvang, rugza
 ## Twee versies
 | Versie | Branch | Adres | Gegevens |
 |---|---|---|---|
-| **Live** (voor het gezin) | `main` | `https://<gebruiker>.github.io/thuisbasis/` | echte gegevens |
-| **Test** | `test` | `https://<gebruiker>.github.io/thuisbasis/test/` | eigen kopie (`test~…`) |
+| **Live** (voor het gezin) | `main` | `https://rubencallensecovery.github.io/thuisbasis/` | echte gegevens |
+| **Test** | `test` | `https://rubencallensecovery.github.io/thuisbasis/test/` | eigen kopie (`test~…`) |
 
 Werkwijze: aanpassingen gaan eerst naar `test`. Bij elke wijziging draait automatisch een controle
 (`tests/check.mjs`: code geldig, `tests/smoke.mjs`: app start en alle schermen werken). Faalt die, dan wordt er niets gepubliceerd.

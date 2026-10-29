@@ -1,18 +1,11 @@
-# Bij elke wijziging: eerst controleren, dan publiceren.
-#   branch "test" → https://<gebruiker>.github.io/thuisbasis/test/  (testversie, eigen testgegevens)
-#   branch "main" → https://<gebruiker>.github.io/thuisbasis/       (live versie voor het gezin)
-name: Controleren en publiceren
+# Stap 1 — Controle: bij elke wijziging op "test" of "main" wordt de app gecontroleerd.
+name: Controle
 on:
   push:
     branches: [main, test]
   workflow_dispatch:
 permissions:
   contents: read
-  pages: write
-  id-token: write
-concurrency:
-  group: pages
-  cancel-in-progress: false
 jobs:
   controle:
     runs-on: ubuntu-latest
@@ -20,25 +13,8 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with: { node-version: 20 }
-      - run: node tests/check.mjs
+      - name: Code geldig?
+        run: node tests/check.mjs
       - run: npm i --no-save playwright@1.47.2 && npx playwright install --with-deps chromium
-      - run: node tests/smoke.mjs
-  publiceren:
-    needs: controle
-    runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    steps:
-      - uses: actions/checkout@v4
-        with: { ref: main, path: site }
-      - uses: actions/checkout@v4
-        with: { ref: test, path: site/test }
-        continue-on-error: true
-      - name: Opkuisen
-        run: rm -rf site/.git site/test/.git site/.github site/test/.github site/supabase site/test/supabase site/tests site/test/tests
-      - uses: actions/configure-pages@v5
-      - uses: actions/upload-pages-artifact@v3
-        with: { path: site }
-      - id: deployment
-        uses: actions/deploy-pages@v4
+      - name: App start en alle schermen werken?
+        run: node tests/smoke.mjs

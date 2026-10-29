@@ -1,0 +1,35 @@
+# Stap 2 — Publiceren: enkel als de controle geslaagd is.
+#   branch "main" → https://rubencallensecovery.github.io/thuisbasis/       (live)
+#   branch "test" → https://rubencallensecovery.github.io/thuisbasis/test/  (testversie)
+name: Publiceren
+on:
+  workflow_run:
+    workflows: [Controle]
+    types: [completed]
+  workflow_dispatch:
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+concurrency:
+  group: pages
+  cancel-in-progress: false
+jobs:
+  publiceren:
+    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+        with: { ref: main, path: site }
+      - uses: actions/checkout@v4
+        with: { ref: test, path: site/test }
+      - name: Opkuisen
+        run: rm -rf site/.git site/test/.git site/.github site/test/.github site/supabase site/test/supabase site/tests site/test/tests
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with: { path: site }
+      - id: deployment
+        uses: actions/deploy-pages@v4
