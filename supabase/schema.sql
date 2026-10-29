@@ -45,6 +45,11 @@ drop policy if exists "gezin toestellen" on public.push_subs;
 create policy "gezin toestellen" on public.push_subs for all to authenticated using (true) with check (true);
 -- push_sent: enkel de server (service role) gebruikt deze tabel
 
+-- toegang voor ingelogde gebruikers (de rijbeveiliging hierboven bepaalt wat ze mogen)
+grant select, insert, update, delete on public.docs to authenticated;
+grant select, insert, update, delete on public.push_subs to authenticated;
+grant execute on function public.doc_merge(text, text, jsonb) to authenticated;
+
 -- 5. Live synchronisatie tussen toestellen
 do $$ begin
   alter publication supabase_realtime add table public.docs;
