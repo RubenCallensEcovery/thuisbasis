@@ -1421,6 +1421,7 @@ async function del(c,id){
   }catch(e){ failed(e); }
 }
 const setting=id=>S.settings.find(x=>x.id===id)||{};
+const feat=k=>setting('features')[k]!==false;   /* onderdelen die het gezin aan/uit kan zetten (standaard aan) */
 const DEFAULT_STORES=['Colruyt','Delhaize','Carrefour','Aldi','Lidl','Bakker','Slager','Apotheek','Andere'];
 const stores=()=>{const l=setting('stores').list;return l&&l.length?l:DEFAULT_STORES};
 
@@ -1575,7 +1576,8 @@ function render(){
   const kid=!isParent(me);
   if(kid) document.documentElement.dataset.kid='1'; else delete document.documentElement.dataset.kid;
   if(kid && (ui.view==='house'||ui.view==='opvang')) ui.view='home';
-  const tabs=[['home','Home','home'],['agenda','Agenda','cal'],['food','Boodschappen','cart'],...(kid?[]:[['house','Huishouden','house'],['opvang','Opvang','heart']]),['school','Rugzak','bag']];
+  const tabs=[['home','Home','home'],['agenda','Agenda','cal'],['food','Boodschappen','cart'],...(kid?[]:[['house','Huishouden','house'],['opvang','Opvang','heart']]),...(feat('rugzak')?[['school','Rugzak','bag']]:[])];
+  if(ui.view==='school'&&!feat('rugzak')) ui.view='home';
   const unread=unreadCount()+doneTimers().length;
   const wks=document.getElementById('wk-scroll'), wkx=wks&&!ui.wkReset?wks.scrollLeft:0; ui.wkReset=0;
   const y=window.scrollY, ae=document.activeElement, aeId=ae&&ae.id&&ae.closest&&ae.closest('#main')?ae.id:null, aeSel=aeId&&ae.selectionStart!=null?ae.selectionStart:null;
@@ -1706,7 +1708,7 @@ function renderHome(){
   }
   /* rugzak */
   const kidsR=kid?[me]:SCHOOLKIDS, nextS=S.school.filter(x=>!x.done&&kidsR.includes(x.kid)).sort((a,b)=>(a.due||'9').localeCompare(b.due||'9'));
-  h+=T(kid?'w2':'s','nav','school',`${head('🎒',kid?'Mijn rugzak':'Rugzak',col(nextS[0]?nextS[0].kid:'nant'))}${nextS[0]?`<div class="big-n tnum">${nextS[0].due?(diffDays(nextS[0].due,t)<=0?'!':diffDays(nextS[0].due,t)):'·'}<small>${nextS[0].due&&diffDays(nextS[0].due,t)>0?' nachtjes':''}</small></div><div class="bt-sub">${kid?'':esc(nm(nextS[0].kid))+': '}${esc(nextS[0].title)}</div>`:'<div class="bt-sub" style="margin-top:8px">Niets in de rugzak.</div>'}
+  if(feat('rugzak')) h+=T(kid?'w2':'s','nav','school',`${head('🎒',kid?'Mijn rugzak':'Rugzak',col(nextS[0]?nextS[0].kid:'nant'))}${nextS[0]?`<div class="big-n tnum">${nextS[0].due?(diffDays(nextS[0].due,t)<=0?'!':diffDays(nextS[0].due,t)):'·'}<small>${nextS[0].due&&diffDays(nextS[0].due,t)>0?' nachtjes':''}</small></div><div class="bt-sub">${kid?'':esc(nm(nextS[0].kid))+': '}${esc(nextS[0].title)}</div>`:'<div class="bt-sub" style="margin-top:8px">Niets in de rugzak.</div>'}
     ${kid&&nextS.length>1?`<div class="mini-chips">${nextS.slice(1,4).map(x=>`<span>${esc(x.title)}</span>`).join('')}</div>`:''}`);
   /* binnenkort */
   h+=T('w2 up-t','nav','agenda',`${head('🗓️','Binnenkort','var(--c-max)')}${upcomingList(kid)}`);
@@ -2627,7 +2629,7 @@ function renderSettings(){
     <div class="field" style="margin-top:12px"><span>Thema</span><div class="seg">${[['system','Automatisch'],['light','Licht'],['dark','Donker']].map(([v,l])=>`<button data-act="theme" data-v="${v}" aria-pressed="${th===v}">${l}</button>`).join('')}</div></div>
     <div class="field" style="margin-top:12px"><span>Weerlocatie</span><div class="row" style="gap:8px;flex-wrap:wrap"><span class="chip" style="cursor:default">🌦️ ${esc(wxLoc().name)}</span>${MCP?`<input class="in" id="wx-q" placeholder="Andere gemeente" style="flex:1;min-width:140px"><button class="btn sm" data-act="wx-loc-search">Zoek</button>`:'<span class="set-note" style="margin:0">Koppel AccuWeather om het weer te tonen.</span>'}</div><div id="wx-res" class="chips"></div></div>
     <div class="tgl-list" style="margin-top:12px">${tgl('sound',p.sound,'🔊 Geluidjes','bij afvinken en als een timer afloopt')}${tgl('vibrate',p.vibrate,'📳 Trillen','korte trilling als bevestiging (Android)')}${tgl('claude',p.claude!==false,'🐕 Jonah slim maken met Claude','Jonah denkt mee via Claude; uit = enkel de eenvoudige ingebouwde versie')}</div>
-    ${isParent(me)?'':''}
+    ${isParent(me)?`<div class="field" style="margin-top:14px"><span>Onderdelen</span><div class="tgl-list">${tgl('feat-rugzak',feat('rugzak'),'🎒 Rugzak','toetsen, werkjes en sterren voor de kinderen; uit = verborgen voor iedereen')}</div></div>`:''}
   </section>`;
   if(par) h+=schoolSettingsSection();
   if(par){ const wc=wasteCfg(), n=S.waste.length, last=S.waste.map(x=>x.date||x.id).sort().pop();
@@ -4155,7 +4157,7 @@ document.addEventListener('keydown',e=>{ if((e.key==='Enter'||e.key===' ')&&e.ta
   },{passive:true});
 }
 document.addEventListener('input',e=>{ if(e.target.id==='rec-q'){ui.recQ=e.target.value;recFilter(e.target.value);return} if(ui.view==='settings'&&e.target.closest&&e.target.closest('#s-fam,#s-pets,#s-shop,#s-school')) ui.dirty=true; if(e.target.id==='s-q'){ui.shopQ=e.target.value;shopSearch(e.target.value);} });
-document.addEventListener('change',e=>{ if(e.target.id==='sm-file'&&e.target.files&&e.target.files[0]){smUpload(e.target.files[0]);e.target.value='';return} if(ui.view==='settings'&&e.target.closest&&e.target.closest('.sk')) ui.dirty=true; const pk=e.target.dataset&&e.target.dataset.pref; if(pk==='w-show'||pk==='w-remind'){const sd=Object.assign({},setting('waste'));delete sd.id;sd[pk==='w-show'?'show':'remind']=e.target.checked;put('settings','waste',sd);vib(8);return} if(pk==='sc-show'||pk==='sc-hol'){const sd=Object.assign({},setting('school'));delete sd.id;sd[pk==='sc-show'?'show':'holidays']=e.target.checked;put('settings','school',sd);vib(8);return} if(pk){setPref(pk,e.target.checked);vib(8);toast(e.target.checked?'Aangezet':'Uitgezet');return} if(e.target.id==='s-store'){shopStore=e.target.value;ls.set('tb_store',shopStore);} });
+document.addEventListener('change',e=>{ if(e.target.id==='sm-file'&&e.target.files&&e.target.files[0]){smUpload(e.target.files[0]);e.target.value='';return} if(ui.view==='settings'&&e.target.closest&&e.target.closest('.sk')) ui.dirty=true; const pk=e.target.dataset&&e.target.dataset.pref; if(pk==='w-show'||pk==='w-remind'){const sd=Object.assign({},setting('waste'));delete sd.id;sd[pk==='w-show'?'show':'remind']=e.target.checked;put('settings','waste',sd);vib(8);return} if(pk==='feat-rugzak'){const sd=Object.assign({},setting('features'));delete sd.id;sd.rugzak=e.target.checked;put('settings','features',sd);vib(8);toast(e.target.checked?'Rugzak staat aan':'Rugzak staat uit');return} if(pk==='sc-show'||pk==='sc-hol'){const sd=Object.assign({},setting('school'));delete sd.id;sd[pk==='sc-show'?'show':'holidays']=e.target.checked;put('settings','school',sd);vib(8);return} if(pk){setPref(pk,e.target.checked);vib(8);toast(e.target.checked?'Aangezet':'Uitgezet');return} if(e.target.id==='s-store'){shopStore=e.target.value;ls.set('tb_store',shopStore);} });
 document.addEventListener('submit',async e=>{
   const f=e.target.closest('[data-form]'); if(!f) return; e.preventDefault();
   if(f.dataset.form==='ask'){ const q=$('#ask-q').value.trim(); $('#ask-q').value=''; chatSheet(q||undefined); return; }
