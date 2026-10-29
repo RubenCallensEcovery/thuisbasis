@@ -1298,6 +1298,14 @@ html[data-kid] .top .spark-btn{border-radius:16px!important;border:2.5px solid v
 html[data-kid] .nav{background:#fff!important;border-top:2.5px solid var(--kline)!important}
 html[data-kid] .nav button[aria-current="page"] .pill{background:color-mix(in srgb,var(--kc) 22%,#fff)!important;box-shadow:none!important;border-radius:16px!important;width:58px!important}
 html[data-kid] .nav button[aria-current="page"]{color:color-mix(in srgb,var(--kc) 70%,#111)!important}
+
+/* ter info (vakanties, feestdagen) bovenaan de dag */
+.ter-info{display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px;margin:2px 0 10px;padding:7px 10px;background:color-mix(in srgb,#E0A21B 14%,var(--surface));border-left:3px solid #E0A21B;font-size:13.5px}
+.ter-info .lbl{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin-right:2px}
+.ti-item{border:0;background:none;padding:0;font:inherit;font-weight:600;color:var(--text);cursor:pointer;text-align:left}
+.ti-item span{font-weight:400;color:var(--muted)}
+.ti-sep{color:var(--muted)}
+html[data-kid] .ter-info{border-radius:14px;border-left:0}
 </style>
 
 </head><body>
@@ -1752,9 +1760,12 @@ function renderAgenda(){
       g+=`<button class="mcell ${V?'vacd':''} ${parse(d).getMonth()!==a.getMonth()?'out':''} ${d===t?'today':''}" ${V?`style="${vStyle}" title="${esc(V.title)}"`:''} data-act="ag-sel" data-v="${d}" aria-pressed="${d===ui.agSel}" aria-label="${dlong(d)}, ${evs.length} items${d===ui.agSel&&isParent(me)?'. Tik nog eens voor een nieuwe afspraak':''}"><span class="n">${parse(d).getDate()}</span>${d===ui.agSel&&isParent(me)?`<span class="m-add" aria-hidden="true">${icon('plus')}</span>`:''}<span class="mdots">${dots.slice(0,6).map(w=>`<i class="${w.length>1?'multi':''}" style="background:${w.length===1?col(w[0]):`conic-gradient(${w.map((x,j)=>`${col(x)} ${(j/w.length*100).toFixed(1)}% ${((j+1)/w.length*100).toFixed(1)}%`).join(',')})`}" title="${esc(names(w))}"></i>`).join('')}</span></button>`;
     }
     g+=`</div>`;
-    const sel=ui.agSel, evs=eventsOn(sel,ui.filter), meal=mealOf(sel);
+    const sel=ui.agSel, evsAll=eventsOn(sel,ui.filter), meal=mealOf(sel);
+    /* vakanties en feestdagen: bovenaan als 'ter info', niet tussen de afspraken */
+    const isInfoDay=o=>o.ev.allDay&&(o.ev.type==='Vakantie'||o.ev.virtual==='holiday'), infos=evsAll.filter(isInfoDay), evs=evsAll.filter(o=>!isInfoDay(o));
     h+=`<div class="ag-split"><div class="mgrid-wrap">${g}<div class="mc-foot"><button class="today-btn" data-act="ag-today" aria-label="Naar vandaag" title="Vandaag"><i></i><b>${parse(t).getDate()}</b></button><button class="mc-up ${coll?'down':''}" data-act="ag-coll" aria-expanded="${!coll}" aria-label="${coll?'Hele maand tonen':'Kalender inklappen'}" title="${coll?'Hele maand':'Inklappen'}">${icon('right')}</button></div></div>
       <div class="card day-panel"><div class="day-h day-nav"><button class="icon-btn sm" data-act="ag-day" data-v="-1" aria-label="Vorige dag">${icon('left')}</button><span class="dn">${dlong(sel)}</span>${sel===t?'<span class="today-tag">vandaag</span>':''}<span class="sp"></span><button class="icon-btn sm" data-act="ag-day" data-v="1" aria-label="Volgende dag">${icon('right')}</button></div>
+      ${infos.length?`<div class="ter-info"><span class="lbl">Ter info</span>${infos.map(o=>`<button class="ti-item" data-act="ev-edit" data-v="${esc(o.ev.id)}|${sel}">${esc(o.ev.title)}${o.ev.endDate&&o.ev.endDate!==o.ev.date?` <span>${dshort(o.ev.date)} – ${dshort(o.ev.endDate)}</span>`:''}</button>`).join('<span class="ti-sep">·</span>')}</div>`:''}
       ${meal?`<div class="meal-line">${icon('food').replace('class="i "','class="i " style="width:16px;height:16px"')}<b>${esc(meal.title)}</b></div>`:''}${smOf(sel)?`<div class="meal-line"><span>School: <b>${esc(smText(smOf(sel)))}</b></span></div>`:''}
       ${remChips(sel)}<div class="evlist">${evList(evs,sel,'<p class="empty">Niks extra gepland op deze dag.</p>')}</div>
       <button class="btn rem-btn" style="margin-top:12px;margin-right:6px" data-act="rem-new" data-v="${sel}" aria-label="Herinnering instellen" title="Herinnering">${icon('bell')}</button>${isParent(me)?`<button class="btn primary" style="margin-top:12px" data-act="ev-new" data-v="${sel}">${icon('plus')} Nieuwe afspraak op ${dshort(sel)}</button><p class="set-note">Tip: tik nog eens op een gekozen dag om meteen iets toe te voegen.</p>`:''}</div></div>`;
