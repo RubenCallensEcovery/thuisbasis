@@ -78,8 +78,12 @@ button{cursor:pointer}
 svg.wico{width:1.15em;height:1.15em;vertical-align:-.18em;display:inline-block}
 svg.wolf{width:1.35em;height:1.35em;vertical-align:-.3em;flex:none;color:var(--text)}
 .cb-tag svg.wolf{width:1.2em;height:1.2em}
-.spark-btn svg.wolf{width:31px;height:31px}
-h2 svg.wolf{margin-right:8px}
+.spark-btn svg.wolf{width:28px;height:28px}
+.top .spark-btn{width:44px;height:40px;border:1.5px solid var(--line);background:var(--surface);border-radius:12px;box-shadow:0 1px 2px rgba(0,0,0,.06)}
+.top .spark-btn:active{transform:scale(.94)}
+html[data-style="bauhaus"] .top .spark-btn{border-radius:0;border:1.5px solid var(--ink);box-shadow:3px 3px 0 var(--bh-yellow)}
+html[data-style="bauhaus"] .top .spark-btn:active{transform:translate(2px,2px);box-shadow:1px 1px 0 var(--bh-yellow)}
+h2 svg.wolf{margin-right:10px;width:1.7em;height:1.7em;vertical-align:-.45em}
 .cb-spark svg.wolf{width:48px;height:48px;transform-origin:50% 85%;animation:wolfTilt 2.6s ease-in-out infinite}
 .spark-btn:hover svg.wolf,.spark-btn:focus-visible svg.wolf{animation:wolfTilt .9s ease-in-out}
 @keyframes wolfTilt{0%,60%,100%{transform:rotate(0)}70%{transform:rotate(-10deg)}82%{transform:rotate(7deg)}92%{transform:rotate(-3deg)}}
@@ -3198,9 +3202,9 @@ function drawChat(){
   const box=document.getElementById('chat-log'); if(!box) return;
   const parts=[]; let h='';
   if(!chat.intro) chat.intro=briefing();
-  h+=`<div class="cb bot cl intro"><span class="cb-tag">${WOLF()} Jonah</span>${md(chat.intro)}</div>`;
+  h+=`<div class="cb bot cl intro"><span class="cb-tag">Jonah</span>${md(chat.intro)}</div>`;
   if(h){parts.push(['hi',h]);h='';}
-  chat.turns.forEach((t,ti)=>{ parts.push(['t'+ti,`<div class="cb ${t.role==='user'?'me':'bot'} ${t.err?'err':''} ${t.claude?'cl':''}">${t.claude&&t.content?'<span class="cb-tag">'+WOLF()+' Jonah</span>':''}${t.role==='user'?esc(t.content):(t.content?md(t.content):'<span class="dots3"><i></i><i></i><i></i></span>'+(t.claude?' <small class="muted">Jonah denkt na…</small>':''))}</div>`]); });
+  chat.turns.forEach((t,ti)=>{ parts.push(['t'+ti,`<div class="cb ${t.role==='user'?'me':'bot'} ${t.err?'err':''} ${t.claude?'cl':''}">${t.claude&&t.content?'<span class="cb-tag">Jonah</span>':''}${t.role==='user'?esc(t.content):(t.content?md(t.content):'<span class="dots3"><i></i><i></i><i></i></span>'+(t.claude?' <small class="muted">Jonah denkt na…</small>':''))}</div>`]); });
   if(chat.actions.length) parts.push(['acts',`<div class="acts">${chat.actions.map(a=>`<div class="act ${a.status}"><div class="act-b"><span class="lbl">${esc(a.label)}</span><b>${esc(a.detail)}</b>${a.result?`<span class="act-r">${esc(a.result)}</span>`:''}</div>${a.status==='open'?`<div class="act-btns"><button type="button" class="btn sm primary" data-act-ok="${a.id}">${icon('check')} Bevestig</button>${a.edit?`<button type="button" class="btn sm" data-act-edit="${a.id}">Aanpassen</button>`:''}<button type="button" class="btn sm ghost" data-act-no="${a.id}">Annuleer</button></div>`:''}</div>`).join('')}</div>`]);
   if(chat.links.length) parts.push(['links',`<div class="cb-links">${chat.links.map((l,i)=>l.url?`<a class="btn sm ext" href="${esc(l.url)}" target="_blank" rel="noopener noreferrer">${l.icon||'↗'} ${esc(l.label)} <span aria-hidden="true">↗</span></a>`:l.claude?`<button type="button" class="btn sm ghost ask-claude" data-link="${i}">✨ ${esc(l.label)}</button>`:l.ev?`<button type="button" class="btn sm primary" data-link="${i}">${icon('plus')} ${esc(l.label)}</button>`:`<button type="button" class="btn sm" data-link="${i}">${icon('right')} ${esc(l.label)}</button>`).join('')}</div>`]);
   /* alleen wijzigen wat veranderd is: geen flikkering tijdens het typen */
