@@ -36,20 +36,21 @@ Deno.serve(async (req) => {
   (rows || []).forEach((r: any) => C[r.col].push({ id: r.id, ...r.data }));
 
   const now = local(); const t = now.date, hm = now.time, H = Number(hm.slice(0, 2));
-  const out: { key: string; to: string[]; title: string; body: string; tag?: string }[] = [];
+  const out: { key: string; to: string[]; title: string; body: string; tag?: string; icon?: string }[] = [];
+  const ico = (n: string) => `icons/n/${n}.png`; // icoon links in de melding, volgens het onderwerp
   const names = (w: string[]) => (w || []).map((x) => NAMES[x] || x).join(", ");
 
   // 1. herinneringen
   for (const r of C.reminders) {
     if (r.done || !r.date || r.date < addDays(t, -1)) continue;
     if (r.date > t || (r.date === t && hm < (r.time || "08:00"))) continue;
-    out.push({ key: `r:${r.id}:${r.date}${r.time || ""}`, to: r.who || [], title: "🔔 Herinnering", body: r.title, tag: "r" + r.id });
+    out.push({ key: `r:${r.id}:${r.date}${r.time || ""}`, to: r.who || [], title: "🔔 Herinnering", body: r.title, tag: "r" + r.id, icon: ico("bell") });
   }
   // 2. wat anderen deden (activiteiten van de laatste 15 minuten)
   for (const n of C.notifs) {
     if (!n.at || Date.now() - n.at > 15 * 6e4) continue;
     const to = [...PARENTS, ...KIDS].filter((m) => m !== n.by && (PARENTS.includes(m) || (n.to || []).includes(m) || (n.to || []).includes("all")));
-    out.push({ key: `n:${n.id}`, to, title: NAMES[n.by] || "Thuisbasis", body: n.text });
+    out.push({ key: `n:${n.id}`, to, title: NAMES[n.by] || "Thuisbasis", body: n.text, icon: ico(n.kind === "agenda" ? "agenda" : n.kind === "voorraad" || n.kind === "eten" ? "cart" : "chat") });
   }
   // 3. afspraken die binnen 30 minuten beginnen
   for (const ev of C.events) {
@@ -60,22 +61,22 @@ Deno.serve(async (req) => {
     const diff = toMin(ev.start) - toMin(hm);
     if (diff <= 0 || diff > 30) continue;
     const kids = (ev.who || []).filter((w: string) => KIDS.includes(w));
-    out.push({ key: `e:${ev.id}:${t}`, to: [...PARENTS, ...kids], title: `Om ${ev.start}`, body: `${ev.title}${ev.who && ev.who.length ? " — " + names(ev.who) : ""}`, tag: "e" + ev.id });
+    out.push({ key: `e:${ev.id}:${t}`, to: [...PARENTS, ...kids], title: `Om ${ev.start}`, body: `${ev.title}${ev.who && ev.who.length ? " — " + names(ev.who) : ""}`, tag: "e" + ev.id, icon: ico(ev.type === "Match" || ev.type === "Training" ? "sport" : "agenda") });
   }
   // 4. afval: de avond ervoor vanaf 19u
   const w = C.waste.find((x) => (x.date || x.id) === addDays(t, 1));
   const ws = C.settings.find((x) => x.id === "waste") || {};
-  if (w && H >= 19 && ws.remind !== false) out.push({ key: `w:${addDays(t, 1)}`, to: PARENTS, title: "🗑️ Morgen ophaling", body: `${(w.types || []).map((x: string) => WASTE[x] || x).join(" + ")}: zet ze vanavond buiten.` });
+  if (w && H >= 19 && ws.remind !== false) out.push({ key: `w:${addDays(t, 1)}`, to: PARENTS, title: "🗑️ Morgen ophaling", body: `${(w.types || []).map((x: string) => WASTE[x] || x).join(" + ")}: zet ze vanavond buiten.`, icon: ico((["gft", "pmd", "rest"].find((x) => (w.types || []).includes(x))) || "rest") });
   // 5. machines die klaar zijn
   for (const m of C.timers) {
     const end = (m.startedAt || 0) + (m.minutes || 0) * 6e4;
     if (end > Date.now() || Date.now() - end > 60 * 6e4) continue;
-    out.push({ key: `t:${m.id}:${m.startedAt}`, to: PARENTS, title: "🫧 Klaar", body: `${m.label || "De machine"} is klaar. Tijd om uit te halen.` });
+    out.push({ key: `t:${m.id}:${m.startedAt}`, to: PARENTS, title: "🫧 Klaar", body: `${m.label || "De machine"} is klaar. Tijd om uit te halen.`, icon: ico("machine") });
   }
   // 6. voorraad: één keer per dag vanaf 17u
   if (H >= 17) {
     const low = C.stock.filter((s) => { const c = stockLeft(s, t); return c !== null && c <= (Number(s.warnDays) || 2); }).map((s) => s.name);
-    if (low.length) out.push({ key: `s:${t}`, to: PARENTS, title: "🛒 Bijna op", body: low.join(", ") });
+    if (low.length) out.push({ key: `s:${t}`, to: PARENTS, title: "🛒 Bijna op", body: low.join(", "), icon: ico("cart") });
   }
 
   let sent = 0;
@@ -83,7 +84,7 @@ Deno.serve(async (req) => {
     const { error } = await sb.from("push_sent").insert({ key: m.key });
     if (error) continue; // al verstuurd
     for (const s of subs.filter((x: any) => m.to.includes(x.member))) {
-      try { await webpush.sendNotification(s.sub, JSON.stringify({ title: m.title, body: m.body, tag: m.tag })); sent++; }
+      try { await webpush.sendNotification(s.sub, JSON.stringify({ title: m.title, body: m.body, tag: m.tag, icon: m.icon })); sent++; }
       catch (e: any) { if (e && (e.statusCode === 404 || e.statusCode === 410)) await sb.from("push_subs").delete().eq("endpoint", s.endpoint); }
     }
   }

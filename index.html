@@ -1441,7 +1441,7 @@ function onData(c){
   if(c==='settings') applyFamily();
   if(c==='notifs'){
     const fresh=S.notifs.filter(n=>n.at>lastNotifAt && visibleNotif(n));
-    if(fresh.length){ lastNotifAt=Math.max(...fresh.map(n=>n.at)); fresh.slice(0,3).forEach(n=>{ toast(`${nm(n.by)}: ${n.text}`, n.by); sysNotify('Thuisbasis',`${nm(n.by)}: ${n.text}`); }); }
+    if(fresh.length){ lastNotifAt=Math.max(...fresh.map(n=>n.at)); fresh.slice(0,3).forEach(n=>{ toast(`${nm(n.by)}: ${n.text}`, n.by); sysNotify('Thuisbasis',`${nm(n.by)}: ${n.text}`,n.kind==='agenda'?'agenda':n.kind==='voorraad'||n.kind==='eten'?'cart':'chat'); }); }
   }
   if(c==='stock'||c==='shopping'||c==='events'){ clearTimeout(window.__sc); window.__sc=setTimeout(checkStock,1500); }
   scheduleRender();
@@ -4274,18 +4274,18 @@ function tick(){
   });
   if(!me) return;
   S.timers.forEach(t=>{ const end=t.startedAt+t.minutes*6e4, k='t'+t.id;
-    if(end<=now && !fired.has(k)){ markFired(k); if(now-end<15*6e4 && isParent(me) && kindOn('machine')){ toast(`${t.label} is klaar!`); sysNotify('Thuisbasis',`${t.label} is klaar. Tijd om uit te halen.`); chime(880); setTimeout(()=>chime(660),180); scheduleRender(); } } });
+    if(end<=now && !fired.has(k)){ markFired(k); if(now-end<15*6e4 && isParent(me) && kindOn('machine')){ toast(`${t.label} is klaar!`); sysNotify('Thuisbasis',`${t.label} is klaar. Tijd om uit te halen.`,'machine'); chime(880); setTimeout(()=>chime(660),180); scheduleRender(); } } });
   if(now%30000<1100){
-    { const nd=new Date(); const tw=me&&isParent(me)&&typeof wasteOn==='function'?wasteOn(addDays(today(),1)):null; const k='w'+today(); if(tw&&wasteCfg().remind&&nd.getHours()>=19&&!fired.has(k)){ markFired(k); const txt=`Morgen ophaling: ${tw.types.map(x=>WASTE[x]?.l||x).join(' + ')}. Zet ze buiten!`; toast(`${wasteEmo(tw.types)} ${txt}`); sysNotify('Afval',txt); chime(660); } }
+    { const nd=new Date(); const tw=me&&isParent(me)&&typeof wasteOn==='function'?wasteOn(addDays(today(),1)):null; const k='w'+today(); if(tw&&wasteCfg().remind&&nd.getHours()>=19&&!fired.has(k)){ markFired(k); const txt=`Morgen ophaling: ${tw.types.map(x=>WASTE[x]?.l||x).join(' + ')}. Zet ze buiten!`; toast(`${wasteEmo(tw.types)} ${txt}`); sysNotify('Afval',txt,['gft','pmd','rest'].find(x=>(tw.types||[]).includes(x))||'rest'); chime(660); } }
     checkStock();
     for(const r of (S.reminders||[])){ if(!(r.who||[]).includes(me)||!remDue(r)) continue; const k='r'+r.id+r.date+(r.time||''); if(fired.has(k)) continue; markFired(k);
-      toast(`🔔 ${r.title}`); sysNotify('Herinnering',r.title); chime(740); setTimeout(()=>chime(988),160); vib(30); scheduleRender(); }
+      toast(`🔔 ${r.title}`); sysNotify('Herinnering',r.title,'bell'); chime(740); setTimeout(()=>chime(988),160); vib(30); scheduleRender(); }
     const d=today();
     for(const o of eventsOn(d,isParent(me)?null:new Set([me]))){
       if(o.ev.allDay||!o.ev.start||o.k!==0) continue;
       const [hh,mm]=o.ev.start.split(':').map(Number); const st=parse(d); st.setHours(hh,mm,0,0);
       const diff=st-now, k='e'+o.ev.id+d;
-      if(diff>0&&diff<=30*6e4&&!fired.has(k)){ markFired(k); if(prefs().reminders!==false) toast(`Om ${o.ev.start}: ${o.ev.title} (${names(o.ev.who)})`); sysNotify('Binnenkort',`${o.ev.start} ${o.ev.title} — ${names(o.ev.who)}`); }
+      if(diff>0&&diff<=30*6e4&&!fired.has(k)){ markFired(k); if(prefs().reminders!==false) toast(`Om ${o.ev.start}: ${o.ev.title} (${names(o.ev.who)})`); sysNotify('Binnenkort',`${o.ev.start} ${o.ev.title} — ${names(o.ev.who)}`,o.ev.type==='Match'||o.ev.type==='Training'?'sport':'agenda'); }
     }
     if(d!==lastDay){lastDay=d;scheduleRender()}
   }
@@ -4299,7 +4299,7 @@ function toast(msg,by,undo){
   const box=$('#toasts'); while(box.children.length>2) box.firstChild.remove();
   box.appendChild(el); setTimeout(()=>{el.style.transition='opacity .3s, transform .3s';el.style.opacity='0';el.style.transform='translateY(8px)';setTimeout(()=>el.remove(),320)},undo?5500:3800);
 }
-function sysNotify(title,body){ try{ if('Notification' in window && Notification.permission==='granted') new Notification(title,{body}); }catch(e){} }
+function sysNotify(title,body,ico){ try{ if('Notification' in window && Notification.permission==='granted') new Notification(title,{body,icon:ico?`icons/n/${ico}.png`:'icons/v3/icon-192.png'}); }catch(e){} }
 let AC=null;
 function unlockAudio(){ try{ if(!AC){const A=window.AudioContext||window.webkitAudioContext; if(A) AC=new A();} if(AC&&AC.state==='suspended') AC.resume(); }catch(e){} }
 function chime(f){ try{ if(!AC||prefs().sound===false) return; const o=AC.createOscillator(), g=AC.createGain(); o.type='sine'; o.frequency.value=f; g.gain.setValueAtTime(.0001,AC.currentTime); g.gain.exponentialRampToValueAtTime(.18,AC.currentTime+.02); g.gain.exponentialRampToValueAtTime(.0001,AC.currentTime+.45); o.connect(g).connect(AC.destination); o.start(); o.stop(AC.currentTime+.5);}catch(e){} }
