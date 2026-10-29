@@ -122,7 +122,7 @@
       body: JSON.stringify(payload)
     });
     const txt = await r.text(); let j = null; try { j = JSON.parse(txt); } catch (e) {}
-    if (!r.ok) { const e = new Error((j && j.error && j.error.message) || txt || ('HTTP ' + r.status)); e.code = r.status === 429 ? 'rate_limited' : 'upstream_error'; throw e; }
+    if (!r.ok) { const msg = (j && j.error && j.error.message) || txt || ('HTTP ' + r.status); const e = new Error(msg); e.code = r.status === 429 ? 'rate_limited' : 'upstream_error'; e.text = 'Melding van de server: ' + String(msg).slice(0, 200); throw e; }
     return j;
   }
   const textOf = msg => (msg.content || []).filter(b => b.type === 'text').map(b => b.text).join('');

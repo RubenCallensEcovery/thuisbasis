@@ -38,7 +38,9 @@ Deno.serve(async (req) => {
     headers: { "x-api-key": key, "anthropic-version": "2023-06-01", "content-type": "application/json" },
     body: JSON.stringify(payload),
   });
-  return new Response(await r.text(), { status: r.status, headers: { ...CORS, "content-type": "application/json" } });
+  const txt = await r.text();
+  if (!r.ok) console.error("Anthropic", r.status, txt.slice(0, 500));
+  return new Response(txt, { status: r.status, headers: { ...CORS, "content-type": "application/json" } });
 });
 
 function json(o: unknown, status = 200) {
