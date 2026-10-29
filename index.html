@@ -1466,16 +1466,54 @@ function startMatches(ev,s){
   const r=ev.repeat||'none';
   if(r==='none') return dd===0;
   if(r==='weekly') return dd%7===0;
-  if(r==='days') return (ev.days||[]).map(Number).includes(parse(s).getDay());
+  if(r==='days') return (ev.days||[]).map(Number).includes(parse(s).getDay())&&(!(ev.every>1)||Math.round(diffDays(monday(s),monday(ev.date))/7)%ev.every===0);
   if(r==='2weekly') return dd%14===0;
   const a=parse(s), b=parse(ev.date);
   if(r==='monthly') return a.getDate()===b.getDate();
   if(r==='yearly') return a.getDate()===b.getDate()&&a.getMonth()===b.getMonth();
   return false;
 }
-const isPoets=ev=>/poets|kuishulp|schoonmaak/i.test(ev.title||'');
-const isWorkSeries=ev=>(ev.type==='Werk'||ev.type==='Crèche'||isPoets(ev))&&ev.repeat&&ev.repeat!=='none'&&!ev.virtual;
-const offTitle=ev=>isPoets(ev)?'Geen '+String(ev.title).toLowerCase():ev.type==='Crèche'?'Thuis':'Congé';
+/* ---------- vaste afspraken (werk, crèche, poetshulp…) beheren in Instellingen ---------- */
+const VAST_KIND=[{v:'Werk',l:'💼 Werk'},{v:'Crèche',l:'🧸 Crèche'},{v:'Hulp',l:'🧽 Hulp aan huis'},{v:'Andere',l:'📌 Andere'}];
+const vastKind=ev=>ev.type==='Werk'?'Werk':ev.type==='Crèche'?'Crèche':isPoets(ev)||ev.vastKind==='Hulp'?'Hulp':'Andere';
+const vastList=()=>S.events.filter(ev=>ev&&!ev.virtual&&ev.repeat&&ev.repeat!=='none'&&isWorkSeries(ev)).sort((a,b)=>VAST_KIND.findIndex(k=>k.v===vastKind(a))-VAST_KIND.findIndex(k=>k.v===vastKind(b))||(a.who||[]).join().localeCompare((b.who||[]).join()));
+const vastFreq=ev=>{const n=ev.every>1?ev.every:(ev.repeat==='2weekly'?2:1);return n===1?'elke week':`om de ${n} weken`};
+const vastDays=ev=>ev.repeat==='days'?daysTxt(ev.days):DAYS[parse(ev.date).getDay()];
+function vastSettingsSection(){
+  const L=vastList();
+  return `<section class="card set" id="s-vast"><h2>🔁 Vaste afspraken</h2><p class="set-note" style="margin-top:0">Werk, crèche, poetshulp en andere dingen die elke week terugkomen. Op een dag zelf duid je aan of het die keer niet doorgaat (congé, thuis, komt niet).</p>
+    <div class="list">${L.length?L.map(ev=>`<div class="li tap" data-act="vast-edit" data-v="${esc(ev.id)}" role="button" tabindex="0"><span>${avs(ev.who)}</span><div class="main"><div class="t">${esc(ev.title)} <span class="muted" style="font-weight:400">· ${esc(names(ev.who))}</span></div><div class="s">${esc(vastDays(ev))} · ${ev.start?esc(ev.start)+'–'+esc(ev.end||''):'hele dag'} · ${vastFreq(ev)}${ev.skipHol==='school'?' · niet in schoolvakanties':ev.skipHol==='feest'?' · niet op feestdagen':''}</div></div><span class="muted">${icon('right')}</span></div>`).join(''):'<p class="empty">Nog geen vaste afspraken.</p>'}</div>
+    <button class="btn" style="margin-top:12px" data-act="vast-new">${icon('plus')} Vaste afspraak toevoegen</button></section>`;
+}
+function vastSheet(ev){
+  const isNew=!ev; ev=ev||{title:'',type:'Werk',who:[],start:'09:00',end:'17:00',repeat:'days',days:[1,2,3,4,5],every:1,skipHol:'feest',date:monday(today())};
+  const every=ev.every>1?ev.every:(ev.repeat==='2weekly'?2:1), days=ev.repeat==='days'?(ev.days||[]).map(Number):[parse(ev.date).getDay()];
+  const body=`<div class="form">
+    <div class="field"><span>Soort</span>${chips('vk',VAST_KIND,[isNew?'Werk':vastKind(ev)],false)}</div>
+    <label class="field"><span>Naam</span><input class="in" id="v-title" value="${esc(ev.title)}" placeholder="bv. Werk, Crèche, Poetshulp"></label>
+    <div class="field"><span>Voor wie</span>${chips('vw',MEMBERS.map(m=>({v:m.id,l:m.name,c:col(m.id),dot:1})),ev.who||[])}</div>
+    <div class="frow"><label class="field"><span>Van</span><input class="in" type="time" id="v-start" value="${esc(ev.start||'')}"></label><label class="field"><span>Tot</span><input class="in" type="time" id="v-end" value="${esc(ev.end||'')}"></label></div>
+    <div class="field"><span>Hoe vaak</span>${chips('vf',[{v:'1',l:'Elke week'},{v:'2',l:'Om de 2 weken'},{v:'3',l:'Om de 3 weken'},{v:'4',l:'Om de 4 weken'}],[String(every)],false)}</div>
+    <div class="field"><span>Welke dagen</span>${chips('vd',[1,2,3,4,5,6,0].map(d=>({v:String(d),l:DAYS[d]})),days.map(String))}</div>
+    <div class="field"><span>Vakanties en feestdagen</span>${chips('vh',[{v:'',l:'Gaat altijd door'},{v:'feest',l:'Niet op feestdagen'},{v:'school',l:'Niet in schoolvakanties'}],[ev.skipHol||''],false)}</div>
+    <label class="field"><span>Vanaf (bij om de 2 weken: een week waarin het doorgaat)</span><input class="in" type="date" id="v-from" value="${esc(ev.date||monday(today()))}"></label>
+    <label class="field"><span>Tot en met (optioneel)</span><input class="in" type="date" id="v-until" value="${esc(ev.until||'')}"></label>
+  </div>`;
+  openSheet(isNew?'Nieuwe vaste afspraak':ev.title,body,{saveLabel:'Bewaren',
+    onDelete:isNew?null:async()=>{ await del('events',ev.id); toast('Vaste afspraak verwijderd'); },
+    onSave:async p=>{
+      const v=q=>p.querySelector(q).value.trim(), kind=chipVals(p,'vk')[0]||'Andere', who=chipVals(p,'vw'), dsel=chipVals(p,'vd').map(Number);
+      if(!who.length){toast('Kies voor wie.');return false} if(!dsel.length){toast('Kies minstens één dag.');return false}
+      const title=v('#v-title')||(kind==='Hulp'?'Poetshulp':kind==='Andere'?'Vaste afspraak':kind);
+      const d={title,who,type:kind==='Werk'?'Werk':kind==='Crèche'?'Crèche':'Afspraak',vastKind:kind,vast:true,start:v('#v-start'),end:v('#v-end'),allDay:!v('#v-start'),
+        repeat:'days',days:dsel,every:Number(chipVals(p,'vf')[0]||1),skipHol:chipVals(p,'vh')[0]||'',date:v('#v-from')||monday(today()),until:v('#v-until')||'',endDate:'',info:false};
+      if(isNew){ d.conge=[];d.werkX=[];d.skip=[]; await add('events',d); toast('Vaste afspraak toegevoegd'); }
+      else { await upd('events',ev.id,d); toast('Aangepast'); }
+    }});
+}
+const isPoets=ev=>ev.vastKind==='Hulp'||(ev.vastKind!=='Andere'&&/poets|kuishulp|schoonmaak/i.test(ev.title||''));
+const isWorkSeries=ev=>(ev.type==='Werk'||ev.type==='Crèche'||isPoets(ev)||ev.vast)&&ev.repeat&&ev.repeat!=='none'&&!ev.virtual;
+const offTitle=ev=>isPoets(ev)?'Geen '+String(ev.title).toLowerCase():ev.type==='Crèche'?'Thuis':ev.vastKind==='Andere'?ev.title+' gaat niet door':'Congé';
 function workOffDay(ev,day){ if(day<ev.date||(ev.until&&day>ev.until)||(ev.skip||[]).includes(day)) return false;
   /* enkel feestdagen en (school)vakanties; in het weekend staat er niets */
   const wd=parse(day).getDay(); if(wd===0||wd===6) return false; return !!feestdag(day)||!!(ev.skipHol&&skipHolOn(ev,day)&&occurs(ev,day)); }
@@ -1827,8 +1865,8 @@ function eventSheet(ev,day,preset){
   const canEdit=isParent(me);
   let congeBox='';
   if(!isNew&&day&&isWorkSeries(ev)){ const off=workOffDay(ev,day), extra=(ev.werkX||[]).includes(day), cg=(ev.conge||[]).includes(day)||(ev.skip||[]).includes(day);
-    const cr=ev.type==='Crèche', po=isPoets(ev), T=esc(ev.title);
-    const [lab,btn,act,free]=po?(off?(extra?[T+' komt extra','Komt toch niet','werk-toggle',false]:['Geen '+T.toLowerCase()+' (feestdag)','Komt toch','werk-toggle',true]):(cg?[T+' komt niet','Komt toch','conge-toggle',true]:[T+' komt','Komt niet','conge-toggle',false])):cr?(off?(extra?['Extra crèchedag','Toch thuis','werk-toggle',false]:['Thuis (feestdag)','Toch naar de crèche','werk-toggle',true]):(cg?['Thuis','Toch naar de crèche','conge-toggle',true]:['Crèchedag','Niet naar de crèche','conge-toggle',false])):(off?(extra?['Extra werkdag','Toch vrij','werk-toggle',false]:['Congé (feestdag of vakantie)','Toch werken','werk-toggle',true]):(cg?['Congé','Toch werken','conge-toggle',true]:['Werkdag','Congé deze dag','conge-toggle',false]));
+    const cr=ev.type==='Crèche', po=isPoets(ev), an=ev.vastKind==='Andere', T=esc(ev.title);
+    const [lab,btn,act,free]=an?(off?(extra?[T+' gaat extra door','Toch niet','werk-toggle',false]:[T+' gaat niet door (feestdag)','Gaat toch door','werk-toggle',true]):(cg?[T+' gaat niet door','Gaat toch door','conge-toggle',true]:[T,'Gaat niet door','conge-toggle',false])):po?(off?(extra?[T+' komt extra','Komt toch niet','werk-toggle',false]:['Geen '+T.toLowerCase()+' (feestdag)','Komt toch','werk-toggle',true]):(cg?[T+' komt niet','Komt toch','conge-toggle',true]:[T+' komt','Komt niet','conge-toggle',false])):cr?(off?(extra?['Extra crèchedag','Toch thuis','werk-toggle',false]:['Thuis (feestdag)','Toch naar de crèche','werk-toggle',true]):(cg?['Thuis','Toch naar de crèche','conge-toggle',true]:['Crèchedag','Niet naar de crèche','conge-toggle',false])):(off?(extra?['Extra werkdag','Toch vrij','werk-toggle',false]:['Congé (feestdag of vakantie)','Toch werken','werk-toggle',true]):(cg?['Congé','Toch werken','conge-toggle',true]:['Werkdag','Congé deze dag','conge-toggle',false]));
     congeBox=`<div class="conge-box ${free?'on':''}"><div><b>${lab}</b><span>${dlong(day)}</span></div><button type="button" class="btn ${free?'':'primary'}" data-act="${act}" data-v="${esc(ev.id)}|${day}">${btn}</button></div><p class="set-note" style="margin:-6px 0 12px">Let op: wat je hieronder aanpast en opslaat, geldt voor élke week.</p>`; }
   if(!canEdit){
     openSheet(ev.title,`<div class="form"><div class="row">${avs(ev.who)}<span>${esc(names(ev.who))}</span></div>
@@ -2695,6 +2733,7 @@ function renderSettings(){
     </section>`;
     /* gegevens */
     const sc=seedCount(), doneShop=S.shopping.filter(x=>x.done).length, oldN=S.notifs.length;
+    h+=vastSettingsSection();
     h+=`<section class="card set" id="s-data"><h2>🗂️ Gegevens</h2>
       <p class="set-note" style="margin-top:0">${mode==='db'?'Alles staat in de gedeelde opslag en is meteen zichtbaar voor het gezin.':'Gegevens staan enkel op dit toestel.'}</p>
       <div class="data-row"><div><b>Voorbeelddata</b><span>${sc?`${sc} voorbeelditems (agenda, eten, taken, rugzak, ritme…). Jullie eigen items blijven staan.`:'Geen voorbeelddata meer.'}</span></div><button class="btn sm danger" data-act="seed-clear" ${sc?'':'disabled'}>Verwijderen</button></div>
@@ -2707,7 +2746,7 @@ function renderSettings(){
   /* opdelen in tabbladen */
   const head=h.slice(0,h.indexOf('<div class="set-grid">')), secs={};
   h.replace(/<section class="card set" id="(s-[a-z]+)">[\s\S]*?<\/section>/g,(m0,id)=>{secs[id]=m0;return m0});
-  const TABS=[['notif','🔔','Meldingen',['s-notif']],['look','🎨','Weergave',['s-look']],...(par?[['school','🏫','School',['s-school']],['places','📍','Plaatsen',['s-places']],['waste','🗑️','Afval',['s-waste']],['shop','🛒','Winkels',['s-shop']],['data','🗂️','Gegevens',['s-data']]]:[]),['people','👤','Gezin',['s-me','s-pets','s-fam']]];
+  const TABS=[['notif','🔔','Meldingen',['s-notif']],['look','🎨','Weergave',['s-look']],...(par?[['school','🏫','School',['s-school']],['places','📍','Plaatsen',['s-places']],['waste','🗑️','Afval',['s-waste']],['shop','🛒','Winkels',['s-shop']],['vast','🔁','Vaste afspraken',['s-vast']],['data','🗂️','Gegevens',['s-data']]]:[]),['people','👤','Gezin',['s-me','s-pets','s-fam']]];
   let tab=ui.setTab||'notif'; if(!TABS.some(x=>x[0]===tab)) tab='notif';
   const cur=TABS.find(x=>x[0]===tab);
   let body=cur[3].map(id=>{ let x=secs[id]||''; if(id==='s-fam'&&x){ x=x.replace('<section class="card set" id="s-fam">','<section class="card set" id="s-fam"><details class="set-fold" '+(ui.famOpen?'open':'')+'><summary>👨‍👩‍👦‍👦 Gezinsleden aanpassen <span class="muted">namen, kleuren, verjaardagen</span></summary>').replace(/<\/section>$/,'</details></section>'); } return x; }).join('');
@@ -4095,6 +4134,8 @@ const ACT={
   'chore-edit':v=>{closeSheet();choreSheet(v?S.chores.find(x=>x.id===v):null)},
   'chore-tpl':v=>{const t=CHORE_TEMPLATES[Number(v)];if(t)choreSheet(null,Object.assign({who:'samen'},t))},
   'house-tab':v=>{if(ui.houseTab!==v)vib(8);ui.houseTab=v;ui.view='house';closeSheet();render();const tb=document.querySelector('.htabs');if(tb&&scrollY>tb.offsetTop)window.scrollTo({top:0})},
+  'vast-edit':v=>{const ev=S.events.find(x=>x.id===v);if(ev)vastSheet(ev)},
+  'vast-new':()=>vastSheet(null),
   'set-tab':v=>{ui.setTab=v;ui.dirty=false;vib(8);render();window.scrollTo(0,0)},
   'set-jump':v=>{const map={'s-notif':'notif','s-look':'look','s-school':'school','s-waste':'waste','s-shop':'shop','s-data':'data','s-me':'people','s-pets':'people','s-fam':'people'};if(map[v]&&ui.setTab!==map[v]){ui.setTab=map[v];if(v==='s-fam')ui.famOpen=true;render();}if(v==='s-fam'){ui.famOpen=true;const d=document.querySelector('#s-fam details');if(d)d.open=true}const el=document.getElementById(v);if(el)window.scrollTo({top:el.getBoundingClientRect().top+scrollY-74,behavior:'smooth'})},
   'pin-set':()=>pinSheet(me,'set'),

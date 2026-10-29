@@ -56,6 +56,7 @@ Deno.serve(async (req) => {
     if (ev.allDay || !ev.start || ev.info || (ev.squad && ev.sel === "nee")) continue;
     if (ev.repeat && ev.repeat !== "none" && (ev.type === "Werk" || ev.type === "Crèche")) continue;
     if (!occursOn(ev, t)) continue;
+    if ((ev.conge || []).includes(t)) continue; // die dag gaat het niet door (congé, thuis, komt niet)
     const diff = toMin(ev.start) - toMin(hm);
     if (diff <= 0 || diff > 30) continue;
     const kids = (ev.who || []).filter((w: string) => KIDS.includes(w));
@@ -110,7 +111,7 @@ function startMatches(ev: any, s: string) {
   const r = ev.repeat || "none";
   if (r === "none") return dd === 0;
   if (r === "weekly") return dd % 7 === 0;
-  if (r === "days") return (ev.days || []).map(Number).includes(parse(s).getUTCDay());
+  if (r === "days") return (ev.days || []).map(Number).includes(parse(s).getUTCDay()) && (!(ev.every > 1) || Math.round(diffDays(mondayOf(s), mondayOf(ev.date)) / 7) % ev.every === 0);
   if (r === "2weekly") return dd % 14 === 0;
   if (r === "monthly") return parse(s).getUTCDate() === parse(ev.date).getUTCDate();
   if (r === "yearly") return s.slice(5) === ev.date.slice(5);
@@ -121,6 +122,7 @@ function occursOn(ev: any, d: string) {
   if (ev.skipHol === "feest" && feestdag(d)) return false;
   return startMatches(ev, d);
 }
+const mondayOf = (d: string) => addDays(d, -((parse(d).getUTCDay() + 6) % 7));
 const schoolDay = (d: string) => { const wd = parse(d).getUTCDay(); return wd > 0 && wd < 6 && !holidayOn(d); };
 function stockLeft(s: any, t: string): number | null {
   if (s.mode === "interval") { if (!s.lastBought) return 0; return Math.max(0, diffDays(addDays(s.lastBought, Math.max(1, Number(s.everyDays) || 7)), t)); }
