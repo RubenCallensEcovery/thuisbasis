@@ -1611,11 +1611,16 @@ function fitDayPanel(){
   const dp=document.querySelector('.day-panel'); if(!dp) return;
   if(innerWidth>=900){ dp.style.minHeight=''; return; }
   const nav=document.querySelector('.nav'), navH=nav?nav.getBoundingClientRect().height:0;
-  const top=dp.getBoundingClientRect().top+scrollY;
+  const hd=document.querySelector('.top'), topH=hd?hd.getBoundingClientRect().height:0;
   const keep=ui._keepH||0; ui._keepH=0;   /* bij swipen tussen dagen: niet korter worden dan de vorige dag */
-  dp.style.minHeight=Math.max(240,keep,Math.round(innerHeight-navH-top-16))+'px';
+  /* zo hoog als het scherm onder de bovenbalk, zodat de dag bovenaan kan komen te staan */
+  dp.style.minHeight=Math.max(240,keep,Math.round(innerHeight-navH-topH-24))+'px';
 }
 addEventListener('resize',()=>fitDayPanel());
+/* na het kiezen van een dag: rustig naar beneden schuiven tot de dag bovenaan staat */
+function scrollToDay(){ requestAnimationFrame(()=>{ const dp=document.querySelector('.day-panel'); if(!dp||innerWidth>=900) return;
+  const hd=document.querySelector('.top'), off=(hd?hd.getBoundingClientRect().height:0)+8, y=Math.max(0,dp.getBoundingClientRect().top+scrollY-off);
+  if(Math.abs(scrollY-y)>4) window.scrollTo({top:y,behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth'}); }); }
 /* ---------- terug-knop / terug-swipe: naar het vorige scherm in de app i.p.v. de app sluiten ---------- */
 const navHist={key:null};
 const histKey=()=>JSON.stringify({v:ui.view,f:ui.foodTab,h:ui.houseTab});
@@ -4016,7 +4021,7 @@ const ACT={
   'ag-day':v=>{const dp=document.querySelector('.day-panel');ui._keepH=dp?Math.round(dp.getBoundingClientRect().height):0;ui.agSel=addDays(ui.agSel,Number(v));ui.agAnchor=ui.agSel;vib(8);render()},
   'ag-coll':()=>{ui.mColl=!ui.mColl;ls.set('tb_mcoll2',ui.mColl);vib(8);render()},
   'ag-wk':v=>{ui.agSel=addDays(ui.agSel,7*Number(v));ui.agAnchor=ui.agSel;render()},
-  'ag-sel':v=>{ if(ui.agSel===v&&isParent(me)){ vib(8); eventSheet(null,v); return; } ui.agSel=v; render(); },
+  'ag-sel':v=>{ if(ui.agSel===v&&isParent(me)){ vib(8); eventSheet(null,v); return; } ui.agSel=v; render(); scrollToDay(); },
   'ag-filter':v=>{ if(ui.filter.size===ALL.length){ui.filter=new Set([v])} else if(ui.filter.has(v)){ui.filter.delete(v); if(!ui.filter.size) ui.filter=new Set(ALL)} else ui.filter.add(v); render(); },
   'ev-new':v=>{closeSheet();eventSheet(null,v||(ui.view==='agenda'&&ui.agMode==='month'?ui.agSel:today()))},
   'conge-toggle':async v=>{const [id,day]=v.split('|');const ev=S.events.find(x=>x.id===id);if(!ev)return;const l=new Set(ev.conge||[]);const on=!l.has(day);on?l.add(day):l.delete(day);await upd('events',id,{conge:[...l].filter(d=>d>=addDays(today(),-60)).sort()});closeSheet();vib(12);toast(on?`Congé op ${dshort(day)} 🌴`:`Toch werken op ${dshort(day)}`);if(on)log(`neemt congé op ${dshort(day)}`)},
