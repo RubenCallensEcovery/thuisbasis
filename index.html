@@ -1597,7 +1597,7 @@ function render(){
   <nav class="nav" aria-label="Hoofdmenu"><div class="nav-in">${tabs.map(([v,l,i])=>`<button data-act="nav" data-v="${v}" title="${l}" ${ui.view===v?'aria-current="page"':''}><span class="pill">${NAV_I[v]?`<svg class="ni" viewBox="0 0 100 100" aria-hidden="true">${NAV_I[v]}</svg>`:icon(i)}</span><span class="sr">${l}</span></button>`).join('')}</div></nav>
   <main id="main">${mode==='local'?`<div class="banner"><b>Enkel op dit toestel.</b> De gedeelde opslag is hier niet beschikbaar, dus wat je invult blijft op dit toestel. Open de app via de gedeelde link om samen te werken.</div>`:''}${body}</main>${fab}`;
   { const w2=document.getElementById('wk-scroll'); if(w2) w2.scrollLeft=wkx; }
-  if(render._v!==ui.view){ const mn=document.getElementById('main'); if(mn){mn.classList.add('enter');} if(render._v) window.scrollTo(0,0); else window.scrollTo(0,y); render._v=ui.view; } else window.scrollTo(0,y);
+  if(render._v!==ui.view){ ui._scrollTo=null; const mn=document.getElementById('main'); if(mn){mn.classList.add('enter');} if(render._v) window.scrollTo(0,0); else window.scrollTo(0,y); render._v=ui.view; } else window.scrollTo(0,ui._scrollTo!=null?ui._scrollTo:y);
   if(aeId){const n=document.getElementById(aeId);if(n){n.focus({preventScroll:true});try{if(aeSel!=null)n.setSelectionRange(aeSel,aeSel)}catch(e){}}}
   if(ui.view==='food'&&ui.foodTab==='lijst'&&ui.shopQ) shopSearch(ui.shopQ);
   if(ui.view==='food'&&ui.foodTab==='recepten'&&ui.recQ) recFilter(ui.recQ);
@@ -1620,7 +1620,11 @@ addEventListener('resize',()=>fitDayPanel());
 /* na het kiezen van een dag: rustig naar beneden schuiven tot de dag bovenaan staat */
 function scrollToDay(){ requestAnimationFrame(()=>{ const dp=document.querySelector('.day-panel'); if(!dp||innerWidth>=900) return;
   const hd=document.querySelector('.top'), off=(hd?hd.getBoundingClientRect().height:0)+8, y=Math.max(0,dp.getBoundingClientRect().top+scrollY-off);
-  if(Math.abs(scrollY-y)>4) window.scrollTo({top:y,behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth'}); }); }
+  if(Math.abs(scrollY-y)<=4) return;
+  /* eigen animatie (werkt ook als de app tussendoor ververst); de doelpositie blijft bewaard */
+  const y0=scrollY, t0=performance.now(), D=matchMedia('(prefers-reduced-motion: reduce)').matches?0:320; ui._scrollTo=y;
+  const step=now=>{ if(ui._scrollTo!==y) return; const k=D?Math.min(1,(now-t0)/D):1, e=1-Math.pow(1-k,3); window.scrollTo(0,Math.round(y0+(y-y0)*e)); if(k<1) requestAnimationFrame(step); else setTimeout(()=>{ if(ui._scrollTo===y) ui._scrollTo=null; },400); };
+  requestAnimationFrame(step); }); }
 /* ---------- terug-knop / terug-swipe: naar het vorige scherm in de app i.p.v. de app sluiten ---------- */
 const navHist={key:null};
 const histKey=()=>JSON.stringify({v:ui.view,f:ui.foodTab,h:ui.houseTab});
