@@ -1668,7 +1668,7 @@ function render(){
   const fab = (ui.view==='home'||(!kid&&(ui.view==='agenda'||ui.view==='opvang'))||ui.view==='school') ? `<button class="fab" data-act="${ui.view==='agenda'?'ev-new':ui.view==='opvang'?'care-new':ui.view==='school'?'school-new':'quick'}" aria-label="Toevoegen">${icon('plus')}</button>`:'';
   root.innerHTML=`
   <header class="top"><div class="top-in">
-    <div class="brand"><span class="dots">${ALL.map((i,n)=>`<i style="--mc:${col(i)};--n:${n}"></i>`).join('')}</span><span class="sr">Thuisbasis</span></div>
+    <div class="brand" data-act="nav" data-v="home" role="button" tabindex="0" aria-label="Naar Home" style="cursor:pointer"><span class="dots">${ALL.map((i,n)=>`<i style="--mc:${col(i)};--n:${n}"></i>`).join('')}</span><span class="sr">Thuisbasis</span></div>
     ${mode==='db'?'':`<span class="sync ${mode!=='db'?'local':''}"><i></i>${mode==='local'?'enkel dit toestel':'verbinden…'}</span>`}
     <button class="icon-btn spark-btn" data-act="chat" aria-label="Vraag het Jonah">${WOLF()}</button>
     <button class="icon-btn" data-act="notifs" aria-label="Meldingen">${icon('bell')}${unread?`<span class="badge">${unread>9?'9+':unread}</span>`:''}</button>
