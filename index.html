@@ -3042,6 +3042,7 @@ function stateDump(){
   const t=today(), par=isParent(me);
   const L=[];
   L.push(`Vandaag is ${dlong(t)} ${parse(t).getFullYear()} (${t}), het is ${hhmm(Date.now())}. De gebruiker die vraagt is ${nm(me)} (${par?'ouder':'kind'}).`);
+  L.push(`GEWOONTES: Max (geboren 2025) doet in de namiddag een middagdutje (ongeveer 13u–15u) op dagen dat hij niet naar de crèche gaat (weekend, feestdag, vakantie of thuisdag). Hou daar rekening mee bij advies, planning en waarschuwingen (bv. uitstappen of bezoek in de namiddag, wie thuis blijft, slapen in de auto). Zet dit niet in de agenda.`);
   L.push(`Gezin: ${MEMBERS.map(m=>`${m.name}${m.label?' ('+m.label+')':''}${m.born?' geboren '+m.born:''}`).join(', ')}. Huisdieren: ${pets().map(p=>p.name).join(', ')||'geen'}.`);
   L.push(`\nAGENDA (komende 60 dagen, per dag):\n${agendaDump(t,60)}`);
   L.push(`\nBOODSCHAPPENLIJST: ${S.shopping.filter(x=>!x.done).map(x=>`${x.name}${x.qty?' ('+x.qty+')':''}${x.store?' ['+x.store+']':''}`).join('; ')||'leeg'}`);
@@ -3579,6 +3580,8 @@ const samePlace=(a,b)=>{const x=norm(a),y=norm(b);return !x||!y||x===y||x.includ
 const NEARBY=['tielt','pittem','meulebeke','ruiselede','wingene','aarsele','kanegem','schuiferskapelle','dentergem','ardooie','oostrozebeke','egem','zwevezele','koolskamp','wakken','roeselare','izegem','lichtervelde','zulte','deinze','beernem','oostkamp','ingelmunster','rumbeke','marialoop'];
 function travelNeed(a,b){ if(samePlace(a,b)) return 10; const town=norm(homeTown()); const local=p=>norm(p).includes(town)||!/[a-z]{4,}/.test(norm(p)); const near=p=>local(p)||NEARBY.some(t=>norm(p).includes(t)); return local(a)&&local(b)?20:near(a)&&near(b)?30:50; }
 const placeOf=ev=>ev.place||'';
+/* is Max thuis op dag d (geen crèche: weekend, feestdag of aangeduid als thuis)? */
+function maxNapDay(d){ const ev=eventsOn(d,new Set(['max'])); if(ev.some(o=>o.ev.type==='Crèche'&&!o.ev.congeDay&&o.ev.start&&toMin(o.ev.end||'00:00')>13*60)) return false; return true; }
 function conflictsOn(d,extra,skipId){
   const out=[], dn=relDay(d)==='vandaag'||relDay(d)==='morgen'?relDay(d):DAYSL[parse(d).getDay()]+' '+parse(d).getDate()+' '+MON[parse(d).getMonth()];
   const dayEvs=eventsOn(d);
@@ -3629,6 +3632,11 @@ function conflictsOn(d,extra,skipId){
       if(back&&!busy) out.push({lvl:'mid',key:`hl|${d}|${k}|${ev.id}`,ids:[ev.id],d,text:`Wie haalt ${nm(k)} op na **${T(ev)}** (${x.est?'rond ':''}${fromMin(x.e)}) ${dn}? Charlotte en Ruben zijn dan allebei bezet.`});
     }
   }
+  /* c) Max doet een middagdutje als hij niet naar de crèche gaat: let op afspraken in de namiddag */
+  if(MID.max&&maxNapDay(d)){ const nap=[13*60,15*60];
+    for(const ev of evs){ if(!(ev.who||[]).includes('max')||ev.type==='Crèche') continue; const x=span(ev);
+      if(x.s<nap[1]&&x.e>nap[0]) out.push({lvl:'mid',key:`nap|${d}|${ev.id}`,ids:[ev.id],d,text:`${dn[0].toUpperCase()+dn.slice(1)} is Max thuis en doet hij normaal zijn middagdutje (±13u–15u). **${T(ev)}** (${ev.start}) valt daarin: laat hij zijn dutje vallen, slaapt hij onderweg, of blijft iemand met hem thuis?`});
+    } }
   return out;
 }
 const dismissed=()=>new Set(ls.get('tb_dismiss',[]));
