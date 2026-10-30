@@ -95,6 +95,9 @@ svg.wolf.chomp-once .jaw{animation:jonahChomp 1.1s ease-in-out .25s 1}
 /* de vijf gezinsvormen rollen af en toe uit en terug in */
 .brand .dots i{position:relative;z-index:calc(10 - var(--n,0));transform-origin:50% 50%;animation:shapeRoll 12s cubic-bezier(.45,.05,.35,1) infinite;animation-delay:var(--ph-roll,0ms)}
 /* alle vormen rollen zijwaarts achter de eerste (op één hoopje) en rollen dan weer uit */
+/* tik op de figuren: ze maken een golfje */
+.brand.wave .dots i{animation:shapeWave .55s cubic-bezier(.3,.7,.4,1) both;animation-delay:calc(var(--n,0) * 70ms)}
+@keyframes shapeWave{0%,100%{transform:translateY(0)}40%{transform:translateY(-8px)}70%{transform:translateY(2px)}}
 @keyframes shapeRoll{0%,76%,100%{transform:translateX(0) rotate(0)}84%,88%{transform:translateX(calc(var(--n,0) * -15px)) rotate(-360deg)}96%{transform:translateX(0) rotate(0)}}
 @media (prefers-reduced-motion:reduce){svg.wolf .jaw,.brand .dots i{animation:none!important}}
 @keyframes wolfTilt{0%,60%,100%{transform:rotate(0)}70%{transform:rotate(-10deg)}82%{transform:rotate(7deg)}92%{transform:rotate(-3deg)}}
@@ -1668,7 +1671,7 @@ function render(){
   const fab = (ui.view==='home'||(!kid&&(ui.view==='agenda'||ui.view==='opvang'))||ui.view==='school') ? `<button class="fab" data-act="${ui.view==='agenda'?'ev-new':ui.view==='opvang'?'care-new':ui.view==='school'?'school-new':'quick'}" aria-label="Toevoegen">${icon('plus')}</button>`:'';
   root.innerHTML=`
   <header class="top"><div class="top-in">
-    <div class="brand" data-act="nav" data-v="home" role="button" tabindex="0" aria-label="Naar Home" style="cursor:pointer"><span class="dots">${ALL.map((i,n)=>`<i style="--mc:${col(i)};--n:${n}"></i>`).join('')}</span><span class="sr">Thuisbasis</span></div>
+    <div class="brand ${Date.now()-(ui._wave||0)<900?'wave':''}" data-act="brand-home" role="button" tabindex="0" aria-label="Naar Home" style="cursor:pointer"><span class="dots">${ALL.map((i,n)=>`<i style="--mc:${col(i)};--n:${n}"></i>`).join('')}</span><span class="sr">Thuisbasis</span></div>
     ${mode==='db'?'':`<span class="sync ${mode!=='db'?'local':''}"><i></i>${mode==='local'?'enkel dit toestel':'verbinden…'}</span>`}
     <button class="icon-btn spark-btn" data-act="chat" aria-label="Vraag het Jonah">${WOLF()}</button>
     <button class="icon-btn" data-act="notifs" aria-label="Meldingen">${icon('bell')}${unread?`<span class="badge">${unread>9?'9+':unread}</span>`:''}</button>
@@ -4202,6 +4205,7 @@ const ACT={
   'chore-edit':v=>{closeSheet();choreSheet(v?S.chores.find(x=>x.id===v):null)},
   'chore-tpl':v=>{const t=CHORE_TEMPLATES[Number(v)];if(t)choreSheet(null,Object.assign({who:'samen'},t))},
   'house-tab':v=>{if(ui.houseTab!==v)vib(8);ui.houseTab=v;ui.view='house';closeSheet();render();const tb=document.querySelector('.htabs');if(tb&&scrollY>tb.offsetTop)window.scrollTo({top:0})},
+  'brand-home':()=>{ui._wave=Date.now();ACT.nav('home');},
   'vast-edit':v=>{const ev=S.events.find(x=>x.id===v);if(ev)vastSheet(ev)},
   'vast-new':()=>vastSheet(null),
   'set-tab':v=>{ui.setTab=v;ui.dirty=false;vib(8);render();window.scrollTo(0,0)},
