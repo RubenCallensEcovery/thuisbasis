@@ -1791,7 +1791,7 @@ function renderHome(){
   let h=`<section class="hello">${kid?`<div><h1 class="kid-hi">Hoi <em>${esc(nm(me))}</em>! <span aria-hidden="true">👋</span></h1><div class="date">${dlong(t)}</div></div>`:`<div><div class="date">${dlong(t)}</div></div>`}</section>`;
   h+=`<div class="bento">`;
   /* let op */
-  if(!kid){ const cs=[...upcomingConflicts(14),...wxWarnings(7)].sort((a,b)=>a.d.localeCompare(b.d)), st=stockWarnings().sort((a,b)=>a.left-b.left), n=cs.length+(st.length?1:0);
+  if(!kid){ const cs=[...upcomingConflicts(14),...wxWarnings(1)].sort((a,b)=>a.d.localeCompare(b.d)), st=stockWarnings().sort((a,b)=>a.left-b.left), n=cs.length+(st.length?1:0);
     const rd=(S.reminders||[]).filter(r=>(r.who||[]).includes(me)&&remDue(r));
     const rmChip=rd.length?`<div class="wchip"><div>🔔 <b>Herinnering${rd.length>1?'en':''}</b></div><div class="wst">${rd.map(r=>`<div class="wst-r ${r.date<today()?'hi':''}"><span class="wst-go" data-act="rem-edit" data-v="${esc(r.id)}" role="button" tabindex="0"><span class="n">${esc(r.title)}<small>${r.date<today()?dshort(r.date):'vandaag'}${r.time?' · '+esc(r.time):''}</small></span></span><button class="btn sm" data-act="rem-later" data-v="${esc(r.id)}">+1 uur</button><button class="wst-ok" data-act="rem-done" data-v="${esc(r.id)}" aria-label="${esc(r.title)} gedaan" title="Gedaan">${icon('check')}</button></div>`).join('')}</div></div>`:'';
     const stChip=st.length?`<div class="wchip"><div class="tap" data-act="food-tab" data-v="voorraad">🛒 <b>Bijna op</b> · ${st.length} ${st.length===1?'product':'producten'}</div><div class="wst">${st.map(c=>`<div class="wst-r ${c.lvl}"><span class="wst-go" data-act="stock-go" data-v="${esc(c.sid)}" role="button" tabindex="0"><span aria-hidden="true">${c.e}</span><span class="n">${esc(c.stock)}<small>${c.when}</small></span></span>${c.onList?`<span class="tag">✓ op lijstje</span>`:`<button class="btn sm" data-act="lib-tap" data-v="${esc(c.stock)}">${icon('plus')} Lijstje</button>`}<button class="wst-ok" data-act="warn-dismiss" data-v="${esc(c.key)}" aria-label="${esc(c.stock)} is in orde" title="In orde">${icon('check')}</button></div>`).join('')}</div><div class="wchip-b">${st.filter(c=>!c.onList).length>1?`<button class="btn sm primary" data-act="stock-all">${icon('plus')} Alles op lijstje</button>`:''}</div></div>`:'';
@@ -3226,7 +3226,7 @@ const extLink={
   zoek:(q,label)=>({url:'https://www.google.com/search?q='+encodeURIComponent(q),label:label||('Zoeken: '+q),icon:'🔎'}),
 };
 const OUTDOOR=ev=>ev.outdoor===true?true:ev.outdoor===false?false:OUTDOOR_GUESS(ev);
-const OUTDOOR_GUESS=ev=>['Uitstap'].includes(ev.type)||((ev.type==='Match'||ev.type==='Training')&&!['waterpolo','zwemmen'].includes(ev.sport||'voetbal'))||hasPart(norm(ev.title+' '+(ev.place||'')),'tocht','markt','buiten','picknick','pretpark','plopsa','park','fiets','wandel');
+const OUTDOOR_GUESS=ev=>!/waterpolo|zwem/i.test((ev.title||'')+' '+(ev.place||''))&&(['Uitstap'].includes(ev.type)||((ev.type==='Match'||ev.type==='Training')&&!['waterpolo','zwemmen'].includes(ev.sport||'voetbal')))||hasPart(norm(ev.title+' '+(ev.place||'')),'tocht','markt','buiten','picknick','pretpark','plopsa','park','fiets','wandel');
 
 /* --- meedenken: nuttige extra's bij een periode --- */
 function insights(from,days,ppl){
@@ -3942,13 +3942,15 @@ const wxChip=(w,small)=>w?`<span class="wx-chip ${w.rain>=50?'wet':''}" title="$
 const WX_SKIP=ev=>ev.virtual==='school'||ev.virtual==='waste'||ev.virtual==='holiday'||ev.care||isBd(ev);
 function wxForEv(ev,d){ if(WX_SKIP(ev)||!OUTDOOR(ev)) return null; return wxAt(d,ev.allDay?null:ev.start); }
 /* waarschuwingen bij buitenactiviteiten */
+/* kledijtip voor buitenactiviteiten (ook gebruikt in de melding een half uur vooraf) */
+const wxTip=w=>!w?'':w.rain>=50?'Regenjas en reservekleren mee.':w.t<=3?'Warm aankleden: muts en handschoenen.':w.t>=28?'Water en zonnecrème mee.':w.gust>=60?'Hou rekening met de wind.':'';
 function wxWarnings(days=7){
   if(!WX.daily) return []; const t=today(), out=[], dm=dismissed();
   for(let i=0;i<days;i++){ const d=addDays(t,i);
     for(const o of eventsOn(d)){ const ev=o.ev; if(!OUTDOOR(ev)||o.k!==0||isCand(ev)) continue; const w=wxForEv(ev,d); if(!w) continue;
       const why=[]; if(w.rain>=50) why.push(`${w.rain}% kans op regen${w.mm?` (${w.mm} mm)`:''}`); if(w.gust>=60) why.push(`windstoten tot ${w.gust} km/u`); if(w.t<=3) why.push(`maar ${w.t}° (voelt als ${w.feel}°)`); if(w.t>=28) why.push(`${w.t}°: warm`);
       if(!why.length) continue;
-      const tip=w.rain>=50?'Regenjas en reservekleren mee.':w.t<=3?'Warm aankleden: muts en handschoenen.':w.t>=28?'Water en zonnecrème mee.':'Hou rekening met de wind.';
+      const tip=wxTip(w);
       const key=`wx|${d}|${ev.id}`; if(dm.has(key)) continue;
       out.push({lvl:w.rain>=70||w.gust>=75?'hi':'mid',key,ids:[ev.id],d,text:`${w.e} ${relDay(d)==='vandaag'||relDay(d)==='morgen'?relDay(d)[0].toUpperCase()+relDay(d).slice(1):DAYSL[parse(d).getDay()][0].toUpperCase()+DAYSL[parse(d).getDay()].slice(1)} **${evTitle(ev,d)}**${ev.start&&!ev.allDay?' om '+ev.start:''}: ${why.join(', ')}. ${tip}`});
     } }
@@ -4436,7 +4438,7 @@ function tick(){
       if(o.ev.allDay||!o.ev.start||o.k!==0) continue;
       const [hh,mm]=o.ev.start.split(':').map(Number); const st=parse(d); st.setHours(hh,mm,0,0);
       const diff=st-now, k='e'+o.ev.id+d;
-      if(diff>0&&diff<=30*6e4&&!fired.has(k)){ markFired(k); if(prefs().reminders!==false) toast(`Om ${o.ev.start}: ${o.ev.title} (${names(o.ev.who)})`); sysNotify('Binnenkort',`${o.ev.start} ${o.ev.title} — ${names(o.ev.who)}`,o.ev.type==='Match'||o.ev.type==='Training'?'sport':'agenda'); }
+      if(diff>0&&diff<=30*6e4&&!fired.has(k)){ markFired(k); if(prefs().reminders!==false) toast(`Om ${o.ev.start}: ${o.ev.title} (${names(o.ev.who)})`); { const w=wxForEv(o.ev,o.day||today()), tp=w&&(w.rain>=50||w.t<=3||w.t>=28||w.gust>=60)?' '+w.e+' '+wxTip(w):''; if(tp) toast(tp.trim()); sysNotify('Binnenkort',`${o.ev.start} ${o.ev.title} — ${names(o.ev.who)}${tp}`,o.ev.type==='Match'||o.ev.type==='Training'?'sport':'agenda'); } }
     }
     if(d!==lastDay){lastDay=d;scheduleRender()}
   }

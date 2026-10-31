@@ -52,7 +52,8 @@ Deno.serve(async (req) => {
     const to = [...PARENTS, ...KIDS].filter((m) => m !== n.by && (PARENTS.includes(m) || (n.to || []).includes(m) || (n.to || []).includes("all")));
     out.push({ key: `n:${n.id}`, to, title: NAMES[n.by] || "Thuisbasis", body: n.text, icon: ico(n.kind === "agenda" ? "agenda" : n.kind === "voorraad" || n.kind === "eten" ? "cart" : "chat") });
   }
-  // 3. afspraken die binnen 30 minuten beginnen
+  // 3. afspraken die binnen 30 minuten beginnen (met kledijtip bij buitenactiviteiten)
+  let wx: any = undefined;
   for (const ev of C.events) {
     if (ev.allDay || !ev.start || ev.info || (ev.squad && ev.sel === "nee")) continue;
     if (ev.repeat && ev.repeat !== "none" && (ev.type === "Werk" || ev.type === "Crèche")) continue;
@@ -61,7 +62,9 @@ Deno.serve(async (req) => {
     const diff = toMin(ev.start) - toMin(hm);
     if (diff <= 0 || diff > 30) continue;
     const kids = (ev.who || []).filter((w: string) => KIDS.includes(w));
-    out.push({ key: `e:${ev.id}:${t}`, to: [...PARENTS, ...kids], title: `Om ${ev.start}`, body: `${ev.title}${ev.who && ev.who.length ? " — " + names(ev.who) : ""}`, tag: "e" + ev.id, icon: ico(ev.type === "Match" || ev.type === "Training" ? "sport" : "agenda") });
+    let tip = "";
+    if (outdoor(ev)) { if (wx === undefined) wx = await weather(); tip = wxTip(wx, t, ev.start); }
+    out.push({ key: `e:${ev.id}:${t}`, to: [...PARENTS, ...kids], title: `Om ${ev.start}`, body: `${ev.title}${ev.who && ev.who.length ? " — " + names(ev.who) : ""}${tip ? "\n" + tip : ""}`, tag: "e" + ev.id, icon: ico(ev.type === "Match" || ev.type === "Training" ? "sport" : "agenda") });
   }
   // 4. afval: de avond ervoor vanaf 19u
   const w = C.waste.find((x) => (x.date || x.id) === addDays(t, 1));
@@ -91,6 +94,30 @@ Deno.serve(async (req) => {
   await sb.from("push_sent").delete().lt("at", new Date(Date.now() - 14 * 864e5).toISOString());
   return new Response(JSON.stringify({ candidates: out.length, sent }), { headers: { "content-type": "application/json" } });
 });
+
+/* ---------- weer voor buitenactiviteiten (Open-Meteo, Tielt) ---------- */
+function outdoor(ev: any) {
+  if (ev.outdoor === true) return true; if (ev.outdoor === false) return false;
+  const txt = `${ev.title || ""} ${ev.place || ""}`.toLowerCase();
+  if (/waterpolo|zwem/.test(txt)) return false;
+  return ev.type === "Uitstap" || ((ev.type === "Match" || ev.type === "Training") && !["waterpolo", "zwemmen"].includes(ev.sport || "voetbal")) || /tocht|markt|buiten|picknick|pretpark|plopsa|park|fiets|wandel/.test(txt);
+}
+async function weather() {
+  try {
+    const r = await fetch("https://api.open-meteo.com/v1/forecast?latitude=51.0&longitude=3.33&hourly=temperature_2m,precipitation_probability,wind_gusts_10m&timezone=Europe%2FBrussels&forecast_days=2&wind_speed_unit=kmh");
+    return r.ok ? (await r.json()).hourly : null;
+  } catch (_) { return null; }
+}
+function wxTip(h: any, d: string, start: string) {
+  if (!h || !h.time) return "";
+  const i = h.time.indexOf(`${d}T${String(start).slice(0, 2)}:00`); if (i < 0) return "";
+  const rain = h.precipitation_probability?.[i] ?? 0, temp = Math.round(h.temperature_2m?.[i] ?? 10), gust = Math.round(h.wind_gusts_10m?.[i] ?? 0);
+  if (rain >= 50) return `🌧️ ${rain}% kans op regen: regenjas en reservekleren mee.`;
+  if (temp <= 3) return `🥶 ${temp}°: warm aankleden, muts en handschoenen.`;
+  if (temp >= 28) return `☀️ ${temp}°: water en zonnecrème mee.`;
+  if (gust >= 60) return `💨 Windstoten tot ${gust} km/u.`;
+  return "";
+}
 
 /* ---------- datumhulpjes (zelfde regels als in de app) ---------- */
 function local() {
