@@ -82,6 +82,17 @@ Deno.serve(async (req) => {
     if (low.length) out.push({ key: `s:${t}`, to: PARENTS, title: "🛒 Bijna op", body: low.join(", "), icon: ico("cart") });
   }
 
+  // 7. ochtendmelding: per gezinslid op het gekozen uur (aan/uit in Instellingen → Meldingen)
+  const mc = (C.settings.find((x) => x.id === "morning") || {}).members || {};
+  for (const id of [...PARENTS, ...KIDS]) {
+    const cfg = mc[id] || {}; const on = cfg.on !== undefined ? !!cfg.on : PARENTS.includes(id);
+    if (!on || !subs.some((x: any) => x.member === id)) continue;
+    const at = toMin(cfg.time || "07:00"), nowM = toMin(hm);
+    if (nowM < at || nowM > at + 180) continue;
+    if (wx === undefined) wx = await weather();
+    out.push({ key: `m:${id}:${t}`, to: [id], title: `🌅 Goeiemorgen ${NAMES[id]}`, body: morningText(id, C, t, wx), icon: ico("agenda") });
+  }
+
   let sent = 0;
   for (const m of out) {
     const { error } = await sb.from("push_sent").insert({ key: m.key });
@@ -94,6 +105,32 @@ Deno.serve(async (req) => {
   await sb.from("push_sent").delete().lt("at", new Date(Date.now() - 14 * 864e5).toISOString());
   return new Response(JSON.stringify({ candidates: out.length, sent }), { headers: { "content-type": "application/json" } });
 });
+
+/* ---------- ochtendmelding: korte samenvatting van de dag ---------- */
+function morningText(id: string, C: Record<string, any[]>, t: string, wx: any) {
+  const parent = PARENTS.includes(id), lines: string[] = [];
+  const evs = C.events.filter((ev) => ev.date && !ev.info && !(ev.squad && ev.sel === "nee") && occursOn(ev, t) && !(ev.conge || []).includes(t))
+    .filter((ev) => !(ev.repeat && ev.repeat !== "none" && (ev.type === "Werk" || ev.type === "Crèche")))
+    .filter((ev) => parent ? true : (ev.who || []).includes(id))
+    .sort((a, b) => (a.allDay ? "00" : a.start || "99").localeCompare(b.allDay ? "00" : b.start || "99"));
+  const short = (ev: any) => `${ev.allDay || !ev.start ? "" : ev.start + " "}${ev.title}${parent && (ev.who || []).length && (ev.who || []).length < 5 ? " (" + (ev.who || []).map((w: string) => NAMES[w] || w).join(", ") + ")" : ""}`;
+  if (evs.length) lines.push(`📅 ${evs.slice(0, 4).map(short).join(" · ")}${evs.length > 4 ? ` · +${evs.length - 4}` : ""}`);
+  else lines.push("📅 Niets speciaals gepland vandaag.");
+  if (parent) {
+    const work = C.events.filter((ev) => ev.type === "Werk" && occursOn(ev, t) && (ev.conge || []).includes(t)).map((ev) => (ev.who || []).map((w: string) => NAMES[w]).join(", "));
+    if (work.length) lines.push(`🌴 Congé: ${work.join(", ")}`);
+    const crecheOff = C.events.some((ev) => ev.type === "Crèche" && occursOn(ev, t) && (ev.conge || []).includes(t));
+    if (crecheOff) lines.push("🏠 Max blijft thuis: middagdutje ±13u–15u");
+  }
+  const rem = C.reminders.filter((r) => !r.done && r.date === t && (r.who || []).includes(id));
+  if (rem.length) lines.push(`🔔 ${rem.map((r) => (r.time ? r.time + " " : "") + r.title).join(" · ")}`);
+  const outdoorEv = evs.find((ev) => outdoor(ev) && ev.start);
+  const tip = outdoorEv ? wxTip(wx, t, outdoorEv.start) : "";
+  if (tip) lines.push(tip);
+  const w = C.waste.find((x) => (x.date || x.id) === addDays(t, 1));
+  if (parent && w) lines.push(`🗑️ Vanavond buiten: ${(w.types || []).map((x: string) => WASTE[x] || x).join(" + ")}`);
+  return lines.join("\n");
+}
 
 /* ---------- weer voor buitenactiviteiten (Open-Meteo, Tielt) ---------- */
 function outdoor(ev: any) {
