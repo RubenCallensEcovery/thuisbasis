@@ -1358,6 +1358,12 @@ html[data-style="bauhaus"] .rem-all{border-radius:0}
 .rl-row.done .t{text-decoration:line-through;color:var(--muted)}
 .rem-tick.on{background:color-mix(in srgb,var(--ok,#2f9e44) 14%,var(--surface));color:var(--ok,#2f9e44);display:grid;place-items:center}
 .rem-tick.on svg.i{width:13px;height:13px}
+
+/* microfoonknop in de chat */
+.chat-mic{flex:none;width:44px;padding:0;display:grid;place-items:center}
+.chat-mic svg.i{width:20px;height:20px}
+.chat-mic.on{background:var(--danger)!important;color:#fff!important;border-color:var(--danger)!important;animation:micPulse 1.2s ease-in-out infinite}
+@keyframes micPulse{0%,100%{box-shadow:0 0 0 0 color-mix(in srgb,var(--danger) 45%,transparent)}50%{box-shadow:0 0 0 8px transparent}}
 </style>
 
 </head><body>
@@ -3475,6 +3481,30 @@ function answer(raw){
   const h=helpFor(q); if(h) return R(h.a,h.l);
   return Object.assign(R('Dat begrijp ik nog niet. Ik kan onder andere:\n- zeggen of iemand vrij is ("ben ik zaterdag vrij?")\n- de volgende match, training of afspraak zoeken\n- vertellen wat we eten en wat er op het lijstje staat\n- iets op het lijstje zetten ("zet melk en brood op het lijstje")\n- uitleggen waar je iets instelt ("hoe zet ik een studiedag?")'),{unknown:true});
 }
+/* ---------- spraak: vraag inspreken en het antwoord laten voorlezen ---------- */
+const VOICE={ok:!!(window.SpeechRecognition||window.webkitSpeechRecognition), rec:null, on:false};
+function voiceStop(){ try{ if(VOICE.rec) VOICE.rec.abort(); }catch(e){} VOICE.on=false; document.querySelectorAll('.chat-mic.on').forEach(b=>b.classList.remove('on')); }
+function speakStop(){ try{ speechSynthesis.cancel(); }catch(e){} }
+function voiceListen(qi,btn){
+  speakStop();
+  if(VOICE.on){ voiceStop(); return; }
+  const SR=window.SpeechRecognition||window.webkitSpeechRecognition; if(!SR){ toast('Spraak wordt op dit toestel niet ondersteund.'); return; }
+  const rec=new SR(); VOICE.rec=rec; rec.lang='nl-BE'; rec.interimResults=true; rec.continuous=false; rec.maxAlternatives=1;
+  let final='';
+  rec.onresult=e=>{ let txt=''; for(const res of e.results){ txt+=res[0].transcript; if(res.isFinal) final=txt; } qi.value=txt; };
+  rec.onerror=e=>{ voiceStop(); if(e.error==='not-allowed'||e.error==='service-not-allowed') toast('Geef de app toegang tot de microfoon om te kunnen spreken.'); else if(e.error!=='aborted'&&e.error!=='no-speech') toast('Ik verstond het niet goed. Probeer opnieuw.'); };
+  rec.onend=async()=>{ const q=(final||qi.value||'').trim(); voiceStop(); if(!q) return; qi.value=''; chat.speak=true; await chatAsk(q); };
+  try{ rec.start(); VOICE.on=true; btn.classList.add('on'); vib(10); }catch(e){ voiceStop(); }
+}
+function speakText(md){
+  if(!('speechSynthesis' in window)) return;
+  const txt=String(md||'').replace(/\(_?\(.*?\)_?\)/g,'').replace(/[*_#>`|]/g,'').replace(/\[(.*?)\]\(.*?\)/g,'$1').replace(/\p{Extended_Pictographic}/gu,'').replace(/\s+/g,' ').trim();
+  if(!txt) return;
+  speakStop();
+  const u=new SpeechSynthesisUtterance(txt.slice(0,1200)); u.lang='nl-BE'; u.rate=1.02;
+  const vs=speechSynthesis.getVoices(), v=vs.find(x=>/nl[-_]BE/i.test(x.lang))||vs.find(x=>/^nl/i.test(x.lang)); if(v) u.voice=v;
+  speechSynthesis.speak(u);
+}
 async function chatAsk(q){
   q=String(q||'').trim(); if(!q||chat.busy) return;
   chat.turns.push({role:'user',content:q}); chat.links=[]; chat.actions=[];
@@ -3483,7 +3513,7 @@ async function chatAsk(q){
   let r=null;
   if(claudeOn()){
     await claudeAsk(bot);
-    if(!bot.err){ chat.busy=false; drawChat(); return; }
+    if(!bot.err){ chat.busy=false; drawChat(); if(chat.speak){ chat.speak=false; speakText(bot.content); } return; }
     /* Claude niet beschikbaar: val terug op de ingebouwde assistent */
     const why=bot.content; bot.err=false; bot.claude=false; bot.content='';
     try{ r=answer(q); if(r.act) r=await r.act(); }catch(e){ r={unknown:true,text:'Er liep iets mis bij het zoeken.',links:[]}; }
@@ -3493,6 +3523,7 @@ async function chatAsk(q){
     await new Promise(x=>setTimeout(x,250)); bot.content=r.text; chat.links=r.links||[]; chat.actions=r.actions||[];
   }
   chat.busy=false; drawChat();
+  if(chat.speak){ chat.speak=false; speakText(bot.content); }
 }
 function md(s){ return esc(s).replace(/\*\*(.+?)\*\*/g,'<b>$1</b>').replace(/(^|\s)_\((.+?)\)_/g,'$1<small class="muted">($2)</small>').replace(/^- (.*)$/gm,'<span class="cb-li">$1</span>').replace(/\n/g,'<br>').replace(/(<\/span>)<br>/g,'$1'); }
 const CHAT_SUGG=()=>isParent(me)?['Ben ik zaterdag vrij?','Wanneer is de volgende match van Ruben?','Wat staat er deze week op het programma?','Zet melk en brood op het lijstje','Start de wasmachine','Hoe geraak ik naar de match van Nant?','Wordt het droog weer?','Wat moet ik nog regelen?']
@@ -3566,12 +3597,13 @@ function chatSheet(prefill){
   /* elke keer dat Jonah opent: een nieuw gesprek */
   if(!chat.busy){ if(chat.ctl) try{chat.ctl.abort()}catch(e){} chat.turns=[]; chat.links=[]; chat.actions=[]; chat.intro=''; }
   openSheet('Vraag het Jonah',`<div class="chat"><div class="chat-log" id="chat-log" aria-live="polite"></div>
-    <form class="chat-in" id="chat-form"><input class="in" id="chat-q" placeholder="Bv. Ben ik vrijdagavond vrij?" autocomplete="off" enterkeyhint="send"><button class="btn primary" id="chat-send" type="submit" aria-label="Verstuur">${icon('right')}</button><button class="btn" id="chat-stop" type="button" hidden>Stop</button></form>
+    <form class="chat-in" id="chat-form"><input class="in" id="chat-q" placeholder="Bv. Ben ik vrijdagavond vrij?" autocomplete="off" enterkeyhint="send">${VOICE.ok?`<button class="btn chat-mic" id="chat-mic" type="button" aria-label="Spreek je vraag in" title="Spreek je vraag in"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V6a3 3 0 0 0-3-3z"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg></button>`:''}<button class="btn primary" id="chat-send" type="submit" aria-label="Verstuur">${icon('right')}</button><button class="btn" id="chat-stop" type="button" hidden>Stop</button></form>
     ${chat.turns.length?'<button type="button" class="btn sm ghost" id="chat-new" style="align-self:center">Nieuw gesprek</button>':''}</div>`,{lead:WOLF('chomp-once'),mount:p=>{
     p.classList.add('chat-panel'); drawChat();
     const qi=p.querySelector('#chat-q');
     p.querySelector('#chat-form').addEventListener('submit',e=>{e.preventDefault();const v=qi.value;qi.value='';chatAsk(v)});
     p.querySelector('#chat-stop').addEventListener('click',()=>chat.ctl&&chat.ctl.abort());
+    const mic=p.querySelector('#chat-mic'); if(mic) mic.addEventListener('click',()=>voiceListen(qi,mic));
     const nw=p.querySelector('#chat-new'); if(nw) nw.addEventListener('click',()=>{if(chat.busy)return;chat.turns=[];chat.links=[];chat.intro='';drawChat();nw.remove()});
     p.querySelector('#chat-log').addEventListener('click',e=>{
       const s=e.target.closest('[data-q]'); if(s){ chatAsk(s.dataset.q); return; }
@@ -4189,7 +4221,7 @@ function openSheet(title,body,opts={}){
   el.hidden=false; document.body.classList.add('noscroll');
   if(opts.mount) opts.mount(el.querySelector('.panel'));
 }
-function closeSheet(){ if(typeof stopFocus==='function') stopFocus(); const el=$('#sheet'); el.hidden=true; el.innerHTML=''; sheetOpts=null; document.body.classList.remove('noscroll'); }
+function closeSheet(){ if(typeof stopFocus==='function') stopFocus(); if(typeof voiceStop==='function'){ voiceStop(); speakStop(); } const el=$('#sheet'); el.hidden=true; el.innerHTML=''; sheetOpts=null; document.body.classList.remove('noscroll'); }
 const chips=(group,opts,sel,multi=true)=>`<div class="chips" data-group="${group}" data-multi="${multi?1:0}">${opts.map(o=>`<button type="button" class="chip" data-act="chip" data-v="${esc(o.v)}" aria-pressed="${(sel||[]).includes(o.v)}" ${o.c?`style="--cc:${o.c}"`:''}>${o.dot?'<i class="dot"></i>':''}${esc(o.l)}</button>`).join('')}</div>`;
 const chipVals=(root,g)=>[...root.querySelectorAll(`.chips[data-group="${g}"] .chip[aria-pressed="true"]`)].map(c=>c.dataset.v);
 
