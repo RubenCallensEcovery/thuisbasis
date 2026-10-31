@@ -1364,6 +1364,14 @@ html[data-style="bauhaus"] .rem-all{border-radius:0}
 .chat-mic svg.i{width:20px;height:20px}
 .chat-mic.on{background:var(--danger)!important;color:#fff!important;border-color:var(--danger)!important;animation:micPulse 1.2s ease-in-out infinite}
 @keyframes micPulse{0%,100%{box-shadow:0 0 0 0 color-mix(in srgb,var(--danger) 45%,transparent)}50%{box-shadow:0 0 0 8px transparent}}
+
+/* foto van ticket of koelkast */
+.photo-row label.btn{cursor:pointer}
+.scan-wait{display:flex;flex-direction:column;align-items:center;gap:6px;padding:26px 0}
+.scan-wait .shape-wave{height:26px}.scan-wait .shape-wave i{transform-origin:center}
+.scan-row{display:flex;align-items:center;gap:10px;cursor:pointer}
+.scan-row input{width:20px;height:20px;flex:none;accent-color:var(--ink,#141414)}
+.scan-row .em{font-size:22px;flex:none}
 </style>
 
 </head><body>
@@ -2214,6 +2222,7 @@ function renderShop(){
     <div class="row"><input class="in" id="s-q" value="${esc(ui.shopQ||'')}" placeholder="Zoek of typ iets nieuws…" autocomplete="off" enterkeyhint="done" aria-label="Zoek in de bibliotheek">
     <button class="btn primary" data-act="shop-add-q" aria-label="Toevoegen">${icon('plus')}</button></div>
     <div class="row" style="flex-wrap:wrap;gap:6px"><span class="lbl">Winkel (optioneel)</span><select class="in sm-sel" id="s-store" aria-label="Winkel voor nieuwe items"><option value="" ${cs?'':'selected'}>Geen winkel</option>${st.map(x=>`<option ${cs===x?'selected':''}>${esc(x)}</option>`).join('')}</select><span class="sp"></span><button class="btn sm" data-act="stores">Winkels</button></div>
+    ${isParent(me)?`<div class="row photo-row" style="gap:8px;flex-wrap:wrap"><label class="btn sm">📷 Kassaticket<input type="file" accept="image/*" capture="environment" hidden data-photo="ticket"></label><label class="btn sm">📷 Koelkast of kast<input type="file" accept="image/*" capture="environment" hidden data-photo="kast"></label></div>`:''}
   </div>
   <div id="s-results" hidden><div class="sec-h"><h2>Zoekresultaten</h2></div><div class="tiles-s" id="s-res-tiles"></div></div>
   <div id="s-normal">${stockLowStrip()}
@@ -2288,7 +2297,7 @@ function stockCalc(s){
   while(r>0&&i<730){ r-=use(d); if(r>0){left++;d=addDays(d,1)} i++; }
   return {left:rem<=0?0:left,due:addDays(t,rem<=0?0:left),frac:Math.min(1,rem/start),remaining:rem};
 }
-const stockFor=s=>{const n=s.name.toLowerCase();return S.stock.filter(x=>x.name.toLowerCase()===n)};
+const stockFor=s=>{const n=String(typeof s==='string'?s:(s&&s.name)||'').toLowerCase();return S.stock.filter(x=>x.name.toLowerCase()===n)};
 const stockEmoji=s=>s.e||itemInfo(s.name).e;
 function stockLine(s){
   const who=(s.forWho||[]).map(w=>MID[w]?.name||stockWho().find(o=>o.v===w)?.l).filter(Boolean);
@@ -2304,6 +2313,44 @@ function stockWarnings(){
 function lowStock(){ return S.stock.map(s=>({s,c:stockCalc(s)})).filter(o=>o.c&&o.c.left<=(Number(o.s.warnDays)||2)); }
 
 /* na aankoop: voorraad bijwerken */
+/* ---------- foto van kassaticket of koelkast: Jonah leest wat gekocht is of wat op is ---------- */
+function shrinkImage(file,max=1600){ return new Promise((res)=>{ const img=new Image(), url=URL.createObjectURL(file);
+  img.onload=()=>{ const k=Math.min(1,max/Math.max(img.width,img.height)), c=document.createElement('canvas'); c.width=Math.round(img.width*k); c.height=Math.round(img.height*k);
+    c.getContext('2d').drawImage(img,0,0,c.width,c.height); URL.revokeObjectURL(url); c.toBlob(b=>res(b||file),'image/jpeg',.85); };
+  img.onerror=()=>{ URL.revokeObjectURL(url); res(file); }; img.src=url; }); }
+const sameItem=(a,b)=>{ a=String(a||'').toLowerCase().trim(); b=String(b||'').toLowerCase().trim(); return !!a&&!!b&&(a===b||a.replace(/s$/,'')===b.replace(/s$/,'')||(a.length>3&&b.includes(a))||(b.length>3&&a.includes(b))); };
+async function photoScan(file,kind){
+  const sample=window.claude&&window.claude.use?await window.claude.use('sample').catch(()=>null):null;
+  if(!sample){ toast('Jonah kan nu geen foto\'s lezen.'); return; }
+  openSheet(kind==='ticket'?'Kassaticket lezen':'Koelkast bekijken',`<div class="scan-wait">${shapeWave()}<p class="muted">Jonah kijkt naar de foto…</p></div>`);
+  try{
+    const img=await shrinkImage(file);
+    const open=S.shopping.filter(x=>!x.done).map(x=>x.name), stock=S.stock.map(x=>x.name);
+    const usual=[...new Set([...stock,...S.shopping.filter(x=>x.done).sort((a,b)=>(b.doneAt||0)-(a.doneAt||0)).map(x=>x.name).slice(0,60)])];
+    const prompt=kind==='ticket'
+      ?`Dit is een kassaticket van een Belgische winkel. Geef ALLEEN een JSON-array van de gekochte producten als {"n":"korte Nederlandse productnaam zoals op een boodschappenlijstje (bv. Melk, Bananen, Luiers)","q":"hoeveelheid als die duidelijk is, anders leeg"}. Sla leeggoed, statiegeld, kortingen, zakjes en totalen over. Gebruik waar het past exact een naam uit deze lijsten. Op het boodschappenlijstje: ${JSON.stringify(open)}. Voorraad die we bijhouden: ${JSON.stringify(stock)}.`
+      :`Dit is een foto van de koelkast of voorraadkast van een gezin met drie kinderen. Kijk welke producten die ze gewoonlijk in huis hebben op of bijna op zijn. Gewoonlijk in huis: ${JSON.stringify(usual.length?usual:['Melk','Eieren','Boter','Kaas','Yoghurt','Brood','Fruit','Groenten'])}. Geef ALLEEN een JSON-array van maximaal 12 objecten {"n":"productnaam (bij voorkeur exact uit de lijst)","why":"korte reden, bv. nog maar een bodem melk"}. Neem enkel producten die echt (bijna) op lijken; verzin niets wat je niet kan zien.`;
+    const res=await sample.json(prompt,{images:[img]});
+    const items=(Array.isArray(res)?res:[]).map(x=>({n:String(x.n||'').trim().slice(0,60),q:String(x.q||'').slice(0,30),why:String(x.why||'').slice(0,80)})).filter(x=>x.n);
+    if(!items.length){ closeSheet(); toast(kind==='ticket'?'Ik kon geen producten lezen op het ticket.':'Ik zie niets dat op lijkt.'); return; }
+    photoResult(items,kind);
+  }catch(e){ console.error(e); closeSheet(); toast('De foto kon niet gelezen worden. Probeer opnieuw, met meer licht.'); }
+}
+function photoResult(items,kind){
+  const rows=items.map((x,i)=>{
+    const op=S.shopping.find(o=>!o.done&&sameItem(o.name,x.n)), st=S.stock.find(s=>sameItem(s.name,x.n));
+    x.open=op; x.stock=st;
+    const note=kind==='ticket'?(op?'op het lijstje: wordt afgevinkt':st?'voorraad wordt bijgewerkt':'gekocht, stond niet op het lijstje'):(op?'staat al op het lijstje':x.why||'lijkt op');
+    const on=kind==='ticket'?!!(op||st):!op;
+    return `<label class="li scan-row"><input type="checkbox" data-i="${i}" ${on?'checked':''} ${kind==='kast'&&op?'disabled':''}><span class="em" aria-hidden="true">${itemInfo(op?op.name:x.n).e}</span><div class="main"><div class="t">${esc(op?op.name:x.n)}${x.q?` <span class="muted" style="font-weight:400">· ${esc(x.q)}</span>`:''}</div><div class="s">${esc(note)}</div></div></label>`; }).join('');
+  openSheet(kind==='ticket'?'Gevonden op het ticket':'Bijna op volgens Jonah',`<div class="form"><p class="muted" style="margin:0">${kind==='ticket'?'Vink aan wat moet verwerkt worden.':'Vink aan wat op het lijstje moet.'}</p><div class="list">${rows}</div></div>`,{saveLabel:kind==='ticket'?'Verwerken':'Op het lijstje',
+    onSave:async p=>{ const sel=[...p.querySelectorAll('input[data-i]:checked:not(:disabled)')].map(c=>items[Number(c.dataset.i)]); let n=0;
+      for(const x of sel){
+        if(kind==='ticket'){ if(x.open){ await boughtItem(x.open.id); n++; } else if(x.stock){ await stockBought(x.stock.name); n++; } }
+        else { await addItem(x.n); n++; } }
+      toast(kind==='ticket'?`${n} ${n===1?'product':'producten'} verwerkt`:`${n} ${n===1?'product':'producten'} op het lijstje`);
+      if(n) log(kind==='ticket'?`verwerkte een kassaticket (${n} producten)`:`zette ${n} producten op het lijstje na een blik in de koelkast`,['charlotte','ruben'],'eten'); }});
+}
 async function stockBought(name,qty){
   for(const s of stockFor(name)){
     const c=stockCalc(s);
@@ -4396,7 +4443,7 @@ document.addEventListener('keydown',e=>{ if((e.key==='Enter'||e.key===' ')&&e.ta
   },{passive:true});
 }
 document.addEventListener('input',e=>{ if(e.target.id==='rec-q'){ui.recQ=e.target.value;recFilter(e.target.value);return} if(ui.view==='settings'&&e.target.closest&&e.target.closest('#s-fam,#s-pets,#s-shop,#s-school')) ui.dirty=true; if(e.target.id==='s-q'){ui.shopQ=e.target.value;shopSearch(e.target.value);} });
-document.addEventListener('change',e=>{ if(e.target.id==='sm-file'&&e.target.files&&e.target.files[0]){smUpload(e.target.files[0]);e.target.value='';return} if(ui.view==='settings'&&e.target.closest&&e.target.closest('.sk')) ui.dirty=true; const pk=e.target.dataset&&e.target.dataset.pref; if(pk==='w-show'||pk==='w-remind'){const sd=Object.assign({},setting('waste'));delete sd.id;sd[pk==='w-show'?'show':'remind']=e.target.checked;put('settings','waste',sd);vib(8);return} if(pk==='feat-rugzak'){const sd=Object.assign({},setting('features'));delete sd.id;sd.rugzak=e.target.checked;put('settings','features',sd);vib(8);toast(e.target.checked?'Rugzak staat aan':'Rugzak staat uit');return} if(pk==='sc-show'||pk==='sc-hol'){const sd=Object.assign({},setting('school'));delete sd.id;sd[pk==='sc-show'?'show':'holidays']=e.target.checked;put('settings','school',sd);vib(8);return} if(pk){setPref(pk,e.target.checked);vib(8);toast(e.target.checked?'Aangezet':'Uitgezet');return} if(e.target.id==='s-store'){shopStore=e.target.value;ls.set('tb_store',shopStore);} });
+document.addEventListener('change',e=>{ if(e.target.dataset&&e.target.dataset.photo&&e.target.files&&e.target.files[0]){ const f=e.target.files[0], k=e.target.dataset.photo; e.target.value=''; photoScan(f,k); return; } if(e.target.id==='sm-file'&&e.target.files&&e.target.files[0]){smUpload(e.target.files[0]);e.target.value='';return} if(ui.view==='settings'&&e.target.closest&&e.target.closest('.sk')) ui.dirty=true; const pk=e.target.dataset&&e.target.dataset.pref; if(pk==='w-show'||pk==='w-remind'){const sd=Object.assign({},setting('waste'));delete sd.id;sd[pk==='w-show'?'show':'remind']=e.target.checked;put('settings','waste',sd);vib(8);return} if(pk==='feat-rugzak'){const sd=Object.assign({},setting('features'));delete sd.id;sd.rugzak=e.target.checked;put('settings','features',sd);vib(8);toast(e.target.checked?'Rugzak staat aan':'Rugzak staat uit');return} if(pk==='sc-show'||pk==='sc-hol'){const sd=Object.assign({},setting('school'));delete sd.id;sd[pk==='sc-show'?'show':'holidays']=e.target.checked;put('settings','school',sd);vib(8);return} if(pk){setPref(pk,e.target.checked);vib(8);toast(e.target.checked?'Aangezet':'Uitgezet');return} if(e.target.id==='s-store'){shopStore=e.target.value;ls.set('tb_store',shopStore);} });
 document.addEventListener('submit',async e=>{
   const f=e.target.closest('[data-form]'); if(!f) return; e.preventDefault();
   if(f.dataset.form==='ask'){ const q=$('#ask-q').value.trim(); $('#ask-q').value=''; chatSheet(q||undefined); return; }
