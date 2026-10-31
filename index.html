@@ -1347,6 +1347,17 @@ html[data-style="bauhaus"] .emo{border-radius:0}
 .shape-wave .sw5{width:8px;height:8px;clip-path:polygon(50% 0,100% 50%,50% 100%,0 50%)}
 @keyframes shapeBob{0%,60%,100%{transform:translateY(0)}30%{transform:translateY(-5px)}}
 @media (prefers-reduced-motion:reduce){.shape-wave i{animation:none}}
+
+/* knop alle herinneringen (links onder de kalender) */
+.rem-all{position:relative;width:34px;height:34px;border:1px solid var(--line);background:var(--surface);display:grid;place-items:center;cursor:pointer;border-radius:8px;color:var(--text);padding:0}
+.rem-all svg.i{width:18px;height:18px}
+.rem-all .ra-n{position:absolute;top:-6px;right:-6px;min-width:17px;height:17px;padding:0 4px;border-radius:9px;background:var(--danger);color:#fff;font-size:10.5px;font-weight:700;display:grid;place-items:center}
+html[data-style="bauhaus"] .rem-all{border-radius:0}
+.mc-foot .sp{flex:1}
+.rl-row{display:flex;align-items:center;gap:10px}
+.rl-row.done .t{text-decoration:line-through;color:var(--muted)}
+.rem-tick.on{background:color-mix(in srgb,var(--ok,#2f9e44) 14%,var(--surface));color:var(--ok,#2f9e44);display:grid;place-items:center}
+.rem-tick.on svg.i{width:13px;height:13px}
 </style>
 
 </head><body>
@@ -1622,6 +1633,19 @@ const remDue=r=>{const now=new Date(), t=today(); if(r.done) return false; if(r.
 function remChips(d){ const rs=remsOn(d); if(!rs.length) return '';
   const open=rs.filter(r=>!r.done), done=rs.filter(r=>r.done);
   return `<div class="rem-row">${open.map(r=>`<div class="rem-line"><button class="rem-tick" data-act="rem-done" data-v="${esc(r.id)}" aria-label="${esc(r.title)} afvinken" title="Afvinken"></button><button class="rem" data-act="rem-edit" data-v="${esc(r.id)}" title="Herinnering"><span class="rem-i">🔔</span>${r.time?`<b>${esc(r.time)}</b> `:''}${esc(r.title)}${(r.who||[]).length&&!(r.who.length===1&&r.who[0]===me)?` <span class="rem-w">· ${esc(names(r.who))}</span>`:''}</button></div>`).join('')}${done.length?`<div class="rem-done">${done.map(r=>`<button class="rem-ok" data-act="rem-edit" data-v="${esc(r.id)}" title="Voltooid: ${esc(r.title)}" aria-label="Voltooide herinnering: ${esc(r.title)}">${icon('check')}</button>`).join('')}</div>`:''}</div>`; }
+/* overzicht van alle herinneringen: afvinken, aanpassen of opnieuw instellen */
+function remListSheet(){
+  const mine=(S.reminders||[]).filter(x=>isParent(me)||(x.who||[]).includes(me));
+  const open=mine.filter(x=>!x.done).sort((a,b)=>(a.date+(a.time||'99')).localeCompare(b.date+(b.time||'99')));
+  const done=mine.filter(x=>x.done).sort((a,b)=>(b.doneAt||0)-(a.doneAt||0)).slice(0,30), t=today();
+  const when=x=>`${!x.done&&x.date<t?'⚠️ ':''}${relDay(x.date)==='vandaag'||relDay(x.date)==='morgen'?relDay(x.date):dshort(x.date)}${x.time?' · '+esc(x.time):''}${(x.who||[]).length&&!((x.who||[]).length===1&&x.who[0]===me)?' · '+esc(names(x.who)):''}`;
+  const row=(x,isDone)=>`<div class="li rl-row ${isDone?'done':''}"><button class="rem-tick ${isDone?'on':''}" data-act="${isDone?'rem-again':'rem-done-l'}" data-v="${esc(x.id)}" aria-label="${isDone?'Opnieuw instellen':'Afvinken'}: ${esc(x.title)}" title="${isDone?'Opnieuw instellen':'Afvinken'}">${isDone?icon('check'):''}</button><div class="main tap" data-act="rem-edit" data-v="${esc(x.id)}" role="button" tabindex="0"><div class="t">${esc(x.title)}</div><div class="s">${when(x)}</div></div>${isDone?`<button class="btn sm" data-act="rem-again" data-v="${esc(x.id)}">Opnieuw</button>`:''}</div>`;
+  openSheet('Herinneringen',`<div class="form">
+    <div class="list">${open.length?open.map(x=>row(x,false)).join(''):'<p class="empty">Geen openstaande herinneringen.</p>'}</div>
+    <button class="btn primary" data-act="rem-new" data-v="${t}" style="align-self:flex-start">${icon('plus')} Nieuwe herinnering</button>
+    ${done.length?`<details class="set-fold"><summary>Gedaan <span class="muted">(${done.length})</span></summary><div class="list">${done.map(x=>row(x,true)).join('')}</div></details>`:''}
+  </div>`);
+}
 function reminderSheet(r,day,preset){
   const isNew=!r; r=r||Object.assign({title:'',date:day||today(),time:'',who:[me],done:false},preset||{});
   const opts=MEMBERS.filter(m=>isParent(me)||m.id===me).map(m=>({v:m.id,l:m.name,c:col(m.id),dot:1}));
@@ -1875,7 +1899,7 @@ function renderAgenda(){
     const sel=ui.agSel, evsAll=eventsOn(sel,ui.filter), meal=mealOf(sel);
     /* vakanties en feestdagen: bovenaan als 'ter info', niet tussen de afspraken */
     const isInfoDay=o=>o.ev.allDay&&(o.ev.type==='Vakantie'||o.ev.virtual==='holiday'), infos=evsAll.filter(isInfoDay), evs=evsAll.filter(o=>!isInfoDay(o));
-    h+=`<div class="ag-split"><div class="mgrid-wrap">${g}<div class="mc-foot"><button class="today-btn" data-act="ag-today" aria-label="Naar vandaag" title="Vandaag"><i></i><b>${parse(t).getDate()}</b></button><button class="mc-up ${coll?'down':''}" data-act="ag-coll" aria-expanded="${!coll}" aria-label="${coll?'Hele maand tonen':'Kalender inklappen'}" title="${coll?'Hele maand':'Inklappen'}">${icon('right')}</button></div></div>
+    h+=`<div class="ag-split"><div class="mgrid-wrap">${g}<div class="mc-foot"><button class="rem-all" data-act="rem-list" aria-label="Alle herinneringen" title="Alle herinneringen">${icon('bell')}${(S.reminders||[]).filter(x=>!x.done&&((x.who||[]).includes(me)||isParent(me))).length?`<span class="ra-n">${(S.reminders||[]).filter(x=>!x.done&&((x.who||[]).includes(me)||isParent(me))).length}</span>`:''}</button><span class="sp"></span><button class="today-btn" data-act="ag-today" aria-label="Naar vandaag" title="Vandaag"><i></i><b>${parse(t).getDate()}</b></button><button class="mc-up ${coll?'down':''}" data-act="ag-coll" aria-expanded="${!coll}" aria-label="${coll?'Hele maand tonen':'Kalender inklappen'}" title="${coll?'Hele maand':'Inklappen'}">${icon('right')}</button></div></div>
       <div class="card day-panel"><div class="day-h day-nav"><span class="dn">${dlong(sel)}</span>${sel===t?'<span class="today-tag">vandaag</span>':''}<span class="sp"></span></div>
       ${infos.length?`<div class="ter-info">${infos.map(o=>`<button class="ti-item" data-act="ev-edit" data-v="${esc(o.ev.id)}|${sel}">${esc(o.ev.title)}${o.ev.endDate&&o.ev.endDate!==o.ev.date?` <span>${dshort(o.ev.date)} – ${dshort(o.ev.endDate)}</span>`:''}</button>`).join('<span class="ti-sep">·</span>')}</div>`:''}
       ${meal?`<div class="meal-line">${icon('food').replace('class="i "','class="i " style="width:16px;height:16px"')}<b>${esc(meal.title)}</b></div>`:''}${smOf(sel)?`<div class="meal-line"><span>School: <b>${esc(smText(smOf(sel)))}</b></span></div>`:''}
@@ -4298,6 +4322,9 @@ const ACT={
   quick:()=>quickSheet(),
   'rem-new':v=>{closeSheet();reminderSheet(null,v||today())},
   'rem-edit':v=>{const r=(S.reminders||[]).find(x=>x.id===v);if(r)reminderSheet(r,r.date)},
+  'rem-list':()=>remListSheet(),
+  'rem-done-l':async v=>{await upd('reminders',v,{done:true,doneAt:Date.now()});vib(12);toast('✓ Gedaan');setTimeout(remListSheet,120)},
+  'rem-again':async v=>{const r=(S.reminders||[]).find(x=>x.id===v);if(!r)return;const d=r.date<today()?today():r.date;await upd('reminders',v,{done:false,doneAt:null,date:d});const n=(S.reminders||[]).find(x=>x.id===v)||Object.assign({},r,{done:false,date:d});reminderSheet(n,d);toast('Kies de nieuwe dag en het uur')},
   'rem-done':async v=>{await upd('reminders',v,{done:true,doneAt:Date.now()});vib(12);toast('✓ Gedaan')},
   'rem-later':async v=>{const r=(S.reminders||[]).find(x=>x.id===v);if(!r)return;const d=new Date(Date.now()+60*6e4);const nd=iso(d),nt=hhmm(d.getTime());fired.delete('r'+v+r.date+(r.time||''));await upd('reminders',v,{date:nd,time:nt});toast('⏰ Ik herinner je over een uur opnieuw')},
 };
