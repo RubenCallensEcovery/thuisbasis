@@ -1802,11 +1802,13 @@ function renderHome(){
   h+=T('full wk-t','',null,weekStrip(kid));
   /* vandaag */
   const timed=todayEv.filter(o=>!o.ev.allDay&&o.ev.start), hm=hhmm(Date.now());
-  const nowEv=timed.find(o=>o.ev.start<=hm&&(o.ev.end||'23:59')>hm), nextEv=timed.find(o=>o.ev.start>hm);
+  /* zonder einduur: een match duurt ±2u, de rest ±1u; daarna is het voorbij en staat het enkel nog klein */
+  const endOf=ev=>ev.end||fromMin(Math.min(23*60+59,toMin(ev.start)+(ev.type==='Match'?120:60)));
+  const nowEv=timed.find(o=>o.ev.start<=hm&&endOf(o.ev)>hm), nextEv=timed.find(o=>o.ev.start>hm);
   h+=T('w2 h2 today-t','nav','agenda',`${head('📅','Vandaag','var(--mecol)')}
-    ${nowEv||nextEv?`<div class="tt-now">${nowEv?`<span class="tt-k">Nu</span><b>${esc(evTitle(nowEv.ev,t))}</b><span>tot ${esc(nowEv.ev.end||'?')}</span>`:`<span class="tt-k">Straks · ${esc(nextEv.ev.start)}</span><b>${esc(evTitle(nextEv.ev,t))}</b><span>${nextEv.ev.place?esc(nextEv.ev.place):names(nextEv.ev.who)}</span>`}</div>`:''}
+    ${nowEv||nextEv?`<div class="tt-now">${nowEv?`<span class="tt-k">Nu</span><b>${esc(evTitle(nowEv.ev,t))}</b><span>${nowEv.ev.end?'tot '+esc(nowEv.ev.end):'tot ± '+esc(endOf(nowEv.ev))}</span>`:`<span class="tt-k">Straks · ${esc(nextEv.ev.start)}</span><b>${esc(evTitle(nextEv.ev,t))}</b><span>${nextEv.ev.place?esc(nextEv.ev.place):names(nextEv.ev.who)}</span>`}</div>`:''}
     ${todayRt.length?`<div class="tt-rt">${todayRt.map(o=>`<span title="${esc(rtLabel(o.ev))}">${rtIco(o.ev)}${esc(o.ev.virtual==='school'?'School':(o.ev.congeDay?'Congé ':'')+(o.ev.who||[]).map(nm).join(', '))}</span>`).join('')}</div>`:''}
-    <div class="tt-list">${todayEv.length?todayEv.slice(0,6).map(o=>`<div class="tt-row ${!o.ev.allDay&&o.ev.start&&(o.ev.end||o.ev.start)<hm?'past':''}" style="--evc:${evColor(o.ev)}"><span class="tt-time">${o.ev.allDay||!o.ev.start?'dag':esc(o.ev.start)}</span><span class="tt-title">${esc(evTitle(o.ev,t))}</span><span class="tt-dots">${(o.ev.who||[]).slice(0,4).map(w=>`<em style="background:${col(w)}"></em>`).join('')}</span></div>`).join(''):`<p class="empty" style="padding:6px 0">Niks gepland. ${kid?'Lekker vrij!':''}</p>`}${todayEv.length>6?`<span class="muted" style="font-size:12px">+${todayEv.length-6} meer</span>`:''}</div>
+    <div class="tt-list">${todayEv.length?todayEv.slice(0,6).map(o=>`<div class="tt-row ${!o.ev.allDay&&o.ev.start&&endOf(o.ev)<=hm?'past':''}" style="--evc:${evColor(o.ev)}"><span class="tt-time">${o.ev.allDay||!o.ev.start?'dag':esc(o.ev.start)}</span><span class="tt-title">${esc(evTitle(o.ev,t))}</span><span class="tt-dots">${(o.ev.who||[]).slice(0,4).map(w=>`<em style="background:${col(w)}"></em>`).join('')}</span></div>`).join(''):`<p class="empty" style="padding:6px 0">Niks gepland. ${kid?'Lekker vrij!':''}</p>`}${todayEv.length>6?`<span class="muted" style="font-size:12px">+${todayEv.length-6} meer</span>`:''}</div>
     ${tomEv.length?`<div class="tt-tom"><span class="lbl">Morgen</span> ${tomEv.slice(0,3).map(o=>`<span class="pill-ev" style="--evc:${evColor(o.ev)}">${o.ev.start&&!o.ev.allDay?esc(o.ev.start)+' ':''}${esc(evTitle(o.ev,addDays(t,1)))}</span>`).join('')}</div>`:''}`);
   /* één ding */
   if(!kid){ const due=dueChores(), n=due[0], dt=doneToday();
