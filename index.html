@@ -2222,7 +2222,6 @@ function renderShop(){
     <div class="row"><input class="in" id="s-q" value="${esc(ui.shopQ||'')}" placeholder="Zoek of typ iets nieuws…" autocomplete="off" enterkeyhint="done" aria-label="Zoek in de bibliotheek">
     <button class="btn primary" data-act="shop-add-q" aria-label="Toevoegen">${icon('plus')}</button></div>
     <div class="row" style="flex-wrap:wrap;gap:6px"><span class="lbl">Winkel (optioneel)</span><select class="in sm-sel" id="s-store" aria-label="Winkel voor nieuwe items"><option value="" ${cs?'':'selected'}>Geen winkel</option>${st.map(x=>`<option ${cs===x?'selected':''}>${esc(x)}</option>`).join('')}</select><span class="sp"></span><button class="btn sm" data-act="stores">Winkels</button></div>
-    ${isParent(me)?`<div class="row photo-row" style="gap:8px;flex-wrap:wrap"><label class="btn sm">📷 Kassaticket<input type="file" accept="image/*" capture="environment" hidden data-photo="ticket"></label><label class="btn sm">📷 Koelkast of kast<input type="file" accept="image/*" capture="environment" hidden data-photo="kast"></label></div>`:''}
   </div>
   <div id="s-results" hidden><div class="sec-h"><h2>Zoekresultaten</h2></div><div class="tiles-s" id="s-res-tiles"></div></div>
   <div id="s-normal">${stockLowStrip()}
@@ -2381,7 +2380,7 @@ function renderStock(){
   const kid=!isParent(me);
   const rows=S.stock.map(s=>({s,c:stockCalc(s)})).sort((a,b)=>(a.c?a.c.left:999)-(b.c?b.c.left:999));
   let h=`<p class="muted" style="margin:0 0 12px;max-width:62ch">Zet hier wat jullie regelmatig kopen. De app rekent uit wanneer het bijna op is, stuurt een melding en zet het op het lijstje. Vink je het item af in de winkel, dan begint de teller opnieuw.</p>`;
-  if(!kid) h+=`<div class="row" style="margin-bottom:12px;flex-wrap:wrap"><button class="btn primary" data-act="stock-edit">${icon('plus')} Nieuw product</button></div>`;
+  if(!kid) h+=`<div class="row photo-row" style="margin-bottom:12px;flex-wrap:wrap;gap:8px"><button class="btn primary" data-act="stock-edit">${icon('plus')} Nieuw product</button><label class="btn">📷 Kassaticket<input type="file" accept="image/*" capture="environment" hidden data-photo="ticket"></label><label class="btn">📷 Koelkast of kast<input type="file" accept="image/*" capture="environment" hidden data-photo="kast"></label></div>`;
   if(!rows.length){
     h+=`<div class="card"><h2 style="font-size:18px;margin-bottom:4px">Snel beginnen</h2><p class="muted" style="margin:0 0 12px">Tik op een voorbeeld en pas de hoeveelheden aan jullie gezin aan.</p>
       <div class="tiles-s">${STOCK_TEMPLATES.map((t,i)=>`<button class="stile" data-act="stock-tpl" data-v="${i}" ${kid?'disabled':''}><span class="em" aria-hidden="true">${t.e}</span><span class="nm">${esc(t.name)}</span><span class="qt">${esc(t.hint)}</span></button>`).join('')}</div></div>`;
