@@ -3141,6 +3141,9 @@ function stateDump(){
   L.push(`GEWOONTES: Max (geboren 2025) doet in de namiddag een middagdutje (ongeveer 13u–15u) op dagen dat hij niet naar de crèche gaat (weekend, feestdag, vakantie of thuisdag). Na zijn dutje heeft hij nog ongeveer een half uur nodig voor hij klaar is voor een volgende activiteit (wakker worden, drinken, aankleden). Hou daar rekening mee bij advies, planning en waarschuwingen (bv. uitstappen of bezoek in de namiddag, wie thuis blijft, slapen in de auto). Zet dit niet in de agenda.`);
   L.push(`Gezin: ${MEMBERS.map(m=>`${m.name}${m.label?' ('+m.label+')':''}${m.born?' geboren '+m.born:''}`).join(', ')}. Huisdieren: ${pets().map(p=>p.name).join(', ')||'geen'}.`);
   L.push(`\nAGENDA (komende 60 dagen, per dag):\n${agendaDump(t,60)}`);
+  { const pl=new Set(); for(let i=0;i<21;i++) eventsOn(addDays(t,i)).forEach(o=>{ if(o.ev.place&&!o.ev.virtual) pl.add(o.ev.place); });
+    const rt=[...pl].map(p=>{ const r=routeOf(homeAddr(),p); return r&&r.min!=null?`${p}: ${r.min} min (${r.km} km${r.approx?', '+r.approx:''})`:r&&r.fail?`${p}: niet gevonden op de kaart`:null; }).filter(Boolean);
+    if(rt.length) L.push(`REISTIJDEN vanaf thuis (${homeAddr()}), echte autoroute zonder file: ${rt.join('; ')}. Voor andere trajecten: gebruik de tool reistijd.`); }
   L.push(`\nBOODSCHAPPENLIJST: ${S.shopping.filter(x=>!x.done).map(x=>`${x.name}${x.qty?' ('+x.qty+')':''}${x.store?' ['+x.store+']':''}`).join('; ')||'leeg'}`);
   const low=lowStock(); if(low.length) L.push(`BIJNA OP: ${low.map(({s,c})=>`${s.name} (${c.left} d)`).join(', ')}`);
   if(par){
@@ -3170,6 +3173,11 @@ function chatTools(){
     {name:'agenda_range',description:'Geeft de agenda per dag voor een periode (max 120 dagen), voor vragen verder dan 60 dagen of in het verleden. Returns tekst.',
       inputSchema:{type:'object',properties:{from:{type:'string',description:'YYYY-MM-DD'},days:{type:'number'}},required:['from']},
       execute:i=>{const f=String(i.from);if(!D.test(f))throw new Error('datum als YYYY-MM-DD');return agendaDump(f,Math.max(1,Math.min(120,Number(i.days)||30)))}},
+    {name:'reistijd',description:'Berekent de echte reistijd met de auto (zonder file) tussen twee plaatsen of adressen. Laat van leeg voor thuis. Returns tekst.',
+      inputSchema:{type:'object',properties:{van:{type:'string',description:'vertrekplaats, leeg = thuis'},naar:{type:'string'}},required:['naar']},
+      execute:async i=>{const a=String(i.van||'').trim()||homeAddr(), b=String(i.naar||'').trim(); if(!b) throw new Error('naar waar?'); const r=await routeAsync(a,b);
+        if(!r) return 'De route kon nu niet berekend worden (geen verbinding met de routedienst).'; if(r.fail) return `Ik vind ${r.miss?'"'+r.miss+'"':'geen route'} niet op de kaart.`;
+        return `${a} → ${b}: ${r.min} min rijden, ${r.km} km${r.approx?' ('+r.approx+')':''}. Zonder file.`}},
     {name:'propose_shopping',description:'Stel voor om items op het boodschappenlijstje te zetten (gebruiker bevestigt).',
       inputSchema:{type:'object',properties:{items:{type:'array',items:{type:'object',properties:{name:{type:'string'},qty:{type:'string'}},required:['name']}}},required:['items']},
       execute:i=>{const its=(Array.isArray(i.items)?i.items:[]).map(x=>({name:String(x.name||'').trim(),qty:String(x.qty||'')})).filter(x=>x.name).slice(0,20);if(!its.length)throw new Error('geen items');return pushAct(P_ACT.shopping(its))}},
@@ -3202,7 +3210,7 @@ function chatTools(){
 function rules(){
   return `Je bent Jonah, de assistent van Thuisbasis. Jonah is ook de naam van de hond van het gezin, een teefje (spreek over jezelf als 'ze/haar' als dat nodig is). Je bent warm, positief en bemoedigend: je brengt problemen als iets dat we samen kunnen oplossen, met een concreet voorstel, nooit verwijtend of alarmerend. Je blijft wel behulpzaam en to the point. Zeg nooit 'woef' of andere hondengeluiden. Noem jezelf nooit Claude. Thuisbasis is de gezinsapp van ${MEMBERS.map(m=>m.name).join(', ')} in ${homeAddr()}. Antwoord in het Nederlands (Vlaams, informeel, je/jij), kort en concreet. Gebruik voor feiten alleen de gegevens hieronder; verzin niets en zeg eerlijk als iets ontbreekt.
 WAARSCHUW bij conflicten: twee ouders tegelijk weg terwijl kinderen thuis zijn (babysit/opvang nodig), iemand op twee plaatsen tegelijk, te weinig reistijd tussen twee plaatsen (bv. match om 11u in Gent en om 14u terug voor de scouts: tel speelduur + reistijd), een kind dat gebracht/gehaald moet worden terwijl beide ouders bezet zijn. Controleer dit ook bij een nieuw voorstel voor een afspraak, en stel een oplossing voor.
-REISTIJD: reken in je opmerkingen altijd de reistijd mee als de locatie gekend is (vanaf thuis, Egemsesteenweg 9a in Tielt, of tussen twee locaties; schat realistisch met de auto). Is de locatie niet gekend, zeg dat dan uitdrukkelijk (bv. "de plaats staat er niet bij, dus ik reken geen reistijd mee") en nuanceer je advies ("als het verder dan Tielt is, wordt het krap").
+REISTIJD: reken in je opmerkingen altijd de reistijd mee als de locatie gekend is (vanaf thuis, Egemsesteenweg 9a in Tielt, of tussen twee locaties). Schat die NOOIT zelf: gebruik de berekende reistijden onder REISTIJDEN of vraag ze op met de tool reistijd (echte autoroute, zonder file; zeg erbij dat het in de spits langer kan duren). Vindt de tool de plaats niet, zeg dat dan. Is de locatie niet gekend, zeg dat dan uitdrukkelijk (bv. "de plaats staat er niet bij, dus ik reken geen reistijd mee") en nuanceer je advies ("als het verder dan Tielt is, wordt het krap").
 DENK MEE als een attente gezinsplanner: beantwoord eerst de vraag, en kijk dan logisch wat nog nuttig is. Bijvoorbeeld: overlappende afspraken of wie de kinderen brengt/haalt als beide ouders bezet zijn, geen school (opvang?), iets mee te nemen (notities), verzameluur en vertrektijd bij uitmatchen, het weer bij iets buiten, afval dat de avond voordien buiten moet, verjaardagen (cadeau?), geen eten gepland, voorraad die bijna op is, deadlines die naderen. Geef hooguit 2 à 3 korte suggesties onder "Om aan te denken", alleen als ze echt relevant zijn.
 HANDELINGEN: als de gebruiker iets wil laten doen, of als een suggestie een duidelijke actie heeft, gebruik de propose_* tools. Die voeren NIETS uit: de gebruiker ziet een kaart en bevestigt zelf. Zeg dan kort "Bevestig hieronder". Doe geen acties zonder dat het nuttig of gevraagd is.
 WEER: je krijgt hieronder de echte AccuWeather-verwachting (indien beschikbaar); gebruik die bij buitenactiviteiten, matchen, trainingen, uitstappen (regenjas, warm aankleden, verplaatsen?). 
@@ -3303,7 +3311,7 @@ function insights(from,days,ppl){
     const d=addDays(from,i), evs=eventsOn(d), dn=i===0&&from===t?'vandaag':diffDays(d,t)===1?'morgen':DAYSL[parse(d).getDay()];
     for(const c of conflictsOn(d)){ if(ppl&&ppl.length&&!/babysit|bezet/.test(c.text)&&!ppl.some(p=>c.text.includes(nm(p)))) continue; out.unshift('⚠️ '+c.text); (c.links||[]).forEach(l=>links.push(l)); }
     for(const o of evs){ const ev=o.ev; if(ppl&&ppl.length&&!(ev.who||[]).some(w=>ppl.includes(w))) continue;
-      if(ev.type==='Match'&&ev.homeAway==='uit'){ out.push(`🚗 ${evTitle(ev,d)} ${dn}: ${ev.meet?'verzamelen om '+ev.meet:'vertrek op tijd'}${ev.place?', in '+ev.place:''}.`); if(ev.place) links.push(extLink.route(ev.place,'Route naar '+ev.place)); }
+      if(ev.type==='Match'&&ev.homeAway==='uit'){ const ti=ev.place?travInfo(homeAddr(),ev.place):null, at=ev.meet||ev.start; out.push(`🚗 ${evTitle(ev,d)} ${dn}: ${ev.meet?'verzamelen om '+ev.meet:'vertrek op tijd'}${ev.place?', in '+ev.place:''}${ti&&ti.min&&at?`. Dat is ${ti.txt}, dus vertrek rond ${fromMin(Math.max(0,toMin(at)-ti.min))}`:ev.place?'':' (plaats niet gekend, dus geen reistijd)'}.`); if(ev.place) links.push(extLink.route(ev.place,'Route naar '+ev.place)); }
       if(ev.place&&!ev.virtual&&ev.type!=='Match'&&(ev.type==='Uitstap'||ev.type==='Afspraak')&&(!ev.repeat||ev.repeat==='none')&&o.k===0&&diffDays(d,t)<=3) links.push(extLink.route(ev.place,'Route: '+ev.title));
       if(OUTDOOR(ev)&&!weatherAdded&&diffDays(d,t)<=10&&WX.daily&&wxForEv(ev,d)){ weatherAdded=true; const w=wxForEv(ev,d); out.push(`${w.e} ${dn[0].toUpperCase()+dn.slice(1)} **${ev.title}**${ev.start&&!ev.allDay?' om '+ev.start:''}: ${w.t}°, ${String(w.txt).toLowerCase()}, ${w.rain}% kans op regen${w.gust>=50?`, windstoten ${w.gust} km/u`:''}.${w.rain>=50?' Regenjas mee!':w.t<=4?' Warm aankleden.':''}`); }
       else if(OUTDOOR(ev)&&!weatherAdded&&diffDays(d,t)<=10){ weatherAdded=true; out.push(`🌦️ ${dn[0].toUpperCase()+dn.slice(1)} staat **${ev.title}** gepland, dat is buiten. Kijk even naar het weer.`); links.push(extLink.weer(homeTown())); }
@@ -3703,6 +3711,40 @@ const samePlace=(a,b)=>{const x=norm(a),y=norm(b);return !x||!y||x===y||x.includ
 const NEARBY=['tielt','pittem','meulebeke','ruiselede','wingene','aarsele','kanegem','schuiferskapelle','dentergem','ardooie','oostrozebeke','egem','zwevezele','koolskamp','wakken','roeselare','izegem','lichtervelde','zulte','deinze','beernem','oostkamp','ingelmunster','rumbeke','marialoop'];
 function travelNeed(a,b){ if(samePlace(a,b)) return 10; const town=norm(homeTown()); const local=p=>norm(p).includes(town)||!/[a-z]{4,}/.test(norm(p)); const near=p=>local(p)||NEARBY.some(t=>norm(p).includes(t)); return local(a)&&local(b)?20:near(a)&&near(b)?30:50; }
 const placeOf=ev=>ev.place||'';
+/* ---------- ECHTE REISTIJDEN: adres opzoeken (OpenStreetMap Nominatim) + autoroute (OSRM), gedeeld bewaard in settings/routes ---------- */
+const RT_V=1, rtNorm=s=>norm(s).replace(/\s*,\s*/g,','), routeKey=(a,b)=>`r${RT_V}|${rtNorm(a)}>${rtNorm(b)}`, gKey=a=>`g${RT_V}|${rtNorm(a)}`;
+const rtLocal={}, rtPending={};
+const rtGet=k=>rtLocal[k]||setting('routes')[k]||(ls.get('tb_routes',{})||{})[k];
+function rtSave(k,v){ rtLocal[k]=v; try{ const m=ls.get('tb_routes',{})||{}; m[k]=v; ls.set('tb_routes',m); }catch(e){} upd('settings','routes',{[k]:v}); }
+let geoNext=0;
+async function geoFetch(q){ const w=Math.max(0,geoNext-Date.now()); geoNext=Date.now()+w+1100; if(w) await new Promise(r=>setTimeout(r,w));
+  const u='https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&accept-language=nl&countrycodes=be,nl,fr&viewbox=2.4,51.5,4.6,50.6&q='+encodeURIComponent(q);
+  const r=await fetch(u); if(!r.ok) throw new Error('geo '+r.status); const j=await r.json(); return j&&j[0]?{lat:+j[0].lat,lon:+j[0].lon,name:j[0].display_name}:null; }
+/* zoekt een plaats; lukt de volledige omschrijving niet, dan het laatste stuk (meestal de gemeente) of plaats + thuisgemeente */
+const geoPending={};
+function geocode(p){ const k=gKey(p); return geoPending[k]||(geoPending[k]=geocode1(p).finally(()=>setTimeout(()=>{delete geoPending[k]},60000))); }
+async function geocode1(p){ const k=gKey(p), c=rtGet(k); if(c&&(c.lat!=null||Date.now()-(c.t||0)<7*864e5)) return c.lat!=null?c:null;
+  const parts=String(p).split(',').map(x=>x.trim()).filter(Boolean), tries=[[p,'']];
+  if(parts.length>1) tries.push([parts.slice(1).join(', '),''],[parts[parts.length-1],'gerekend tot het centrum van '+parts[parts.length-1]]);
+  else if(!norm(p).includes(norm(homeTown()))) tries.push([p+', '+homeTown(),'aangenomen dat het in '+homeTown()+' ligt']);
+  for(const [q,approx] of tries){ const g=await geoFetch(q); if(g){ const v={lat:g.lat,lon:g.lon,name:g.name.split(',').slice(0,3).join(','),approx,t:Date.now()}; rtSave(k,v); return v; } }
+  rtSave(k,{fail:1,t:Date.now()}); return null; }
+/* geeft {min,km,approx} (echte route met de auto, zonder file) of {fail:1}; null = nog niet berekend */
+function routeAsync(a,b){ const k=routeKey(a,b); if(rtPending[k]) return rtPending[k];
+  return rtPending[k]=(async()=>{ try{
+    const [A,B]=[await geocode(a),await geocode(b)];
+    if(!A||!B){ const v={fail:1,miss:!A?a:b,t:Date.now()}; rtSave(k,v); return v; }
+    const r=await fetch(`https://router.project-osrm.org/route/v1/driving/${A.lon},${A.lat};${B.lon},${B.lat}?overview=false`); if(!r.ok) throw new Error('route '+r.status);
+    const j=await r.json(), ro=j.routes&&j.routes[0]; if(!ro){ const v={fail:1,t:Date.now()}; rtSave(k,v); return v; }
+    const v={min:Math.max(1,Math.ceil(ro.duration/60)),km:Math.round(ro.distance/100)/10,approx:A.approx||B.approx||'',t:Date.now()}; rtSave(k,v); return v;
+  }catch(e){ return null; } finally{ setTimeout(()=>{delete rtPending[k]},60000); scheduleRender(); } })(); }
+function routeOf(a,b){ if(!norm(a)||!norm(b)||rtNorm(a)===rtNorm(b)) return {min:0,km:0};
+  const c=rtGet(routeKey(a,b)); if(c&&(c.min!=null||Date.now()-(c.t||0)<7*864e5)) return c; routeAsync(a,b); return null; }
+/* reistijd met uitleg: echte route als die gekend is, anders een ruwe schatting en dat zeggen we ook */
+function travInfo(a,b){ const r=routeOf(a,b);
+  if(r&&r.min!=null) return {min:r.min,exact:true,txt:r.min?`${r.min} min rijden (${String(r.km).replace('.',',')} km${r.approx?', '+r.approx:''})`:''};
+  const est=travelNeed(a,b); return {min:est,exact:false,txt:`±${est} min rijden (${r&&r.fail?`ruwe schatting: ik vind ${r.miss?'"'+r.miss+'"':'de route'} niet op de kaart`:'ruwe schatting, de route wordt nog berekend'})`}; }
+const mapsDir=(a,b)=>({url:'https://www.google.com/maps/dir/?api=1&origin='+encodeURIComponent(a)+'&destination='+encodeURIComponent(b)+'&travelmode=driving',label:'Route met verkeer',icon:'🧭'});
 /* is Max thuis op dag d (geen crèche: weekend, feestdag of aangeduid als thuis)? */
 function maxNapDay(d){ const ev=eventsOn(d,new Set(['max'])); if(ev.some(o=>o.ev.type==='Crèche'&&!o.ev.congeDay&&o.ev.start&&toMin(o.ev.end||'00:00')>13*60)) return false; return true; }
 function conflictsOn(d,extra,skipId){
@@ -3724,10 +3766,10 @@ function conflictsOn(d,extra,skipId){
         out.push({lvl:'hi',key:`ov|${d}|${p}|${A.ev.id}|${B.ev.id}`,ids:[A.ev.id,B.ev.id],d,text:`${dn[0].toUpperCase()+dn.slice(1)} overlappen **${T(A.ev)}** (${A.ev.start}${A.ev.end?'–'+A.ev.end:''}) en **${T(B.ev)}** (${B.ev.start}) voor ${nm(p)}.`});
         continue; }
       const pa=placeOf(A.ev), pb=placeOf(B.ev); if(!pa||!pb||samePlace(pa,pb)) continue;
-      const trav=travelNeed(pa,pb), need=trav+(['Match','Training'].includes(A.ev.type)?15:0), gap=B.s-A.e;
+      const ti=travInfo(pa,pb), trav=ti.min, need=trav+(['Match','Training'].includes(A.ev.type)?15:0), gap=B.s-A.e;
       if(gap<need+15){ out.push({lvl:gap<need?'hi':'mid',key:`tr|${d}|${p}|${A.ev.id}|${B.ev.id}`,ids:[A.ev.id,B.ev.id],d,
-        text:`Krap voor ${nm(p)} ${dn}: **${T(A.ev)}** in ${pa} eindigt ${A.est?'rond ':'om '}${fromMin(A.e)}, en **${T(B.ev)}** in ${pb} ${B.ev.type==='Match'&&B.ev.meet?'verzamelt om '+B.ev.meet:'begint om '+B.ev.start}. ${gap<=0?'Dat lukt niet.':gap<need?`Maar ${gap} minuten om je om te kleden en ±${trav} min te rijden: dat lukt waarschijnlijk niet.`:`Maar ${gap} minuten voor ±${trav} min rijden${need>trav?' en omkleden':''}: krap.`}`,
-        links:[{url:'https://www.google.com/maps/dir/?api=1&origin='+encodeURIComponent(pa)+'&destination='+encodeURIComponent(pb)+'&travelmode=driving',label:'Reistijd checken',icon:'🧭'}]}); }
+        text:`Krap voor ${nm(p)} ${dn}: **${T(A.ev)}** in ${pa} eindigt ${A.est?'rond ':'om '}${fromMin(A.e)}, en **${T(B.ev)}** in ${pb} ${B.ev.type==='Match'&&B.ev.meet?'verzamelt om '+B.ev.meet:'begint om '+B.ev.start}. ${gap<=0?'Dat lukt niet.':gap<need?`Je hebt ${gap} minuten om je om te kleden en ${ti.txt}: dat lukt waarschijnlijk niet.`:`Je hebt ${gap} minuten voor ${ti.txt}${need>trav?' en omkleden':''}: krap.`}`,
+        links:[mapsDir(pa,pb)]}); }
     }
   }
   /* b) beide ouders weg -> oppas */
@@ -3759,10 +3801,10 @@ function conflictsOn(d,extra,skipId){
   /* na het dutje (±13u–15u) heeft hij nog ±30 min nodig voor hij klaar is; reken ook de reistijd mee als de plaats gekend is */
   if(MID.max&&maxNapDay(d)){ const nap=[13*60,15*60], ready=15*60+30;
     for(const ev of evs){ if(!(ev.who||[]).includes('max')||ev.type==='Crèche') continue; const x=span(ev), pl=placeOf(ev);
-      const trav=pl?(samePlace(pl,homeAddr())?0:travelNeed(homeAddr(),pl)):0, leave=x.s-trav;
+      const ti=pl?travInfo(homeAddr(),pl):null, trav=ti?ti.min:0, leave=x.s-trav;
       if(leave<ready&&x.e>nap[0]){
-        const reis=pl?(trav?` Met ±${trav} min rijden naar ${pl} moet je rond ${fromMin(Math.max(0,leave))} vertrekken.`:''):' De plaats is niet gekend, dus de reistijd is niet meegerekend.';
-        out.push({lvl:'mid',key:`nap|${d}|${ev.id}`,ids:[ev.id],d,text:`${dn[0].toUpperCase()+dn.slice(1)} is Max thuis en doet hij normaal zijn middagdutje (±13u–15u); daarna heeft hij nog een halfuurtje nodig.${reis} **${T(ev)}** (${ev.start}) valt daarin: laat hij zijn dutje vallen, slaapt hij onderweg, of blijft iemand met hem thuis?`}); }
+        const reis=pl?(trav?` Naar ${pl} is het ${ti.txt}, dus vertrekken rond ${fromMin(Math.max(0,leave))}.`:''):' De plaats is niet gekend, dus de reistijd is niet meegerekend.';
+        out.push({lvl:'mid',key:`nap|${d}|${ev.id}`,ids:[ev.id],d,links:pl&&trav?[mapsDir(homeAddr(),pl)]:undefined,text:`${dn[0].toUpperCase()+dn.slice(1)} is Max thuis en doet hij normaal zijn middagdutje (±13u–15u); daarna heeft hij nog een halfuurtje nodig.${reis} **${T(ev)}** (${ev.start}) valt daarin: laat hij zijn dutje vallen, slaapt hij onderweg, of blijft iemand met hem thuis?`}); }
     } }
   return out;
 }
