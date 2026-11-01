@@ -2410,7 +2410,8 @@ function renderStock(){
   return h;
 }
 function stockLowStrip(){
-  const low=lowStock(); if(!low.length) return '';
+  /* in het boodschappenvenster enkel wat nog niet op het lijstje staat */
+  const low=lowStock().filter(({s})=>!openItem(s.name)); if(!low.length) return '';
   return `<div class="card lowstrip"><div class="row" style="margin-bottom:8px"><span class="lbl">Bijna op</span><span class="sp"></span><button class="btn sm ghost" data-act="food-tab" data-v="voorraad">Voorraad</button></div>
     <div class="list">${low.map(({s,c})=>`<div class="li"><span class="sem sm" aria-hidden="true">${stockEmoji(s)}</span><div class="main"><div class="t">${esc(s.name)}</div><div class="s">${c.left<=0?'op':c.left===1?'morgen op':'nog '+c.left+' dagen'}</div></div>${openItem(s.name)?'<span class="tag">op het lijstje</span>':`<button class="btn sm" data-act="lib-tap" data-v="${esc(s.name)}">${icon('plus')} Erop</button>`}</div>`).join('')}</div></div>`;
 }
