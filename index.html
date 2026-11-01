@@ -3111,7 +3111,7 @@ function goTarget(k,date){
   else if(['ritme','klusjes','regelen','machines'].includes(k)){ if(!isParent(me)) return; ui.view='house'; ui.houseTab=k; }
   else if(k==='agenda'){ ui.view='agenda'; if(date){ui.agMode='week';ui.agAnchor=date;ui.agSel=date;ui.agStart=date;ui.wkReset=1;} }
   else if(k==='rugzak'){ ui.view='school'; } else ui.view='home';
-  render(); window.scrollTo(0,0);
+  render(); window.scrollTo(0,0); if(k==='agenda'&&date) setTimeout(scrollToDay,90);
 }
 
 
@@ -4418,9 +4418,9 @@ const ACT={
   'sys-notif':async()=>{try{ if(window.TB_PUSH&&TB_PUSH.supported()){ const ok=await TB_PUSH.enable(me,true); toast(ok?'🔔 Meldingen staan aan op dit toestel':'Meldingen zijn niet toegestaan op dit toestel'); } else await Notification.requestPermission(); }catch(e){console.warn(e);toast('Meldingen aanzetten lukte niet')}render()},
   'seed-clear':async(v,t)=>{if(t.dataset.sure!=='1'){t.dataset.sure='1';t.textContent='Zeker? Tik nog eens';return}t.disabled=true;await seedClear();render()},
   'notifs-clear':async(v,t)=>{if(t.dataset.sure!=='1'){t.dataset.sure='1';t.textContent='Zeker?';return}for(const n of [...S.notifs])await del('notifs',n.id);toast('Meldingen gewist');render()},
-  'week-day':v=>{ui.view='agenda';ui.agMode='week';ui.agAnchor=v;ui.agStart=v;ui.wkReset=1;ui.agSel=v;vib(8);render();window.scrollTo(0,0);setTimeout(()=>{const el=[...document.querySelectorAll('.day')].find(x=>x.dataset.d===v);if(el)window.scrollTo({top:el.getBoundingClientRect().top+scrollY-80,behavior:'smooth'})},80)},
+  'week-day':v=>{ui.view='agenda';ui.agMode='week';ui.agAnchor=v;ui.agStart=v;ui.wkReset=1;ui.agSel=v;vib(8);render();window.scrollTo(0,0);setTimeout(scrollToDay,90)},
   chat:()=>chatSheet(),
-  'warn-open':v=>{ui.view='agenda';ui.agMode='week';ui.agAnchor=v;ui.agStart=v;ui.wkReset=1;ui.agSel=v;render();window.scrollTo(0,0);setTimeout(()=>{const el=[...document.querySelectorAll('.day')].find(x=>x.dataset.d===v);if(el)window.scrollTo({top:el.getBoundingClientRect().top+scrollY-80,behavior:'smooth'})},80)},
+  'warn-open':v=>{ui.view='agenda';ui.agMode='week';ui.agAnchor=v;ui.agStart=v;ui.wkReset=1;ui.agSel=v;render();window.scrollTo(0,0);setTimeout(scrollToDay,90)},
   'warn-fold':()=>{ls.set('tb_warnfold',!ls.get('tb_warnfold',false));vib(8);render()},
   'stock-all':async()=>{for(const c of stockWarnings()) if(!openItem(c.stock)) await addItem(c.stock); toast('Op het lijstje gezet');},
   'stock-dismiss':()=>{const ks=stockWarnings().map(c=>c.key);const d=[...dismissed(),...ks].slice(-200);ls.set('tb_dismiss',d);toast('Verborgen',null,()=>{ls.set('tb_dismiss',d.filter(x=>!ks.includes(x)));render()});render()},
