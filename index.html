@@ -3138,7 +3138,7 @@ function stateDump(){
   const t=today(), par=isParent(me);
   const L=[];
   L.push(`Vandaag is ${dlong(t)} ${parse(t).getFullYear()} (${t}), het is ${hhmm(Date.now())}. De gebruiker die vraagt is ${nm(me)} (${par?'ouder':'kind'}).`);
-  L.push(`GEWOONTES: Max (geboren 2025) doet in de namiddag een middagdutje (ongeveer 13u–15u) op dagen dat hij niet naar de crèche gaat (weekend, feestdag, vakantie of thuisdag). Hou daar rekening mee bij advies, planning en waarschuwingen (bv. uitstappen of bezoek in de namiddag, wie thuis blijft, slapen in de auto). Zet dit niet in de agenda.`);
+  L.push(`GEWOONTES: Max (geboren 2025) doet in de namiddag een middagdutje (ongeveer 13u–15u) op dagen dat hij niet naar de crèche gaat (weekend, feestdag, vakantie of thuisdag). Na zijn dutje heeft hij nog ongeveer een half uur nodig voor hij klaar is voor een volgende activiteit (wakker worden, drinken, aankleden). Hou daar rekening mee bij advies, planning en waarschuwingen (bv. uitstappen of bezoek in de namiddag, wie thuis blijft, slapen in de auto). Zet dit niet in de agenda.`);
   L.push(`Gezin: ${MEMBERS.map(m=>`${m.name}${m.label?' ('+m.label+')':''}${m.born?' geboren '+m.born:''}`).join(', ')}. Huisdieren: ${pets().map(p=>p.name).join(', ')||'geen'}.`);
   L.push(`\nAGENDA (komende 60 dagen, per dag):\n${agendaDump(t,60)}`);
   L.push(`\nBOODSCHAPPENLIJST: ${S.shopping.filter(x=>!x.done).map(x=>`${x.name}${x.qty?' ('+x.qty+')':''}${x.store?' ['+x.store+']':''}`).join('; ')||'leeg'}`);
@@ -3202,6 +3202,7 @@ function chatTools(){
 function rules(){
   return `Je bent Jonah, de assistent van Thuisbasis. Jonah is ook de naam van de hond van het gezin, een teefje (spreek over jezelf als 'ze/haar' als dat nodig is). Je bent warm, positief en bemoedigend: je brengt problemen als iets dat we samen kunnen oplossen, met een concreet voorstel, nooit verwijtend of alarmerend. Je blijft wel behulpzaam en to the point. Zeg nooit 'woef' of andere hondengeluiden. Noem jezelf nooit Claude. Thuisbasis is de gezinsapp van ${MEMBERS.map(m=>m.name).join(', ')} in ${homeAddr()}. Antwoord in het Nederlands (Vlaams, informeel, je/jij), kort en concreet. Gebruik voor feiten alleen de gegevens hieronder; verzin niets en zeg eerlijk als iets ontbreekt.
 WAARSCHUW bij conflicten: twee ouders tegelijk weg terwijl kinderen thuis zijn (babysit/opvang nodig), iemand op twee plaatsen tegelijk, te weinig reistijd tussen twee plaatsen (bv. match om 11u in Gent en om 14u terug voor de scouts: tel speelduur + reistijd), een kind dat gebracht/gehaald moet worden terwijl beide ouders bezet zijn. Controleer dit ook bij een nieuw voorstel voor een afspraak, en stel een oplossing voor.
+REISTIJD: reken in je opmerkingen altijd de reistijd mee als de locatie gekend is (vanaf thuis, Egemsesteenweg 9a in Tielt, of tussen twee locaties; schat realistisch met de auto). Is de locatie niet gekend, zeg dat dan uitdrukkelijk (bv. "de plaats staat er niet bij, dus ik reken geen reistijd mee") en nuanceer je advies ("als het verder dan Tielt is, wordt het krap").
 DENK MEE als een attente gezinsplanner: beantwoord eerst de vraag, en kijk dan logisch wat nog nuttig is. Bijvoorbeeld: overlappende afspraken of wie de kinderen brengt/haalt als beide ouders bezet zijn, geen school (opvang?), iets mee te nemen (notities), verzameluur en vertrektijd bij uitmatchen, het weer bij iets buiten, afval dat de avond voordien buiten moet, verjaardagen (cadeau?), geen eten gepland, voorraad die bijna op is, deadlines die naderen. Geef hooguit 2 à 3 korte suggesties onder "Om aan te denken", alleen als ze echt relevant zijn.
 HANDELINGEN: als de gebruiker iets wil laten doen, of als een suggestie een duidelijke actie heeft, gebruik de propose_* tools. Die voeren NIETS uit: de gebruiker ziet een kaart en bevestigt zelf. Zeg dan kort "Bevestig hieronder". Doe geen acties zonder dat het nuttig of gevraagd is.
 WEER: je krijgt hieronder de echte AccuWeather-verwachting (indien beschikbaar); gebruik die bij buitenactiviteiten, matchen, trainingen, uitstappen (regenjas, warm aankleden, verplaatsen?). 
@@ -3755,9 +3756,13 @@ function conflictsOn(d,extra,skipId){
     }
   }
   /* c) Max doet een middagdutje als hij niet naar de crèche gaat: let op afspraken in de namiddag */
-  if(MID.max&&maxNapDay(d)){ const nap=[13*60,15*60];
-    for(const ev of evs){ if(!(ev.who||[]).includes('max')||ev.type==='Crèche') continue; const x=span(ev);
-      if(x.s<nap[1]&&x.e>nap[0]) out.push({lvl:'mid',key:`nap|${d}|${ev.id}`,ids:[ev.id],d,text:`${dn[0].toUpperCase()+dn.slice(1)} is Max thuis en doet hij normaal zijn middagdutje (±13u–15u). **${T(ev)}** (${ev.start}) valt daarin: laat hij zijn dutje vallen, slaapt hij onderweg, of blijft iemand met hem thuis?`});
+  /* na het dutje (±13u–15u) heeft hij nog ±30 min nodig voor hij klaar is; reken ook de reistijd mee als de plaats gekend is */
+  if(MID.max&&maxNapDay(d)){ const nap=[13*60,15*60], ready=15*60+30;
+    for(const ev of evs){ if(!(ev.who||[]).includes('max')||ev.type==='Crèche') continue; const x=span(ev), pl=placeOf(ev);
+      const trav=pl?(samePlace(pl,homeAddr())?0:travelNeed(homeAddr(),pl)):0, leave=x.s-trav;
+      if(leave<ready&&x.e>nap[0]){
+        const reis=pl?(trav?` Met ±${trav} min rijden naar ${pl} moet je rond ${fromMin(Math.max(0,leave))} vertrekken.`:''):' De plaats is niet gekend, dus de reistijd is niet meegerekend.';
+        out.push({lvl:'mid',key:`nap|${d}|${ev.id}`,ids:[ev.id],d,text:`${dn[0].toUpperCase()+dn.slice(1)} is Max thuis en doet hij normaal zijn middagdutje (±13u–15u); daarna heeft hij nog een halfuurtje nodig.${reis} **${T(ev)}** (${ev.start}) valt daarin: laat hij zijn dutje vallen, slaapt hij onderweg, of blijft iemand met hem thuis?`}); }
     } }
   return out;
 }
