@@ -1378,8 +1378,43 @@ html[data-style="bauhaus"] .rem-all{border-radius:0}
 .scan-wait{display:flex;flex-direction:column;align-items:center;gap:6px;padding:26px 0}
 .scan-wait .shape-wave{height:26px}.scan-wait .shape-wave i{transform-origin:center}
 .scan-row{display:flex;align-items:center;gap:10px;cursor:pointer}
-.scan-row input{width:20px;height:20px;flex:none;accent-color:var(--ink,#141414)}
+.scan-row input[type=checkbox]{width:20px;height:20px;flex:none;accent-color:var(--ink,#141414)}
 .scan-row .em{font-size:22px;flex:none}
+
+/* ---------- voorraad: tegels met dikke verticale statusbalk ---------- */
+.stk-actions{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px}
+.stk-sum{margin:0 0 10px;font-size:14px}
+.stk-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
+@media (min-width:700px){.stk-grid{grid-template-columns:repeat(auto-fill,minmax(180px,1fr))}}
+.stk-tile{display:flex;align-items:stretch;gap:0;min-height:138px;padding:0;border:0;border-radius:16px;background:var(--surface);box-shadow:var(--shadow);text-align:left;color:var(--ink);font:inherit;cursor:pointer;overflow:hidden;position:relative}
+.stk-tile:active{transform:scale(.97)}
+.stk-bar{flex:none;width:20px;background:color-mix(in srgb,var(--sc) 16%,var(--surface-2));position:relative;display:block}
+.stk-bar i{position:absolute;left:0;right:0;bottom:0;height:var(--lvl);background:var(--sc);transition:height .5s}
+.stk-body{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px;padding:10px 11px 11px}
+.stk-top{display:flex;align-items:flex-start;justify-content:space-between}
+.stk-em{font-size:28px;line-height:1.1}
+.stk-ai{font-size:13px;opacity:.8}
+.stk-nm{font-weight:700;font-size:15px;line-height:1.2;margin-top:4px;overflow-wrap:anywhere;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.stk-st{font-weight:800;font-size:15px;color:var(--sc)}
+.stk-tile:not(.late):not(.soon) .stk-st{color:var(--ok)}
+.stk-sub{font-size:12px;color:var(--muted);line-height:1.25}
+.stk-list{align-self:flex-start;margin-top:auto;font-size:11px;font-weight:700;padding:2px 7px;border-radius:999px;background:var(--listed);color:var(--on-listed)}
+.stk-tile.late{background:color-mix(in srgb,var(--danger) 7%,var(--surface))}
+.stk-tile.add{flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:4px;padding:12px;background:transparent;box-shadow:inset 0 0 0 2px var(--line)}
+.stk-tile.add .stk-nm{margin:0}
+.stk-plus{width:40px;height:40px;border-radius:50%;display:grid;place-items:center;background:var(--primary);color:var(--on-primary)}
+.stk-tile.flash{animation:flash 1s}
+.stk-detail{display:flex;gap:14px;align-items:stretch}
+.stk-bar.big{width:34px;min-height:150px;border-radius:10px;overflow:hidden}
+.stk-dinfo{display:flex;flex-direction:column;gap:4px;justify-content:center}
+.stk-dinfo .stk-em{font-size:38px}
+.stk-dbtns{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:14px}
+html[data-style="bauhaus"] .stk-tile{border-radius:0;border:var(--bw) solid var(--line);box-shadow:none}
+html[data-style="bauhaus"] .stk-tile.add{border-style:dashed;box-shadow:none}
+html[data-style="bauhaus"] .stk-bar{border-right:var(--bw) solid var(--line)}
+html[data-style="bauhaus"] .stk-bar.big{border-radius:0;border:var(--bw) solid var(--line)}
+html[data-style="bauhaus"] .stk-plus{border-radius:0;background:var(--bh-blue,var(--primary));color:#fff}
+html[data-style="bauhaus"] .stk-list{border-radius:0}
 </style>
 
 </head><body>
@@ -2208,6 +2243,9 @@ const curStore=()=>{const st=stores();return st.includes(shopStore)?shopStore:''
 
 async function addItem(name,extra={}){
   name=name.trim(); if(!name) return;
+  const auto=!!extra._auto; extra=Object.assign({},extra); delete extra._auto;
+  /* zelf op het lijstje gezet = het is (bijna) op: daar leert de voorraad uit */
+  if(!auto&&!extra.recipe&&stockFor(name).length) stockOut(name).catch(()=>{});
   if(openItem(name)){ toast(`${name} staat al op het lijstje`); return; }
   const prev=S.shopping.filter(x=>x.done&&x.name.toLowerCase()===name.toLowerCase()).sort((a,b)=>(b.doneAt||0)-(a.doneAt||0))[0];
   if(prev){ await upd('shopping',prev.id,Object.assign({done:false,by:me,at:Date.now(),qty:'',recipe:'',store:prev.store||curStore()},extra)); }
@@ -2279,7 +2317,36 @@ function shopItemSheet(it){
 
 
 /* ---------- VOORRAAD (terugkerende boodschappen) ---------- */
-const UNITS=['l','kg','g','stuks','pakken','zakken','flessen','potjes'];
+const UNITS=['l','kg','g','stuks','rollen','pakken','zakken','flessen','potjes','tabletten','wasbeurten'];
+/* slimme startwaarden voor een gezin van 5, als we nog niets weten; daarna leert de app bij */
+const STOCK_SMART=[
+  {name:'Keukenrol',e:'🧻',mode:'verbruik',perDay:0.3,unit:'rollen',buyQty:8,warnDays:3},
+  {name:'Toiletpapier',e:'🧻',mode:'verbruik',perDay:0.8,unit:'rollen',buyQty:24,warnDays:4},
+  {name:'Huishoudfolie',e:'🎞️',mode:'interval',everyDays:60,unit:'rollen',buyQty:1,warnDays:5},
+  {name:'Aluminiumfolie',e:'🥡',mode:'interval',everyDays:75,unit:'rollen',buyQty:1,warnDays:5},
+  {name:'Bakpapier',e:'📜',mode:'interval',everyDays:60,unit:'rollen',buyQty:1,warnDays:5},
+  {name:'Diepvrieszakjes',e:'🧊',mode:'interval',everyDays:60,unit:'pakken',buyQty:1,warnDays:5},
+  {name:'Boterhamzakjes',e:'🥪',mode:'interval',everyDays:30,unit:'pakken',buyQty:1,warnDays:4},
+  {name:'PMD-zakken',e:'♻️',mode:'interval',everyDays:40,unit:'rollen',buyQty:1,warnDays:5},
+  {name:'Vaatwastabletten',e:'🍽️',mode:'verbruik',perDay:1,unit:'tabletten',buyQty:60,warnDays:5},
+  {name:'Afwasmiddel',e:'🫧',mode:'interval',everyDays:30,unit:'flessen',buyQty:1,warnDays:4},
+  {name:'Wasmiddel',e:'🧺',mode:'verbruik',perDay:1,unit:'wasbeurten',buyQty:40,warnDays:5},
+  {name:'Wasverzachter',e:'🌸',mode:'interval',everyDays:45,unit:'flessen',buyQty:1,warnDays:5},
+  {name:'Handzeep',e:'🧼',mode:'interval',everyDays:30,unit:'flessen',buyQty:1,warnDays:4},
+  {name:'Allesreiniger',e:'🧽',mode:'interval',everyDays:60,unit:'flessen',buyQty:1,warnDays:5},
+  {name:'Sponsjes',e:'🧽',mode:'interval',everyDays:30,unit:'pakken',buyQty:1,warnDays:4},
+  {name:'Tandpasta',e:'🪥',mode:'interval',everyDays:30,unit:'stuks',buyQty:2,warnDays:4},
+  {name:'Shampoo',e:'🧴',mode:'interval',everyDays:35,unit:'flessen',buyQty:1,warnDays:4},
+  {name:'Douchegel',e:'🧴',mode:'interval',everyDays:30,unit:'flessen',buyQty:1,warnDays:4},
+  {name:'Vochtige doekjes',e:'🧻',forWho:['max'],mode:'verbruik',perDay:8,unit:'stuks',buyQty:80,warnDays:3},
+  {name:'Koffie',e:'☕',mode:'interval',everyDays:21,unit:'pakken',buyQty:1,warnDays:4},
+  {name:'Eieren',e:'🥚',mode:'verbruik',perDay:1.5,unit:'stuks',buyQty:12,warnDays:2},
+  {name:'Boter',e:'🧈',mode:'interval',everyDays:10,unit:'stuks',buyQty:1,warnDays:2},
+  {name:'Suiker',e:'🍬',mode:'interval',everyDays:60,unit:'kg',buyQty:1,warnDays:5},
+  {name:'Bloem',e:'🌾',mode:'interval',everyDays:60,unit:'kg',buyQty:1,warnDays:5},
+  {name:'Olijfolie',e:'🫒',mode:'interval',everyDays:40,unit:'flessen',buyQty:1,warnDays:5},
+  {name:'Zout',e:'🧂',mode:'interval',everyDays:120,unit:'stuks',buyQty:1,warnDays:7},
+];
 const STOCK_TEMPLATES=[
   {name:'Melk',e:'🥛',forWho:['max'],mode:'verbruik',perDay:0.5,unit:'l',buyQty:6,warnDays:2,schoolDays:false,hint:'Max drinkt ±½ l per dag'},
   {name:'Luiers',e:'🍼',forWho:['max'],mode:'verbruik',perDay:6,unit:'stuks',buyQty:44,warnDays:3,schoolDays:false,hint:'±6 per dag'},
@@ -2292,6 +2359,7 @@ const STOCK_TEMPLATES=[
 const fmtNum=n=>Number(n||0).toLocaleString('nl-BE',{maximumFractionDigits:2});
 function stockCalc(s){
   const t=today();
+  if(s.outAt&&s.lastBought&&s.outAt>=s.lastBought) return {left:0,due:t,frac:0,remaining:0,out:true};
   if(s.mode==='interval'){
     const every=Math.max(1,Number(s.everyDays)||7);
     if(!s.lastBought) return {left:0,due:t,frac:0,remaining:null};
@@ -2308,7 +2376,7 @@ function stockCalc(s){
   while(r>0&&i<730){ r-=use(d); if(r>0){left++;d=addDays(d,1)} i++; }
   return {left:rem<=0?0:left,due:addDays(t,rem<=0?0:left),frac:Math.min(1,rem/start),remaining:rem};
 }
-const stockFor=s=>{const n=String(typeof s==='string'?s:(s&&s.name)||'').toLowerCase();return S.stock.filter(x=>x.name.toLowerCase()===n)};
+const stockFor=s=>{const n=String(typeof s==='string'?s:(s&&s.name)||'').toLowerCase().trim(); if(!n) return []; const ex=S.stock.filter(x=>x.name.toLowerCase()===n); return ex.length?ex:S.stock.filter(x=>x.name.toLowerCase().startsWith(n+' '))};
 const stockEmoji=s=>s.e||itemInfo(s.name).e;
 function stockLine(s){
   const who=(s.forWho||[]).map(w=>MID[w]?.name||stockWho().find(o=>o.v===w)?.l).filter(Boolean);
@@ -2333,6 +2401,7 @@ const sameItem=(a,b)=>{ a=String(a||'').toLowerCase().trim(); b=String(b||'').to
 async function photoScan(file,kind){
   const sample=window.claude&&window.claude.use?await window.claude.use('sample').catch(()=>null):null;
   if(!sample){ toast('Jonah kan nu geen foto\'s lezen.'); return; }
+  if(kind==='product') return productScan(file,sample);
   openSheet(kind==='ticket'?'Kassaticket lezen':'Koelkast bekijken',`<div class="scan-wait">${shapeWave()}<p class="muted">Jonah kijkt naar de foto…</p></div>`);
   try{
     const img=await shrinkImage(file);
@@ -2363,11 +2432,37 @@ function photoResult(items,kind){
       if(n) log(kind==='ticket'?`verwerkte een kassaticket (${n} producten)`:`zette ${n} producten op het lijstje na een blik in de koelkast`,['charlotte','ruben'],'eten'); }});
 }
 async function stockBought(name,qty){
-  for(const s of stockFor(name)){
-    const c=stockCalc(s);
-    const add=qty!=null?Number(qty):Number(s.buyQty)||0;
-    await upd('stock',s.id,{lastBought:today(),lastQty:s.mode==='interval'?add:((c&&c.remaining)||0)+add,addedFor:''});
-  }
+  for(const s of stockFor(name)) await stockBoughtOne(s,qty);
+}
+async function stockBoughtOne(s,qty){
+  const t=today(), c=stockCalc(s), add=qty!=null&&qty!==''&&Number(qty)>0?Number(qty):Number(s.buyQty)||0;
+  const L=stockLearn(s,'buy',t,c)||{};
+  await upd('stock',s.id,Object.assign(L,{hist:[...stockHist(s).slice(-19),{t:'buy',d:t,q:add}],lastBought:t,lastQty:s.mode==='interval'?add:((c&&c.remaining)||0)+add,addedFor:'',outAt:''}));
+  if(L.learnNote&&me) toast(`${s.name}: ${L.learnNote.charAt(0).toLowerCase()+L.learnNote.slice(1)}`);
+}
+/* we zeggen dat het (bijna) op is: dat is het beste moment om bij te leren hoe snel het echt gaat */
+async function stockOut(name){
+  for(const s of stockFor(name)){ const t=today(); if(s.outAt&&s.outAt>=(s.lastBought||'')) continue;
+    const L=stockLearn(s,'out',t)||{}; await upd('stock',s.id,Object.assign(L,{hist:[...stockHist(s).slice(-19),{t:'out',d:t}],outAt:t}));
+    if(L.learnNote&&me) toast(`${s.name}: ${L.learnNote.charAt(0).toLowerCase()+L.learnNote.slice(1)}`); }
+}
+const stockHist=s=>Array.isArray(s.hist)?s.hist:[];
+function countUse(s,a,b){ if(!s.schoolDays) return diffDays(b,a); let n=0,d=a,i=0; while(d<b&&i<400){ if(isSchoolDay(d)) n++; d=addDays(d,1); i++; } return n; }
+/* SLIM BIJLEREN: per periode (aankoop → 'op' gemeld, of aankoop → volgende aankoop) vergelijken we met de schatting en schuiven we op.
+   'op' melden telt zwaarder (dan weten we zeker dat het op was); een aankoop terwijl er nog veel over is (inslaan) leert niets. */
+function stockLearn(s,type,t,c){
+  if(s.learn===false||!s.lastBought||s.lastBought>=t) return null;
+  if(stockHist(s).some(x=>x.t==='out'&&x.d>=s.lastBought)) return null;   /* deze periode is al geleerd */
+  const days=countUse(s,s.lastBought,t); if(days<2) return null;
+  if(type==='buy'&&c&&c.frac>0.5) return null;
+  const w=type==='out'?0.5:0.3, n=stockHist(s).filter(x=>x.t==='buy').length;
+  const w2=n<=1?Math.min(0.7,w+0.2):w;   /* eerste keer: sneller bijsturen, de startwaarde was maar een gok */
+  if(s.mode==='interval'){ const old=Number(s.everyDays)||14, obs=Math.min(old*3,Math.max(old/3,diffDays(t,s.lastBought))), nv=Math.max(1,Math.round(old*(1-w2)+obs*w2));
+    if(nv===old) return {learnAt:t}; return {everyDays:nv,learnAt:t,learnNote:`Bijgeleerd: nu om de ${nv} dagen (was ${old})`}; }
+  const start=Number(s.lastQty)||Number(s.buyQty)||0, old=Number(s.perDay)||0; if(!start||!old) return null;
+  const obs=Math.min(old*3,Math.max(old/3,start/days)), nv=Math.round((old*(1-w2)+obs*w2)*1000)/1000;
+  if(Math.abs(nv-old)/old<0.04) return {learnAt:t};
+  return {perDay:nv,learnAt:t,learnNote:`Bijgeleerd: ±${fmtNum(nv)} ${s.unit} per ${s.schoolDays?'schooldag':'dag'} (was ${fmtNum(old)})`};
 }
 /* bijna op? melding + op het lijstje */
 let stockBusy=false;
@@ -2379,7 +2474,7 @@ async function checkStock(){
       await upd('stock',s.id,{addedFor:c.due});
       const when=c.left===0?'is (bijna) op':c.left===1?'is morgen op':`is over ${c.left} dagen op`;
       if(s.auto!==false && !openItem(s.name)){
-        await addItem(s.name,{qty:`${fmtNum(s.buyQty)} ${s.unit}`,store:s.store||curStore(),recipe:''});
+        await addItem(s.name,{qty:`${fmtNum(s.buyQty)} ${s.unit}`,store:s.store||curStore(),recipe:'',_auto:1});
         log(`${s.name} ${when}. Ik zette het op het boodschappenlijstje.`,PARENTS,'voorraad','auto');
       } else {
         log(`${s.name} ${when}.`,PARENTS,'voorraad','auto');
@@ -2388,34 +2483,92 @@ async function checkStock(){
   } finally { stockBusy=false; }
 }
 
+function stockState(s,c){ const warn=Number(s.warnDays)||2; return !c?'':c.left<=0?'late':c.left<=warn?'soon':''; }
+function stockStatusTxt(c){ return !c?'nog niet gestart':c.out?'op gemeld':c.left<=0?'op':c.left===1?'nog 1 dag':`nog ${c.left} dagen`; }
 function renderStock(){
   const kid=!isParent(me);
-  const rows=S.stock.map(s=>({s,c:stockCalc(s)})).sort((a,b)=>(a.c?a.c.left:999)-(b.c?b.c.left:999));
-  let h=`<p class="muted" style="margin:0 0 12px;max-width:62ch">Zet hier wat jullie regelmatig kopen. De app rekent uit wanneer het bijna op is, stuurt een melding en zet het op het lijstje. Vink je het item af in de winkel, dan begint de teller opnieuw.</p>`;
-  if(!kid) h+=`<div class="row photo-row" style="margin-bottom:12px;flex-wrap:wrap;gap:8px"><button class="btn primary" data-act="stock-edit">${icon('plus')} Nieuw product</button><label class="btn">📷 Kassaticket<input type="file" accept="image/*" capture="environment" hidden data-photo="ticket"></label><label class="btn">📷 Koelkast of kast<input type="file" accept="image/*" capture="environment" hidden data-photo="kast"></label></div>`;
-  if(!rows.length){
-    h+=`<div class="card"><h2 style="font-size:18px;margin-bottom:4px">Snel beginnen</h2><p class="muted" style="margin:0 0 12px">Tik op een voorbeeld en pas de hoeveelheden aan jullie gezin aan.</p>
-      <div class="tiles-s">${STOCK_TEMPLATES.map((t,i)=>`<button class="stile" data-act="stock-tpl" data-v="${i}" ${kid?'disabled':''}><span class="em" aria-hidden="true">${t.e}</span><span class="nm">${esc(t.name)}</span><span class="qt">${esc(t.hint)}</span></button>`).join('')}</div></div>`;
-    return h;
-  }
-  h+=`<div class="grid g2">${rows.map(({s,c})=>{
-    const warn=Number(s.warnDays)||2, st=!c?'':c.left<=0?'late':c.left<=warn?'soon':'';
-    const tagTxt=!c?'nog niet gestart':c.left<=0?'op':c.left===1?'nog 1 dag':`nog ${c.left} dagen`;
-    const onList=!!openItem(s.name);
-    return `<div class="stock card" data-sid="${esc(s.id)}" style="--sc:${st==='late'?'var(--danger)':st==='soon'?'var(--warn)':'var(--ok)'}">
-      <div class="row" style="align-items:flex-start"><span class="sem" aria-hidden="true">${stockEmoji(s)}</span>
-        <div class="main ${kid?'':'tap'}" style="flex:1;min-width:0" ${kid?'':`data-act="stock-edit" data-v="${s.id}" role="button" tabindex="0" title="Aanpassen"`}><div class="t" style="font-weight:700;font-size:16px">${esc(s.name)}</div><div class="s muted" style="font-size:13px">${esc(stockLine(s))}</div></div>
-        <span class="tag ${st}">${tagTxt}</span></div>
-      <div class="gauge" role="img" aria-label="Geschatte voorraad ${c?Math.round(c.frac*100):0}%"><i style="width:${c?Math.round(c.frac*100):0}%"></i></div>
-      <div class="row" style="font-size:13px;flex-wrap:wrap"><span class="muted">${!c?'Tik op "Net gekocht" om te starten.':c.remaining!=null?`Nog ±${fmtNum(c.remaining)} ${esc(s.unit)} · op rond ${dshort(c.due)}`:`Volgende keer: ${dshort(c.due)}`}</span><span class="sp"></span>${onList?'<span class="tag" style="background:var(--listed);color:var(--on-listed)">op het lijstje</span>':''}</div>
-      ${kid?'':`<div class="row" style="flex-wrap:wrap;gap:8px"><button class="btn sm primary" data-act="stock-bought" data-v="${s.id}">${icon('check')} Net gekocht</button><button class="btn sm" data-act="stock-adjust" data-v="${s.id}">Bijstellen</button><span class="sp"></span><button class="btn sm" data-act="stock-edit" data-v="${s.id}">Aanpassen</button></div>`}
-    </div>`}).join('')}</div>`;
-  if(!kid){
-    const used=new Set(S.stock.map(s=>s.name.toLowerCase()));
-    const tpl=STOCK_TEMPLATES.map((t,i)=>({t,i})).filter(o=>!used.has(o.t.name.toLowerCase()));
-    if(tpl.length) h+=`<div class="lbl" style="margin:18px 0 8px">Voorbeelden toevoegen</div><div class="chips">${tpl.map(o=>`<button class="chip" data-act="stock-tpl" data-v="${o.i}"><span aria-hidden="true">${o.t.e}</span>${esc(o.t.name)}</button>`).join('')}</div>`;
-  }
+  const rows=S.stock.map(s=>({s,c:stockCalc(s)})).sort((a,b)=>(a.c?a.c.left:999)-(b.c?b.c.left:999)||a.s.name.localeCompare(b.s.name));
+  let h='';
+  if(!kid) h+=`<div class="stk-actions"><label class="btn primary">📷 Product<input type="file" accept="image/*" capture="environment" hidden data-photo="product"></label><label class="btn">🧾 Ticket<input type="file" accept="image/*" capture="environment" hidden data-photo="ticket"></label><label class="btn">🧊 Koelkast<input type="file" accept="image/*" capture="environment" hidden data-photo="kast"></label></div>`;
+  const nLate=rows.filter(o=>stockState(o.s,o.c)==='late').length, nSoon=rows.filter(o=>stockState(o.s,o.c)==='soon').length;
+  if(rows.length) h+=`<p class="stk-sum muted">${nLate||nSoon?[nLate?`<b style="color:var(--danger)">${nLate} op</b>`:'',nSoon?`<b style="color:var(--warn)">${nSoon} bijna op</b>`:''].filter(Boolean).join(' · ')+` · ${rows.length-nLate-nSoon} in orde`:`Alles in huis (${rows.length} producten)`}</p>`;
+  h+=`<div class="stk-grid">${rows.map(({s,c})=>{
+    const st=stockState(s,c), lvl=c?Math.round(c.frac*100):0, onList=!!openItem(s.name);
+    const sub=!c?'Tik om te starten':c.out?'Staat klaar om te kopen':c.remaining!=null?`±${fmtNum(Math.round(c.remaining*10)/10)} ${esc(s.unit)} · tot ${dshort(c.due)}`:`Volgende keer ${dshort(c.due)}`;
+    return `<button class="stk-tile ${st}" data-sid="${esc(s.id)}" data-act="stock-open" data-v="${esc(s.id)}" style="--sc:${st==='late'?'var(--danger)':st==='soon'?'var(--warn)':c?'var(--ok)':'var(--line)'};--lvl:${Math.max(c?4:0,lvl)}%" aria-label="${esc(s.name)}: ${stockStatusTxt(c)}">
+      <span class="stk-bar" role="img" aria-label="Voorraad ${lvl}%"><i></i></span>
+      <span class="stk-body"><span class="stk-top"><span class="stk-em" aria-hidden="true">${stockEmoji(s)}</span>${s.learnAt?'<span class="stk-ai" title="Slim bijgeleerd">✨</span>':''}</span>
+        <span class="stk-nm">${esc(s.name)}</span><span class="stk-st">${stockStatusTxt(c)}</span><span class="stk-sub">${sub}</span>
+        ${onList?'<span class="stk-list">op het lijstje</span>':''}</span></button>`}).join('')}
+    ${kid?'':`<button class="stk-tile add" data-act="stock-quick"><span class="stk-plus" aria-hidden="true">${icon('plus')}</span><span class="stk-nm">Product toevoegen</span><span class="stk-sub">Keukenrol, folie, wasmiddel…</span></button>`}</div>`;
+  if(!rows.length) h+=`<p class="muted" style="margin:12px 0 0;max-width:62ch">Zet hier wat jullie regelmatig kopen. De app schat hoe lang het meegaat, zet het op tijd op het lijstje en leert bij telkens jullie iets kopen of zeggen dat het op is.</p>`;
   return h;
+}
+/* detail van één product: alles op één plek */
+function stockOpen(s){
+  const c=stockCalc(s), st=stockState(s,c), lvl=c?Math.round(c.frac*100):0, onList=!!openItem(s.name), kid=!isParent(me);
+  const buys=stockHist(s).filter(x=>x.t==='buy').length, outs=stockHist(s).filter(x=>x.t==='out').length;
+  const learn=s.learn===false?'Slim bijleren staat uit voor dit product.':s.learnNote?`✨ ${esc(s.learnNote)} (${dshort(s.learnAt)}).`:buys+outs?`✨ Jonah volgt dit op (${buys} ${buys===1?'aankoop':'aankopen'}${outs?`, ${outs}× op gemeld`:''}); de schatting klopt tot nu toe.`:'De schatting is een startwaarde. Elke aankoop en elke keer dat jullie zeggen dat het op is, stuurt ze bij.';
+  openSheet(s.name,`<div class="stk-detail" style="--sc:${st==='late'?'var(--danger)':st==='soon'?'var(--warn)':c?'var(--ok)':'var(--line)'};--lvl:${lvl}%">
+      <span class="stk-bar big"><i></i></span>
+      <div class="stk-dinfo"><div class="stk-em" aria-hidden="true">${stockEmoji(s)}</div><div class="stk-st" style="font-size:20px">${stockStatusTxt(c)}</div>
+        <div class="muted">${!c?'Nog niet gestart.':c.remaining!=null?`Nog ±${fmtNum(Math.round(c.remaining*10)/10)} ${esc(s.unit)}, op rond ${dshort(c.due)}.`:`Volgende aankoop rond ${dshort(c.due)}.`}</div>
+        <div class="muted" style="font-size:13px">${esc(stockLine(s))}</div>${onList?'<span class="stk-list">op het lijstje</span>':''}</div></div>
+    <p class="set-note" style="margin:12px 0 0">${learn}</p>
+    ${kid?'':`<div class="stk-dbtns"><button class="btn primary" data-act="stock-bought" data-v="${s.id}">${icon('check')} Net gekocht</button><button class="btn" data-act="stock-out" data-v="${s.id}">Op / bijna op</button><button class="btn" data-act="stock-adjust" data-v="${s.id}">Hoeveel is er nog?</button><button class="btn" data-act="stock-edit" data-v="${s.id}">Instellingen</button></div>`}`);
+}
+/* product toevoegen: één tik op een voorstel, of typ een naam (Jonah bedenkt dan een startwaarde) */
+function stockQuickSheet(){
+  const used=new Set(S.stock.map(s=>norm(s.name)));
+  const sugg=[...STOCK_TEMPLATES.map(t=>Object.assign({},t)),...STOCK_SMART].filter((t,i,a)=>!used.has(norm(t.name))&&!S.stock.some(s=>sameItem(s.name,t.name))&&a.findIndex(x=>norm(x.name)===norm(t.name))===i);
+  openSheet('Product toevoegen',`<div class="form">
+    <form class="row" data-form="stock-quick" style="gap:8px"><input class="in" id="sq-name" list="k-lib" placeholder="Typ een product, bv. keukenrol" autocomplete="off" style="flex:1"><datalist id="k-lib">${libFlat().map(i=>`<option value="${esc(i.n)}">`).join('')}</datalist><button class="btn primary" type="submit">Toevoegen</button></form>
+    <p class="muted" style="margin:0;font-size:13.5px">Of tik op een voorstel. Het komt meteen in de voorraad met een slimme startwaarde, en leert bij zodra jullie iets kopen of zeggen dat het op is.</p>
+    <div class="tiles-s">${sugg.map(t=>`<button class="stile" data-act="stock-qadd" data-v="${esc(t.name)}"><span class="em" aria-hidden="true">${t.e||itemInfo(t.name).e}</span><span class="nm">${esc(t.name)}</span><span class="qt">${t.mode==='interval'?`± ${t.everyDays} dagen`:esc(t.hint||`${fmtNum(t.buyQty)} ${t.unit}`)}</span></button>`).join('')}</div>
+    <button class="btn ghost" data-act="stock-edit" style="align-self:flex-start">Alles zelf instellen</button></div>`);
+  setTimeout(()=>{const i=$('#sq-name'); if(i) i.focus();},60);
+}
+const smartFor=n=>[...STOCK_TEMPLATES,...STOCK_SMART].find(t=>norm(t.name)===norm(n))||[...STOCK_SMART].find(t=>sameItem(t.name,n));
+/* startwaarde voor een onbekend product: vraag het aan Jonah, anders een veilige gok (om de 2 weken) */
+async function smartGuess(name){
+  try{ const sample=window.claude&&window.claude.use?await window.claude.use('sample'):null; if(!sample) throw 0;
+    const r=await sample.json(`Een Belgisch gezin met 2 ouders en 3 kinderen (9, 5 en 1 jaar) wil "${name}" in hun voorraad bijhouden. Geef ALLEEN JSON: {"e":"één passende emoji","mode":"verbruik" of "interval","perDay":verbruik per dag (getal, enkel bij verbruik),"unit":één van ${JSON.stringify(UNITS)},"buyQty":hoeveel ze per keer kopen in die eenheid,"everyDays":om de hoeveel dagen ze het kopen (bij interval),"warnDays":hoeveel dagen vooraf waarschuwen}. Kies "verbruik" voor dingen die per stuk/dag opgaan (luiers, eieren, tabletten), "interval" voor verpakkingen die je gewoon om de zoveel tijd koopt (folie, shampoo). Wees realistisch.`);
+    if(!r||typeof r!=='object') throw 0;
+    const g={e:String(r.e||'').slice(0,4),mode:r.mode==='verbruik'?'verbruik':'interval',unit:UNITS.includes(r.unit)?r.unit:'stuks',buyQty:Math.max(0.1,Number(r.buyQty)||1),perDay:Math.max(0.001,Number(r.perDay)||0),everyDays:Math.max(1,Math.round(Number(r.everyDays)||14)),warnDays:Math.max(1,Math.min(14,Math.round(Number(r.warnDays)||3)))};
+    if(g.mode==='verbruik'&&!(g.perDay>0.001)) g.mode='interval'; return g;
+  }catch(e){ return {mode:'interval',everyDays:14,unit:'stuks',buyQty:1,warnDays:3}; } }
+async function stockQuickAdd(name,o={}){
+  name=String(name||'').trim(); if(!name) return null; name=name[0].toUpperCase()+name.slice(1);
+  const ex=S.stock.find(s=>norm(s.name)===norm(name)); if(ex){ if(o.qty!=null) await stockBoughtOne(ex,o.qty); return ex; }
+  const base=smartFor(name)||await smartGuess(name);
+  const d=Object.assign({name,forWho:[],mode:'interval',perDay:0,unit:'stuks',buyQty:1,warnDays:3,schoolDays:false,everyDays:14,store:'',auto:true},base,{name,learn:true});
+  delete d.hint; if(!d.e) d.e=itemInfo(name).e;
+  const q=o.qty!=null&&Number(o.qty)>0?Number(o.qty):d.buyQty;
+  Object.assign(d,{lastBought:today(),lastQty:q,addedFor:'',hist:[{t:'buy',d:today(),q}],guess:!smartFor(name)});
+  await add('stock',d); log(`volgt nu de voorraad van ${name}`,PARENTS,'voorraad'); setTimeout(checkStock,300); return d;
+}
+/* foto van een product: Jonah herkent wat het is en hoeveel, en vult de juiste voorraad aan */
+async function productScan(file,sample){
+  openSheet('Product herkennen',`<div class="scan-wait">${shapeWave()}<p class="muted">Jonah bekijkt wat je gekocht hebt…</p></div>`);
+  try{
+    const img=await shrinkImage(file);
+    const list=S.stock.map(s=>({naam:s.name,eenheid:s.unit,koopt_meestal:s.buyQty}));
+    const res=await sample.json(`Op deze foto staan een of meer producten die een Belgisch gezin net gekocht heeft. Herken elk product (merk mag, maar geef een gewone Nederlandse naam) en hoeveel het is. Voorraad die ze bijhouden: ${JSON.stringify(list)}. Geef ALLEEN een JSON-array met per product {"n":"gewone productnaam, bv. Keukenrol","match":"exact de naam uit de voorraadlijst als het daarbij hoort, anders leeg","q":hoeveelheid als getal in de eenheid van dat voorraadproduct (bv. een pak van 8 rollen = 8 als de eenheid rollen is, een zak van 12 kg = 12 bij kg, 2 flessen = 2), of null als je het niet kan zien,"e":"één emoji"}. Tel verpakkingen die er meerdere keren op staan samen. Verzin niets wat je niet ziet.`,{images:[img]});
+    const items=(Array.isArray(res)?res:res&&Array.isArray(res.items)?res.items:[]).map(x=>{ const n=String(x.n||'').trim().slice(0,60); let m=S.stock.find(s=>s.name===String(x.match||''))||S.stock.find(s=>sameItem(s.name,n)); return {n,m,q:Number(x.q)>0?Number(x.q):null,e:String(x.e||'').slice(0,4)}; }).filter(x=>x.n);
+    if(!items.length){ closeSheet(); toast('Ik herken geen product op de foto. Probeer van dichterbij, met het etiket zichtbaar.'); return; }
+    const opts=x=>`<option value="__new" ${x.m?'':'selected'}>＋ Nieuw: ${esc(x.n)}</option>${S.stock.map(s=>`<option value="${esc(s.id)}" ${x.m&&x.m.id===s.id?'selected':''}>${esc(s.name)}</option>`).join('')}`;
+    openSheet('Gekocht volgens Jonah',`<div class="form"><p class="muted" style="margin:0">Klopt het? Pas het product of de hoeveelheid aan als het niet juist is.</p><div class="list">${items.map((x,i)=>`<div class="li scan-row" style="align-items:flex-start"><input type="checkbox" data-i="${i}" checked aria-label="${esc(x.n)} verwerken"><span class="em" aria-hidden="true">${x.e||(x.m?stockEmoji(x.m):itemInfo(x.n).e)}</span><div class="main" style="display:flex;flex-direction:column;gap:6px"><div class="t">${esc(x.n)}</div>
+      <select class="in" data-m="${i}" aria-label="Voorraadproduct">${opts(x)}</select>
+      <div class="row" style="gap:6px"><input class="in" data-q="${i}" type="number" step="0.01" min="0" inputmode="decimal" value="${x.q??(x.m?x.m.buyQty:'')}" placeholder="hoeveel" style="max-width:110px"><span class="muted" data-u="${i}">${esc(x.m?x.m.unit:'')}</span></div></div></div>`).join('')}</div></div>`,{saveLabel:'Aanvullen',
+      mount:p=>p.addEventListener('change',e=>{ const i=e.target.dataset.m; if(i==null) return; const s2=S.stock.find(s=>s.id===e.target.value); p.querySelector(`[data-u="${i}"]`).textContent=s2?s2.unit:''; const qi=p.querySelector(`[data-q="${i}"]`); if(s2&&!qi.value) qi.value=s2.buyQty; }),
+      onSave:async p=>{ let n=0;
+        for(const c of p.querySelectorAll('input[data-i]:checked')){ const i=Number(c.dataset.i), x=items[i], sel=p.querySelector(`[data-m="${i}"]`).value, q=p.querySelector(`[data-q="${i}"]`).value;
+          const st=sel==='__new'?null:S.stock.find(s=>s.id===sel);
+          if(st) await stockBoughtOne(st,q); else await stockQuickAdd(x.n,{qty:q===''?null:Number(q)});
+          const nmx=st?st.name:x.n, o=openItem(nmx)||S.shopping.find(o=>!o.done&&sameItem(o.name,nmx)); if(o) await upd('shopping',o.id,{done:true,doneBy:me,doneAt:Date.now()});
+          n++; }
+        toast(n?`${n} ${n===1?'product':'producten'} aangevuld`:'Niets aangevuld'); }});
+  }catch(e){ console.error(e); closeSheet(); toast('De foto kon niet gelezen worden. Probeer opnieuw, met meer licht.'); }
 }
 function stockLowStrip(){
   /* in het boodschappenvenster enkel wat nog niet op het lijstje staat */
@@ -2442,6 +2595,7 @@ function stockSheet(s,tpl){
     <p class="muted" id="k-calc" style="margin:0;font-size:13.5px"></p>
     <label class="field"><span>Winkel</span><select class="in" id="k-store"><option value="" ${s.store?'':'selected'}>Geen winkel</option>${st.map(x=>`<option ${s.store===x?'selected':''}>${esc(x)}</option>`).join('')}</select></label>
     <label class="check"><input type="checkbox" id="k-auto" ${s.auto!==false?'checked':''}> Automatisch op het boodschappenlijstje zetten</label>
+    <label class="check"><input type="checkbox" id="k-learn" ${s.learn!==false?'checked':''}> Slim bijleren uit aankopen en "op" melden</label>
     ${isNew?`<label class="field"><span>Laatst gekocht (om de teller te starten)</span><input class="in" type="date" id="k-last" value="${today()}"></label>`:''}
   </div>`;
   openSheet(isNew?'Terugkerend product':s.name,body,{
@@ -2453,7 +2607,7 @@ function stockSheet(s,tpl){
     },
     onSave:async p=>{
       const v=id=>p.querySelector(id).value;
-      const d={name:v('#k-name').trim(),forWho:chipVals(p,'for'),mode:chipVals(p,'mode')[0]||'verbruik',perDay:Number(v('#k-per'))||0,unit:v('#k-unit'),schoolDays:p.querySelector('#k-school').checked,everyDays:Number(v('#k-every'))||7,buyQty:Number(v('#k-buy'))||0,warnDays:Number(v('#k-warn'))||0,store:v('#k-store'),auto:p.querySelector('#k-auto').checked};
+      const d={name:v('#k-name').trim(),forWho:chipVals(p,'for'),mode:chipVals(p,'mode')[0]||'verbruik',perDay:Number(v('#k-per'))||0,unit:v('#k-unit'),schoolDays:p.querySelector('#k-school').checked,everyDays:Number(v('#k-every'))||7,buyQty:Number(v('#k-buy'))||0,warnDays:Number(v('#k-warn'))||0,store:v('#k-store'),auto:p.querySelector('#k-auto').checked,learn:p.querySelector('#k-learn').checked};
       if(!d.name){toast('Welk product?');return false}
       if(d.mode==='verbruik'&&(!d.perDay||!d.buyQty)){toast('Vul het verbruik en de hoeveelheid in.');return false}
       if(tpl&&tpl.e) d.e=tpl.e;
@@ -4385,11 +4539,15 @@ const ACT={
   'prod-new':()=>prodSheet(null),
   'lib-tap':async(v,t)=>{const fromSearch=!!t.closest('#s-results');const o=openItem(v);if(fromSearch){ui.shopQ='';}if(o&&!fromSearch)await boughtItem(o.id);else if(!o)await addItem(v);else toast(`${v} staat al op het lijstje`);if(fromSearch)scheduleRender()},
   'shop-add-q':async()=>{const q=($('#s-q')?.value||'').trim();if(!q)return;const hit=libFlat().find(i=>i.n.toLowerCase()===q.toLowerCase());ui.shopQ='';await addItem(hit?hit.n:q[0].toUpperCase()+q.slice(1));scheduleRender()},
-  'stock-go':v=>{closeSheet();ui.view='food';ui.foodTab='voorraad';vib(8);render();setTimeout(()=>{const el=document.querySelector(`.stock[data-sid="${CSS.escape(v)}"]`);if(!el)return;el.scrollIntoView({behavior:'smooth',block:'center'});el.classList.remove('flash');void el.offsetWidth;el.classList.add('flash')},60)},
+  'stock-go':v=>{closeSheet();ui.view='food';ui.foodTab='voorraad';vib(8);render();setTimeout(()=>{const el=document.querySelector(`.stk-tile[data-sid="${CSS.escape(v)}"]`);if(!el)return;el.scrollIntoView({behavior:'smooth',block:'center'});el.classList.remove('flash');void el.offsetWidth;el.classList.add('flash')},60)},
   'stock-edit':v=>{closeSheet();stockSheet(v?S.stock.find(x=>x.id===v):null)},
+  'stock-open':v=>{const s=S.stock.find(x=>x.id===v);if(s){vib(8);stockOpen(s)}},
+  'stock-quick':()=>stockQuickSheet(),
+  'stock-qadd':async v=>{const b=document.querySelector(`[data-act="stock-qadd"][data-v="${CSS.escape(v)}"]`);if(b)b.classList.add('pop');vib(8);const d=await stockQuickAdd(v);if(d)toast(`${d.name} staat in de voorraad`);setTimeout(()=>{if(document.querySelector('[data-act="stock-qadd"]'))stockQuickSheet()},320)},
+  'stock-out':async v=>{const s=S.stock.find(x=>x.id===v);if(!s)return;closeSheet();await stockOut(s.name);if(s.auto!==false&&!openItem(s.name))await addItem(s.name,{qty:`${fmtNum(s.buyQty)} ${s.unit}`,store:s.store||curStore(),recipe:'',_auto:1});toast(`${s.name} staat op het lijstje`)},
   'stock-tpl':v=>{const t=STOCK_TEMPLATES[Number(v)];if(t)stockSheet(null,Object.assign({},t))},
-  'stock-bought':async v=>{const s=S.stock.find(x=>x.id===v);if(!s)return;await stockBought(s.name);const o=openItem(s.name);if(o)await upd('shopping',o.id,{done:true,doneBy:me,doneAt:Date.now()});toast(`${s.name}: teller opnieuw gestart`)},
-  'stock-adjust':v=>{const s=S.stock.find(x=>x.id===v);if(s)stockAdjustSheet(s)},
+  'stock-bought':async v=>{const s=S.stock.find(x=>x.id===v);if(!s)return;closeSheet();await stockBoughtOne(s);const o=openItem(s.name);if(o)await upd('shopping',o.id,{done:true,doneBy:me,doneAt:Date.now()});toast(`${s.name}: teller opnieuw gestart`)},
+  'stock-adjust':v=>{const s=S.stock.find(x=>x.id===v);if(s){closeSheet();stockAdjustSheet(s)}},
   'chore-focus':v=>{const c=S.chores.find(x=>x.id===v);if(c)focusSheet(c)},
   'energy':v=>{ui.energy=v;ls.set('tb_energy',v);render()},
   'chore-sprint':()=>focusSheet(null,true),
@@ -4510,6 +4668,7 @@ document.addEventListener('input',e=>{ if(e.target.id==='rec-q'){ui.recQ=e.targe
 document.addEventListener('change',e=>{ if(e.target.dataset&&e.target.dataset.photo&&e.target.files&&e.target.files[0]){ const f=e.target.files[0], k=e.target.dataset.photo; e.target.value=''; photoScan(f,k); return; } if(e.target.id==='sm-file'&&e.target.files&&e.target.files[0]){smUpload(e.target.files[0]);e.target.value='';return} if(ui.view==='settings'&&e.target.closest&&e.target.closest('.sk')) ui.dirty=true; const pk=e.target.dataset&&e.target.dataset.pref; if(pk==='w-show'||pk==='w-remind'){const sd=Object.assign({},setting('waste'));delete sd.id;sd[pk==='w-show'?'show':'remind']=e.target.checked;put('settings','waste',sd);vib(8);return} if(pk==='morning-on'){setMorning(me,{on:e.target.checked});vib(8);toast(e.target.checked?'Ochtendmelding staat aan':'Ochtendmelding staat uit');return} if(e.target.id==='morning-time'){setMorning(me,{time:e.target.value||'07:00'});toast('Ochtendmelding om '+(e.target.value||'07:00'));return} if(pk==='feat-rugzak'){const sd=Object.assign({},setting('features'));delete sd.id;sd.rugzak=e.target.checked;put('settings','features',sd);vib(8);toast(e.target.checked?'Rugzak staat aan':'Rugzak staat uit');return} if(pk==='sc-show'||pk==='sc-hol'){const sd=Object.assign({},setting('school'));delete sd.id;sd[pk==='sc-show'?'show':'holidays']=e.target.checked;put('settings','school',sd);vib(8);return} if(pk){setPref(pk,e.target.checked);vib(8);toast(e.target.checked?'Aangezet':'Uitgezet');return} if(e.target.id==='s-store'){shopStore=e.target.value;ls.set('tb_store',shopStore);} });
 document.addEventListener('submit',async e=>{
   const f=e.target.closest('[data-form]'); if(!f) return; e.preventDefault();
+  if(f.dataset.form==='stock-quick'){ const i=$('#sq-name'), v=i.value.trim(); if(!v){i.focus();return} const b=f.querySelector('button'); b.disabled=true; b.textContent='Even denken…'; stockQuickAdd(v).then(d=>{ closeSheet(); if(d){ toast(`${d.name} staat in de voorraad${d.guess?' (startwaarde van Jonah)':''}`); setTimeout(()=>{const s2=S.stock.find(x=>x.name===d.name); if(s2) stockOpen(s2);},250); } }); return; }
   if(f.dataset.form==='ask'){ const q=$('#ask-q').value.trim(); $('#ask-q').value=''; chatSheet(q||undefined); return; }
   if(f.dataset.form==='shop'){
     const name=$('#s-name').value.trim(); if(!name) return;
