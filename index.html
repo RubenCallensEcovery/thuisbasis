@@ -2627,7 +2627,9 @@ function stockSheet(s,tpl){
   if(tpl){ s.store=s.store||(itemInfo(s.name).c==='Huisdieren'?curStore():curStore()); }
   const st=stores();
   const body=`<div class="form">
-    <label class="field"><span>Product</span><input class="in" id="k-name" list="k-lib" value="${esc(s.name)}" placeholder="Bv. Melk, Hondenvoer, Koekjes voor school"><datalist id="k-lib">${[...customItems().map(c=>c.n),...CATALOG.flatMap(c=>c.items.map(i=>i.n))].map(n=>`<option value="${esc(n)}">`).join('')}</datalist></label>
+    <div class="row" style="gap:14px;align-items:center"><span id="k-prev" style="font-size:46px;line-height:1">${s.e||(s.name?itemInfo(s.name).e:'🛒')}</span><label class="field" style="flex:1"><span>Product</span><input class="in" id="k-name" list="k-lib" value="${esc(s.name)}" placeholder="Bv. Melk, Hondenvoer, Koekjes voor school"><datalist id="k-lib">${[...customItems().map(c=>c.n),...CATALOG.flatMap(c=>c.items.map(i=>i.n))].map(n=>`<option value="${esc(n)}">`).join('')}</datalist></label></div>
+    <div class="field"><span>Icoon</span><div class="emo-grid">${[...new Set([...STOCK_SMART.map(t=>t.e),...STOCK_TEMPLATES.map(t=>t.e),'🌙','🍼','🧴','🧻','🥫','🍝','🍚','🥣','🧃','💊','🩹','🔋','💡','🕯️',...PROD_EMO])].map(e=>`<button type="button" class="emo ${e===(s.e||'')?'on':''}" data-emo="${e}">${e}</button>`).join('')}</div>
+      <input class="in" id="k-emo" value="${esc(s.e||'')}" maxlength="8" placeholder="of typ / plak een emoji" style="margin-top:8px;max-width:200px" aria-label="Of typ of plak zelf een emoji"></div>
     <div class="field"><span>Voor wie</span>${chips('for',stockWho(),s.forWho||[])}</div>
     <div class="field"><span>Hoe herinneren</span>${chips('mode',[{v:'verbruik',l:'Volgens verbruik'},{v:'interval',l:'Vast ritme'}],[s.mode],false)}</div>
     <div id="k-verbruik" ${s.mode==='interval'?'hidden':''} class="form">
@@ -2646,6 +2648,10 @@ function stockSheet(s,tpl){
   </div>`;
   openSheet(isNew?'Terugkerend product':s.name,body,{
     mount:p=>{
+      { const prev=p.querySelector('#k-prev'), inp=p.querySelector('#k-emo'), nmI=p.querySelector('#k-name');
+        p.querySelectorAll('.emo').forEach(b=>b.addEventListener('click',()=>{p.querySelectorAll('.emo.on').forEach(x=>x.classList.remove('on'));b.classList.add('on');inp.value=b.dataset.emo;prev.textContent=b.dataset.emo;vib(5);}));
+        inp.addEventListener('input',()=>{prev.textContent=inp.value.trim()||itemInfo(nmI.value).e;});
+        nmI.addEventListener('input',()=>{ if(!inp.value.trim()) prev.textContent=itemInfo(nmI.value).e; }); }
       const upd8=()=>{ const m=chipVals(p,'mode')[0]||'verbruik'; p.querySelector('#k-verbruik').hidden=m==='interval'; p.querySelector('#k-interval').hidden=m!=='interval';
         const per=Number(p.querySelector('#k-per').value), buy=Number(p.querySelector('#k-buy').value), u=p.querySelector('#k-unit').value, sch=p.querySelector('#k-school').checked;
         p.querySelector('#k-calc').textContent = m==='interval' ? `Elke ${p.querySelector('#k-every').value||7} dagen komt het op het lijstje.` : (per>0&&buy>0 ? `${fmtNum(buy)} ${u} is genoeg voor ±${Math.floor(buy/per)} ${sch?'schooldagen':'dagen'}${sch?` (±${Math.round(buy/per/5*10)/10} weken)`:''}.` : 'Vul verbruik en hoeveelheid in.'); };
@@ -2656,7 +2662,7 @@ function stockSheet(s,tpl){
       const d={name:v('#k-name').trim(),forWho:chipVals(p,'for'),mode:chipVals(p,'mode')[0]||'verbruik',perDay:Number(v('#k-per'))||0,unit:v('#k-unit'),schoolDays:p.querySelector('#k-school').checked,everyDays:Number(v('#k-every'))||7,buyQty:Number(v('#k-buy'))||0,warnDays:Number(v('#k-warn'))||0,store:v('#k-store'),auto:p.querySelector('#k-auto').checked,learn:p.querySelector('#k-learn').checked};
       if(!d.name){toast('Welk product?');return false}
       if(d.mode==='verbruik'&&(!d.perDay||!d.buyQty)){toast('Vul het verbruik en de hoeveelheid in.');return false}
-      if(tpl&&tpl.e) d.e=tpl.e;
+      d.e=v('#k-emo').trim()||(tpl&&tpl.e)||'';
       if(isNew){ const last=p.querySelector('#k-last').value; Object.assign(d,{lastBought:last||'',lastQty:d.buyQty,addedFor:''}); await add('stock',d); log(`volgt nu de voorraad van ${d.name}`,PARENTS,'voorraad'); }
       else { await upd('stock',s.id,Object.assign(d,{addedFor:''})); }
       setTimeout(checkStock,300);
