@@ -90,7 +90,7 @@ Deno.serve(async (req) => {
     const at = toMin(cfg.time || "07:00"), nowM = toMin(hm);
     if (nowM < at || nowM > at + 180) continue;
     if (wx === undefined) wx = await weather();
-    out.push({ key: `m:${id}:${t}`, to: [id], title: `🌅 Goeiemorgen ${NAMES[id]}`, body: morningText(id, C, t, wx), icon: ico("agenda") });
+    out.push({ key: `m:${id}:${t}`, to: [id], title: `Goeiemorgen ${NAMES[id]}`, body: morningText(id, C, t, wx), icon: ico("morning") });
   }
 
   let sent = 0;

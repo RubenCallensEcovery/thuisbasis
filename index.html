@@ -2151,18 +2151,22 @@ let _libC=null;
 function libCats(){
   const ov=prodOv(), cu=customItems(), ck=JSON.stringify([setting('products').at||0,setting('customItems').at||0,cu.length,Object.keys(ov).length]);
   if(_libC&&_libC.k===ck) return _libC.v;
-  const cats=[{name:'Eigen items',e:'🛒',items:[]},...CATALOG.map(c=>({name:c.name,e:c.e,items:[]}))], byName=Object.fromEntries(cats.map(c=>[c.name,c]));
+  const cats=[...CATALOG.map(c=>({name:c.name,e:c.e,items:[]})),{name:'Overige',e:'🛍️',items:[]}], byName=Object.fromEntries(cats.map(c=>[c.name,c]));
   for(const c of CATALOG) for(const i of c.items){ const key=i.n.toLowerCase(), o=ov[key]||{}; if(o.hidden) continue;
     (byName[o.c]||byName[c.name]).items.push({n:o.n||i.n,e:o.e||i.e,key,custom:false,orig:i.n,oc:c.name}); }
-  for(const i of cu){ (byName[i.c]||byName['Eigen items']).items.push({n:i.n,e:i.e||'🛒',key:i.n.toLowerCase(),custom:true}); }
+  /* eigen producten komen gewoon tussen de rest: in hun categorie (of een geraden categorie), alfabetisch */
+  for(const i of cu){ const g=guessProd(i.n); (byName[i.c]||byName[g.c]||byName['Overige']).items.push({n:i.n,e:i.e||g.e,key:i.n.toLowerCase(),custom:true}); }
   const v=cats.filter(c=>c.items.length); _libC={k:ck,v}; return v;
 }
 const libFlat=()=>libCats().flatMap(c=>c.items.map(i=>Object.assign({c:c.name},i)));
-function itemInfo(name){ const k=(name||'').toLowerCase().trim(); const hit=libFlat().find(i=>i.n.toLowerCase()===k); return hit?{e:hit.e,c:hit.c}:LIBMAP[k]||{e:'🛒',c:'Eigen items'}; }
+/* categorie en icoon raden voor een eigen product, op basis van de woorden in de standaardlijst */
+const _GW=(()=>{const m=[];CATALOG.forEach(c=>c.items.forEach(i=>i.n.toLowerCase().split(/[\s-]+/).filter(w=>w.length>3).forEach(w=>m.push([w,c.name,i.e]))));return m.sort((a,b)=>b[0].length-a[0].length)})();
+function guessProd(name){ const n=String(name||'').toLowerCase(); for(const tk of n.split(/[\s-]+/)){ const ex=_GW.find(([w])=>w===tk||w===tk.replace(/(en|s)$/,'')||tk===w.replace(/(en|s)$/,'')); if(ex) return {c:ex[1],e:ex[2]}; } const hit=_GW.find(([w])=>n.includes(w)||(w.length>4&&n.includes(w.replace(/(en|s)$/,'')))); return hit?{c:hit[1],e:hit[2]}:{c:'Overige',e:'🛍️'}; }
+function itemInfo(name){ const k=(name||'').toLowerCase().trim(); const hit=libFlat().find(i=>i.n.toLowerCase()===k); return hit?{e:hit.e,c:hit.c}:LIBMAP[k]||guessProd(name); }
 const PROD_EMO='🍎 🍐 🍊 🍋 🍌 🍉 🍇 🍓 🫐 🍒 🍑 🥭 🍍 🥥 🥝 🍅 🥑 🥦 🥬 🥒 🌶️ 🫑 🌽 🥕 🧄 🧅 🥔 🍠 🍄 🥜 🫘 🍞 🥐 🥖 🫓 🥯 🥞 🧇 🧀 🥚 🧈 🥛 🍼 🥩 🍗 🍖 🥓 🌭 🍔 🍟 🍕 🌮 🌯 🥙 🥗 🍝 🍜 🍲 🍛 🍚 🍙 🍣 🐟 🦐 🍤 🥫 🧂 🫒 🍯 🍫 🍪 🍩 🧁 🍰 🎂 🍦 🍨 🍬 🍭 🍿 🥨 🧃 🥤 🧋 ☕ 🍵 🍺 🍷 🥂 💧 🧊 🧴 🧼 🧽 🧻 🪥 🦷 🧺 🗑️ 💊 🩹 🐶 🐱 🦴 🌸 🎁 🔋 💡 🕯️ ✏️ 📦 🛍️ 🛒'.split(' ');
 function prodSheet(key){
-  const it=key?libFlat().find(i=>i.key===key):null, isNew=!it, cats=['Eigen items',...CATALOG.map(c=>c.name)];
-  const cur={n:it?it.n:'',e:it?it.e:'🛒',c:it?it.c:'Eigen items'};
+  const it=key?libFlat().find(i=>i.key===key):null, isNew=!it, cats=[...CATALOG.map(c=>c.name),'Overige'];
+  const cur={n:it?it.n:'',e:it?it.e:'🛍️',c:it?it.c:'Overige'};
   const body=`<div class="form">
     <div class="row" style="gap:14px;align-items:center"><span id="p-prev" style="font-size:46px;line-height:1">${cur.e}</span><label class="field" style="flex:1"><span>Naam</span><input class="in" id="p-name" value="${esc(cur.n)}" placeholder="bv. Havermelk"></label></div>
     <div class="field"><span>Afbeelding</span><div class="emo-grid">${PROD_EMO.map(e=>`<button type="button" class="emo ${e===cur.e?'on':''}" data-emo="${e}">${e}</button>`).join('')}</div>
@@ -2862,7 +2866,7 @@ function renderSettings(){
   h+=`<section class="card set" id="s-notif"><h2>🔔 Meldingen</h2><p class="set-note" style="margin-top:0">Kies waarover je een pop-up en een melding bij de bel krijgt. Geldt voor jou op dit toestel.</p>
     <div class="tgl-list">${NOTIF_KINDS.filter(([k])=>par||['agenda','eten','school'].includes(k)).map(([k,l,e])=>tgl('kind:'+k,kindOn(k),`${e} ${l}`)).join('')}
     ${tgl('reminders',p.reminders,'⏰ Herinnering voor afspraken','30 minuten op voorhand')}
-    ${tgl('morning-on',morningCfg(me).on,'🌅 Ochtendmelding','elke ochtend een korte samenvatting van je dag')}</div>
+    ${tgl('morning-on',morningCfg(me).on,'<svg class="rti" style="width:18px;height:18px;margin-right:6px;vertical-align:-3px" viewBox="0 0 100 100" aria-hidden="true"><path d="M24 66 A26 26 0 0 1 76 66"/><path d="M10 66 H90"/><path d="M22 80 H78"/><path d="M50 22 V32 M20 38 L27 45 M80 38 L73 45 M8 56 H16 M84 56 H92"/></svg>Ochtendmelding','elke ochtend een korte samenvatting van je dag')}</div>
     ${morningCfg(me).on?`<label class="field" style="margin-top:8px;max-width:200px"><span>Om hoe laat?</span><input class="in" type="time" id="morning-time" value="${esc(morningCfg(me).time)}"></label>`:''}
     <div class="row" style="margin-top:12px;gap:10px;flex-wrap:wrap">${perm==='granted'?'<span class="tag" style="background:color-mix(in srgb,var(--ok) 16%,transparent);color:var(--ok)">Toestelmeldingen staan aan</span>':perm==='default'?`<button class="btn sm" data-act="sys-notif">${icon('bell')} Toestelmeldingen aanzetten</button>`:'<span class="set-note" style="margin:0">Meldingen zijn geblokkeerd voor deze app. Zet ze aan in de instellingen van je toestel.</span>'}</div>${window.TB_PUSH&&/iPhone|iPad/.test(navigator.userAgent)&&!TB_PUSH.standalone()?'<p class="set-note">Op een iPhone werken meldingen pas als je de app op je beginscherm zet: tik in Safari op Delen → "Zet op beginscherm".</p>':''}${window.TB_ENV==='test'?'<p class="set-note">In de testversie worden geen pushmeldingen verstuurd.</p>':''}
   </section>`;
