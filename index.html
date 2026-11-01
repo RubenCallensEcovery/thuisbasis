@@ -1415,6 +1415,22 @@ html[data-style="bauhaus"] .stk-bar{border-right:var(--bw) solid var(--line)}
 html[data-style="bauhaus"] .stk-bar.big{border-radius:0;border:var(--bw) solid var(--line)}
 html[data-style="bauhaus"] .stk-plus{border-radius:0;background:var(--bh-blue,var(--primary));color:#fff}
 html[data-style="bauhaus"] .stk-list{border-radius:0}
+
+.qctl{display:flex;align-items:center;gap:4px;margin-top:8px}
+.qctl .qb{width:34px;height:34px;flex:none;border:var(--bw,1.5px) solid var(--line);background:var(--surface-2);color:var(--ink);border-radius:10px;font:inherit;font-size:20px;font-weight:700;line-height:1;display:grid;place-items:center;cursor:pointer}
+.qctl .qb:active{transform:scale(.9)}
+.qctl .qv{font-size:22px;font-weight:800;min-width:2ch;text-align:center;font-variant-numeric:tabular-nums}
+.qctl .qu{font-size:12.5px;font-weight:600;color:var(--muted);margin-right:auto}
+.qval{flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;line-height:1}
+.qval .qu{margin:2px 0 0;font-size:11.5px}
+.stk-tile .qctl .qb{width:32px;height:32px}
+.qctl.big{margin-top:2px}
+.qctl.big .qb{width:44px;height:44px;font-size:24px}
+.qctl.big .qin{width:96px;font-size:24px;font-weight:800;text-align:center;padding:6px}
+.qctl.big .qu{font-size:15px;margin:0 6px}
+.stk-tile .stk-list{margin-top:4px}
+.stk-tile .qctl{margin-top:auto;padding-top:8px}
+html[data-style="bauhaus"] .qctl .qb{border-radius:0}
 </style>
 
 </head><body>
@@ -2362,9 +2378,10 @@ function stockCalc(s){
   if(s.outAt&&s.lastBought&&s.outAt>=s.lastBought) return {left:0,due:t,frac:0,remaining:0,out:true};
   if(s.mode==='interval'){
     const every=Math.max(1,Number(s.everyDays)||7);
-    if(!s.lastBought) return {left:0,due:t,frac:0,remaining:null};
-    const due=addDays(s.lastBought,every), left=Math.max(0,diffDays(due,t));
-    return {left,due,frac:Math.max(0,Math.min(1,left/every)),remaining:null};
+    const buy=Number(s.buyQty)||1, per=buy/every, start=s.lastQty!=null&&s.lastQty!==''?Number(s.lastQty):buy;
+    if(!s.lastBought) return {left:0,due:t,frac:0,remaining:0};
+    const rem=Math.max(0,start-per*Math.max(0,diffDays(t,s.lastBought))), left=rem<=0?0:Math.max(0,Math.ceil(rem/per-1e-9));
+    return {left,due:addDays(t,left),frac:Math.max(0,Math.min(1,rem/Math.max(Number(s.fullQty)||0,start,buy))),remaining:rem};
   }
   const per=Number(s.perDay)||0, start=Number(s.lastQty)||Number(s.buyQty)||0;
   if(!s.lastBought||!per||!start) return null;
@@ -2374,7 +2391,7 @@ function stockCalc(s){
   rem=Math.max(0,rem);
   let r=rem, left=0; d=t; i=0;
   while(r>0&&i<730){ r-=use(d); if(r>0){left++;d=addDays(d,1)} i++; }
-  return {left:rem<=0?0:left,due:addDays(t,rem<=0?0:left),frac:Math.min(1,rem/start),remaining:rem};
+  return {left:rem<=0?0:left,due:addDays(t,rem<=0?0:left),frac:Math.min(1,rem/Math.max(Number(s.fullQty)||0,start,Number(s.buyQty)||0)),remaining:rem};
 }
 const stockFor=s=>{const n=String(typeof s==='string'?s:(s&&s.name)||'').toLowerCase().trim(); if(!n) return []; const ex=S.stock.filter(x=>x.name.toLowerCase()===n); return ex.length?ex:S.stock.filter(x=>x.name.toLowerCase().startsWith(n+' '))};
 const stockEmoji=s=>s.e||itemInfo(s.name).e;
@@ -2437,7 +2454,7 @@ async function stockBought(name,qty){
 async function stockBoughtOne(s,qty){
   const t=today(), c=stockCalc(s), add=qty!=null&&qty!==''&&Number(qty)>0?Number(qty):Number(s.buyQty)||0;
   const L=stockLearn(s,'buy',t,c)||{};
-  await upd('stock',s.id,Object.assign(L,{hist:[...stockHist(s).slice(-19),{t:'buy',d:t,q:add}],lastBought:t,lastQty:s.mode==='interval'?add:((c&&c.remaining)||0)+add,addedFor:'',outAt:''}));
+  await upd('stock',s.id,Object.assign(L,{hist:[...stockHist(s).slice(-19),{t:'buy',d:t,q:add}],lastBought:t,lastQty:Math.round((((c&&c.remaining)||0)+add)*100)/100,fullQty:Math.round((((c&&c.remaining)||0)+add)*100)/100,addedFor:'',outAt:''}));
   if(L.learnNote&&me) toast(`${s.name}: ${L.learnNote.charAt(0).toLowerCase()+L.learnNote.slice(1)}`);
 }
 /* we zeggen dat het (bijna) op is: dat is het beste moment om bij te leren hoe snel het echt gaat */
@@ -2457,7 +2474,7 @@ function stockLearn(s,type,t,c){
   if(type==='buy'&&c&&c.frac>0.5) return null;
   const w=type==='out'?0.5:0.3, n=stockHist(s).filter(x=>x.t==='buy').length;
   const w2=n<=1?Math.min(0.7,w+0.2):w;   /* eerste keer: sneller bijsturen, de startwaarde was maar een gok */
-  if(s.mode==='interval'){ const old=Number(s.everyDays)||14, obs=Math.min(old*3,Math.max(old/3,diffDays(t,s.lastBought))), nv=Math.max(1,Math.round(old*(1-w2)+obs*w2));
+  if(s.mode==='interval'){ const old=Number(s.everyDays)||14, sq=Number(s.lastQty)||Number(s.buyQty)||1, obs=Math.min(old*3,Math.max(old/3,diffDays(t,s.lastBought)*(Number(s.buyQty)||1)/sq)), nv=Math.max(1,Math.round(old*(1-w2)+obs*w2));
     if(nv===old) return {learnAt:t}; return {everyDays:nv,learnAt:t,learnNote:`Bijgeleerd: nu om de ${nv} dagen (was ${old})`}; }
   const start=Number(s.lastQty)||Number(s.buyQty)||0, old=Number(s.perDay)||0; if(!start||!old) return null;
   const obs=Math.min(old*3,Math.max(old/3,start/days)), nv=Math.round((old*(1-w2)+obs*w2)*1000)/1000;
@@ -2483,6 +2500,33 @@ async function checkStock(){
   } finally { stockBusy=false; }
 }
 
+const qStep=s=>s.unit==='g'?100:['l','kg'].includes(s.unit)?0.5:1;
+const qFmt=(s,v)=>{ v=Number(v)||0; return fmtNum(['l','kg'].includes(s.unit)||(v<10&&Math.abs(v-Math.round(v))>=0.05)?Math.round(v*10)/10:Math.round(v)); };
+/* hoeveel is er nog: meteen aanpasbaar; even wachten tot je klaar bent met tikken, dan één keer bewaren (en bijleren) */
+const qPend={};
+function stockLeftNow(s){ if(qPend[s.id]) return qPend[s.id].v; const c=stockCalc(s); return c?c.remaining||0:0; }
+function stockStepQty(id,delta,abs){ const s=S.stock.find(x=>x.id===id); if(!s) return;
+  const cur=stockLeftNow(s), v=Math.max(0,Math.round((abs!=null?abs:cur+delta)*100)/100);
+  clearTimeout(qPend[id]&&qPend[id].t); qPend[id]={v,t:setTimeout(()=>{ const x=qPend[id]; delete qPend[id]; stockSetLeft(s.id,x.v); },1300)};
+  const per=s.mode==='interval'?(Number(s.buyQty)||1)/Math.max(1,Number(s.everyDays)||7):Number(s.perDay)||0;
+  if(per>0){ const days=Math.floor(v/per+1e-9), due=addDays(today(),days);
+    document.querySelectorAll(`[data-qdays="${CSS.escape(id)}"]`).forEach(el=>el.textContent=v<=0?'op':days===1?'nog 1 dag':`nog ${days} dagen`);
+    document.querySelectorAll(`[data-qdue="${CSS.escape(id)}"]`).forEach(el=>el.textContent=v<=0?'Op: tijd om te kopen.':`Genoeg tot ${dshort(due)}${s.schoolDays?' (ongeveer, schooldagen)':''}.`); }
+  document.querySelectorAll(`[data-qv="${CSS.escape(id)}"]`).forEach(el=>{ if(el.tagName==='INPUT'){ if(document.activeElement!==el) el.value=v; } else el.textContent=qFmt(s,v); });
+  vib(5); }
+async function stockSetLeft(id,v){ const s=S.stock.find(x=>x.id===id); if(!s) return; const t=today(), c=stockCalc(s);
+  if(c&&c.remaining!=null&&Math.abs(c.remaining-v)<0.01) return;
+  let L={};
+  /* bijleren uit de echte stand: van (start op lastBought) naar v vandaag */
+  if(s.learn!==false&&s.lastBought&&s.lastBought<t&&!(s.outAt&&s.outAt>=s.lastBought)){ const start=Number(s.lastQty)||Number(s.buyQty)||0, days=countUse(s,s.lastBought,t);
+    if(days>=3&&start>v){ const used=start-v;
+      if(s.mode==='interval'){ const old=Number(s.everyDays)||14, obs=Math.min(old*3,Math.max(old/3,(Number(s.buyQty)||1)/(used/diffDays(t,s.lastBought)))), nv=Math.max(1,Math.round(old*0.7+obs*0.3)); if(nv!==old) L={everyDays:nv,learnAt:t,learnNote:`Bijgeleerd: nu om de ${nv} dagen (was ${old})`}; }
+      else { const old=Number(s.perDay)||0, obs=old?Math.min(old*3,Math.max(old/3,used/days)):0, nv=Math.round((old*0.7+obs*0.3)*1000)/1000; if(old&&Math.abs(nv-old)/old>=0.04) L={perDay:nv,learnAt:t,learnNote:`Bijgeleerd: ±${fmtNum(nv)} ${s.unit} per ${s.schoolDays?'schooldag':'dag'} (was ${fmtNum(old)})`}; } } }
+  await upd('stock',s.id,Object.assign(L,{hist:[...stockHist(s).slice(-19),{t:'adj',d:t,q:v}],lastBought:t,lastQty:v,fullQty:Math.max(Number(s.fullQty)||Number(s.lastQty)||0,v),outAt:v>0?'':t,addedFor:''}));
+  if(L.learnNote&&me) toast(`${s.name}: ${L.learnNote.charAt(0).toLowerCase()+L.learnNote.slice(1)}`);
+  setTimeout(checkStock,300); }
+function qtyCtl(s,big){ const v=stockLeftNow(s);
+  return `<span class="qctl${big?' big':''}"><button type="button" class="qb" data-act="stock-step" data-v="${esc(s.id)}|-1" aria-label="Minder ${esc(s.name)}">−</button>${big?`<input class="in qin" type="number" inputmode="decimal" step="${qStep(s)}" min="0" data-qv="${esc(s.id)}" data-qin="${esc(s.id)}" value="${String(qFmt(s,v)).replace(/\./g,'').replace(',','.')}" aria-label="Hoeveel ${esc(s.name)} is er nog">`:`<span class="qval"><span class="qv" data-qv="${esc(s.id)}">${qFmt(s,v)}</span><span class="qu">${esc(s.unit)}</span></span>`}${big?`<span class="qu">${esc(s.unit)}</span>`:''}<button type="button" class="qb" data-act="stock-step" data-v="${esc(s.id)}|1" aria-label="Meer ${esc(s.name)}">+</button></span>`; }
 function stockState(s,c){ const warn=Number(s.warnDays)||2; return !c?'':c.left<=0?'late':c.left<=warn?'soon':''; }
 function stockStatusTxt(c){ return !c?'nog niet gestart':c.out?'op gemeld':c.left<=0?'op':c.left===1?'nog 1 dag':`nog ${c.left} dagen`; }
 function renderStock(){
@@ -2494,12 +2538,12 @@ function renderStock(){
   if(rows.length) h+=`<p class="stk-sum muted">${nLate||nSoon?[nLate?`<b style="color:var(--danger)">${nLate} op</b>`:'',nSoon?`<b style="color:var(--warn)">${nSoon} bijna op</b>`:''].filter(Boolean).join(' · ')+` · ${rows.length-nLate-nSoon} in orde`:`Alles in huis (${rows.length} producten)`}</p>`;
   h+=`<div class="stk-grid">${rows.map(({s,c})=>{
     const st=stockState(s,c), lvl=c?Math.round(c.frac*100):0, onList=!!openItem(s.name);
-    const sub=!c?'Tik om te starten':c.out?'Staat klaar om te kopen':c.remaining!=null?`±${fmtNum(Math.round(c.remaining*10)/10)} ${esc(s.unit)} · tot ${dshort(c.due)}`:`Volgende keer ${dshort(c.due)}`;
-    return `<button class="stk-tile ${st}" data-sid="${esc(s.id)}" data-act="stock-open" data-v="${esc(s.id)}" style="--sc:${st==='late'?'var(--danger)':st==='soon'?'var(--warn)':c?'var(--ok)':'var(--line)'};--lvl:${Math.max(c?4:0,lvl)}%" aria-label="${esc(s.name)}: ${stockStatusTxt(c)}">
+    const sub=!c?'Tik om te starten':c.out?'Staat klaar om te kopen':`${stockStatusTxt(c)} · tot ${dshort(c.due)}`;
+    return `<div role="button" tabindex="0" class="stk-tile ${st}" data-sid="${esc(s.id)}" data-act="stock-open" data-v="${esc(s.id)}" style="--sc:${st==='late'?'var(--danger)':st==='soon'?'var(--warn)':c?'var(--ok)':'var(--line)'};--lvl:${Math.max(c?4:0,lvl)}%" aria-label="${esc(s.name)}: ${stockStatusTxt(c)}">
       <span class="stk-bar" role="img" aria-label="Voorraad ${lvl}%"><i></i></span>
       <span class="stk-body"><span class="stk-top"><span class="stk-em" aria-hidden="true">${stockEmoji(s)}</span>${s.learnAt?'<span class="stk-ai" title="Slim bijgeleerd">✨</span>':''}</span>
-        <span class="stk-nm">${esc(s.name)}</span><span class="stk-st">${stockStatusTxt(c)}</span><span class="stk-sub">${sub}</span>
-        ${onList?'<span class="stk-list">op het lijstje</span>':''}</span></button>`}).join('')}
+        <span class="stk-nm">${esc(s.name)}</span><span class="stk-sub">${sub}</span>
+        ${onList?'<span class="stk-list">op het lijstje</span>':''}${kid?`<span class="qctl"><span class="qval"><span class="qv">${qFmt(s,c?c.remaining:0)}</span><span class="qu">${esc(s.unit)}</span></span></span>`:qtyCtl(s)}</span></div>`}).join('')}
     ${kid?'':`<button class="stk-tile add" data-act="stock-quick"><span class="stk-plus" aria-hidden="true">${icon('plus')}</span><span class="stk-nm">Product toevoegen</span><span class="stk-sub">Keukenrol, folie, wasmiddel…</span></button>`}</div>`;
   if(!rows.length) h+=`<p class="muted" style="margin:12px 0 0;max-width:62ch">Zet hier wat jullie regelmatig kopen. De app schat hoe lang het meegaat, zet het op tijd op het lijstje en leert bij telkens jullie iets kopen of zeggen dat het op is.</p>`;
   return h;
@@ -2511,11 +2555,13 @@ function stockOpen(s){
   const learn=s.learn===false?'Slim bijleren staat uit voor dit product.':s.learnNote?`✨ ${esc(s.learnNote)} (${dshort(s.learnAt)}).`:buys+outs?`✨ Jonah volgt dit op (${buys} ${buys===1?'aankoop':'aankopen'}${outs?`, ${outs}× op gemeld`:''}); de schatting klopt tot nu toe.`:'De schatting is een startwaarde. Elke aankoop en elke keer dat jullie zeggen dat het op is, stuurt ze bij.';
   openSheet(s.name,`<div class="stk-detail" style="--sc:${st==='late'?'var(--danger)':st==='soon'?'var(--warn)':c?'var(--ok)':'var(--line)'};--lvl:${lvl}%">
       <span class="stk-bar big"><i></i></span>
-      <div class="stk-dinfo"><div class="stk-em" aria-hidden="true">${stockEmoji(s)}</div><div class="stk-st" style="font-size:20px">${stockStatusTxt(c)}</div>
-        <div class="muted">${!c?'Nog niet gestart.':c.remaining!=null?`Nog ±${fmtNum(Math.round(c.remaining*10)/10)} ${esc(s.unit)}, op rond ${dshort(c.due)}.`:`Volgende aankoop rond ${dshort(c.due)}.`}</div>
+      <div class="stk-dinfo"><div class="row" style="gap:8px"><span class="stk-em" aria-hidden="true">${stockEmoji(s)}</span><span class="stk-st" style="font-size:18px" data-qdays="${esc(s.id)}">${stockStatusTxt(c)}</span></div>
+        <div class="lbl" style="margin-top:6px">Hoeveel is er nog?</div>${kid?`<b style="font-size:24px">${qFmt(s,c?c.remaining:0)} ${esc(s.unit)}</b>`:qtyCtl(s,true)}
+        ${kid?'':`<div class="chips" style="margin-top:4px"><button class="chip" data-act="stock-setq" data-v="${esc(s.id)}|0">Op</button><button class="chip" data-act="stock-setq" data-v="${esc(s.id)}|${(Number(s.buyQty)||0)/2}">Half pak (${fmtNum((Number(s.buyQty)||0)/2)})</button><button class="chip" data-act="stock-setq" data-v="${esc(s.id)}|${Number(s.buyQty)||0}">Vol pak (${fmtNum(s.buyQty)})</button></div>`}
+        <div class="muted" style="font-size:13.5px" data-qdue="${esc(s.id)}">${!c?'Nog niet gestart.':c.left<=0?'Op: tijd om te kopen.':`Genoeg tot ${dshort(c.due)}.`}</div>
         <div class="muted" style="font-size:13px">${esc(stockLine(s))}</div>${onList?'<span class="stk-list">op het lijstje</span>':''}</div></div>
     <p class="set-note" style="margin:12px 0 0">${learn}</p>
-    ${kid?'':`<div class="stk-dbtns"><button class="btn primary" data-act="stock-bought" data-v="${s.id}">${icon('check')} Net gekocht</button><button class="btn" data-act="stock-out" data-v="${s.id}">Op / bijna op</button><button class="btn" data-act="stock-adjust" data-v="${s.id}">Hoeveel is er nog?</button><button class="btn" data-act="stock-edit" data-v="${s.id}">Instellingen</button></div>`}`);
+    ${kid?'':`<div class="stk-dbtns"><button class="btn primary" data-act="stock-bought" data-v="${s.id}">${icon('check')} Net gekocht</button><button class="btn" data-act="stock-out" data-v="${s.id}">Op / bijna op</button><button class="btn" data-act="stock-edit" data-v="${s.id}" style="grid-column:1/-1">Instellingen</button></div>`}`,{mount:p=>p.addEventListener('input',e=>{ const id=e.target.dataset.qin; if(id&&e.target.value!=='') stockStepQty(id,0,Number(e.target.value)); })});
 }
 /* product toevoegen: één tik op een voorstel, of typ een naam (Jonah bedenkt dan een startwaarde) */
 function stockQuickSheet(){
@@ -4543,11 +4589,13 @@ const ACT={
   'stock-edit':v=>{closeSheet();stockSheet(v?S.stock.find(x=>x.id===v):null)},
   'stock-open':v=>{const s=S.stock.find(x=>x.id===v);if(s){vib(8);stockOpen(s)}},
   'stock-quick':()=>stockQuickSheet(),
+  'stock-step':v=>{const [id,d]=v.split('|');const s=S.stock.find(x=>x.id===id);if(s)stockStepQty(id,Number(d)*qStep(s))},
+  'stock-setq':v=>{const [id,q]=v.split('|');stockStepQty(id,0,Number(q))},
   'stock-qadd':async v=>{const b=document.querySelector(`[data-act="stock-qadd"][data-v="${CSS.escape(v)}"]`);if(b)b.classList.add('pop');vib(8);const d=await stockQuickAdd(v);if(d)toast(`${d.name} staat in de voorraad`);setTimeout(()=>{if(document.querySelector('[data-act="stock-qadd"]'))stockQuickSheet()},320)},
   'stock-out':async v=>{const s=S.stock.find(x=>x.id===v);if(!s)return;closeSheet();await stockOut(s.name);if(s.auto!==false&&!openItem(s.name))await addItem(s.name,{qty:`${fmtNum(s.buyQty)} ${s.unit}`,store:s.store||curStore(),recipe:'',_auto:1});toast(`${s.name} staat op het lijstje`)},
   'stock-tpl':v=>{const t=STOCK_TEMPLATES[Number(v)];if(t)stockSheet(null,Object.assign({},t))},
   'stock-bought':async v=>{const s=S.stock.find(x=>x.id===v);if(!s)return;closeSheet();await stockBoughtOne(s);const o=openItem(s.name);if(o)await upd('shopping',o.id,{done:true,doneBy:me,doneAt:Date.now()});toast(`${s.name}: teller opnieuw gestart`)},
-  'stock-adjust':v=>{const s=S.stock.find(x=>x.id===v);if(s){closeSheet();stockAdjustSheet(s)}},
+  'stock-adjust':v=>{const s=S.stock.find(x=>x.id===v);if(s)stockOpen(s)},
   'chore-focus':v=>{const c=S.chores.find(x=>x.id===v);if(c)focusSheet(c)},
   'energy':v=>{ui.energy=v;ls.set('tb_energy',v);render()},
   'chore-sprint':()=>focusSheet(null,true),
