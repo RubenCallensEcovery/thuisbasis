@@ -3443,7 +3443,7 @@ async function claudeAsk(bot){
     const opts={signal:ctl.signal,modelTier:'default',onText:({text})=>{bot.content=text;if(!chat.raf)chat.raf=requestAnimationFrame(()=>{chat.raf=0;drawChat()})}};
     if(SAMPLE_TOOLS) opts.tools=chatTools(); else opts.cache=false;
     const r=await SAMPLE(input,opts);
-    bot.content=r.text.trim()+(r.truncated?'\n(ingekort)':'');
+    const tx=r.text.trim(); if(!tx){ bot.content='Sorry, ik raakte de draad kwijt en kon geen antwoord geven. Stel je vraag gerust opnieuw, eventueel wat korter.'; bot.err=true; } else bot.content=tx+(r.truncated?'\n…':'');
   }catch(e){
     const code=e&&e.code;
     if(code==='cancelled') bot.content=(e.text||'').trim()||'Gestopt.';

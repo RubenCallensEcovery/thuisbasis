@@ -130,15 +130,25 @@
     opts = opts || {};
     const tools = (opts.tools || []);
     const messages = input.map(m => ({ role: m.role, content: m.content }));
-    let shown = '', truncated = false;
+    let shown = '', truncated = false, cont = false;
     for (let round = 0; round < 8; round++) {
       if (opts.signal && opts.signal.aborted) { const e = new Error('cancelled'); e.code = 'cancelled'; e.text = shown; throw e; }
       let res;
-      try { res = await callJonah({ messages, tools: tools.map(t => ({ name: t.name, description: t.description, input_schema: t.inputSchema })), max_tokens: 1500 }, opts.signal); }
+      try { res = await callJonah({ messages, tools: tools.map(t => ({ name: t.name, description: t.description, input_schema: t.inputSchema })), max_tokens: 4000 }, opts.signal); }
       catch (e) { if (e.name === 'AbortError') { e.code = 'cancelled'; e.text = shown; } throw e; }
       const t = textOf(res);
       if (t) { shown = (shown ? shown + '\n\n' : '') + t; opts.onText && opts.onText({ text: shown }); }
       truncated = res.stop_reason === 'max_tokens';
+      if (truncated) {
+        console.warn('Jonah: antwoord afgekapt', (res.content || []).map(b => b.type), res.usage);
+        /* afgekapt: één keer laten verdergaan (of opnieuw vragen, kort en zonder tools, als er nog geen tekst was) */
+        if (!cont) { cont = true;
+          const txtBlocks = (res.content || []).filter(b => b.type === 'text' && b.text && b.text.trim());
+          if (txtBlocks.length) { messages.push({ role: 'assistant', content: txtBlocks }); messages.push({ role: 'user', content: 'Je antwoord werd afgebroken. Ga verder waar je gebleven was en rond kort af.' }); }
+          else { const last = messages[messages.length - 1]; const note = { type: 'text', text: '(Antwoord nu meteen, kort en direct, in gewone tekst.)' };
+            last.content = Array.isArray(last.content) ? [...last.content, note] : String(last.content) + '\n\n' + note.text; }
+          continue; }
+      }
       const uses = (res.content || []).filter(b => b.type === 'tool_use');
       if (res.stop_reason !== 'tool_use' || !uses.length) break;
       messages.push({ role: 'assistant', content: res.content });
