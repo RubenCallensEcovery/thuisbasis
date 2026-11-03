@@ -17,6 +17,6 @@ Gezinsapp van Ruben Callens (Tielt). Communiceer in het Nederlands (Vlaams), kor
 - `index.html`: de volledige app (één bestand). Data via `window.claude.use('db')`, dat in `runtime.js` naar Supabase gaat
   (tabel `docs`: col, id, data). In de testversie krijgen collecties het voorvoegsel `test~`.
 - Jonah: `sample()` in `runtime.js` → edge function `jonah` → Anthropic API.
-- Weer: Open-Meteo via de `mcp`-shim in `runtime.js`. Meldingen: `sw.js` + edge function `notify` (cron elke 5 min).
+- Weer: Open-Meteo via de `mcp`-shim in `runtime.js`. Meldingen: `sw.js` + edge function `notify` (cron elke minuut).
 - Stijl: standaard Bauhaus (`html[data-style="bauhaus"]`), ook Strak en Glas.
 - Geheimen staan enkel in Supabase → Edge Functions → Secrets; nooit in deze (publieke) repo.

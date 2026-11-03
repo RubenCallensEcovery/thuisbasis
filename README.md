@@ -19,7 +19,7 @@ Live zetten = `test` samenvoegen in `main` (pull request), opnieuw met controle.
 - `sw.js`, `manifest.webmanifest`, `icons/` — installeerbare app + pushmeldingen
 - `supabase/schema.sql` — databank en beveiliging
 - `supabase/functions/jonah` — Jonah via de Claude API (sleutel als geheim in Supabase)
-- `supabase/functions/notify` — pushmeldingen, elke 5 minuten via `supabase/cron.sql`
+- `supabase/functions/notify` — pushmeldingen, elke minuut via `supabase/cron.sql`
 - `supabase/test-verversen.sql` — testgegevens vervangen door een kopie van de echte gegevens
 
 ## Geheimen (enkel in Supabase → Edge Functions → Secrets, nooit in deze repo)

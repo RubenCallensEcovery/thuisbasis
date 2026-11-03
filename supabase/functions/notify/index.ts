@@ -1,4 +1,4 @@
-// Thuisbasis — meldingen: wordt elke 5 minuten opgeroepen (Supabase Cron) en stuurt pushmeldingen
+// Thuisbasis — meldingen: wordt elke minuut opgeroepen (Supabase Cron) en stuurt pushmeldingen
 // naar de toestellen van het gezin: herinneringen, afspraken die eraan komen, wat anderen deden,
 // afval buitenzetten, machines die klaar zijn en voorraad die bijna op is.
 import { createClient } from "npm:@supabase/supabase-js@2.117.3";
