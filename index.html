@@ -1432,6 +1432,19 @@ html[data-style="bauhaus"] .stk-list{border-radius:0}
 .stk-tile .stk-list{margin-top:4px}
 .stk-tile .qctl{margin-top:auto;padding-top:8px}
 html[data-style="bauhaus"] .qctl .qb{border-radius:0}
+
+/* ---------- alarm ---------- */
+.alarm-ov{position:fixed;inset:0;z-index:9999;display:grid;place-items:center;padding:20px;background:color-mix(in srgb,var(--ink) 55%,transparent);animation:alarmIn .25s ease-out}
+.alarm-box{width:min(420px,100%);background:var(--surface);color:var(--ink);border-radius:22px;padding:26px 20px 20px;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.35)}
+.alarm-ic{font-size:64px;line-height:1;display:inline-block;animation:alarmShake .5s ease-in-out infinite}
+.alarm-t{font-size:24px;font-weight:800;margin-top:12px;overflow-wrap:anywhere}
+.alarm-s{color:var(--muted);margin-top:4px}
+.alarm-b{display:grid;gap:8px;margin-top:20px}
+.alarm-b .btn{justify-content:center;min-height:48px;font-size:16px}
+@keyframes alarmShake{0%,100%{transform:rotate(0)}25%{transform:rotate(-14deg)}75%{transform:rotate(14deg)}}
+@keyframes alarmIn{from{opacity:0}to{opacity:1}}
+html[data-style="bauhaus"] .alarm-box{border-radius:0;border:var(--bw) solid var(--ink);box-shadow:8px 8px 0 var(--bh-red,#d33)}
+@media (prefers-reduced-motion:reduce){.alarm-ic{animation:none}}
 </style>
 
 </head><body>
@@ -1703,6 +1716,11 @@ function rideSheet(ev,day){
 }
 /* ---------- herinneringen ---------- */
 const remsOn=d=>(S.reminders||[]).filter(r=>r.date===d&&(isParent(me)||(r.who||[]).includes(me))).sort((a,b)=>(a.time||'08:00').localeCompare(b.time||'08:00'));
+/* alarm bij een herinnering: op het uur of x minuten vooraf; 'snooze' schuift het op; 'ack' = gezien/gestopt */
+const ALARM_BEFORE=[[0,'Op het uur'],[5,'5 min vooraf'],[15,'15 min vooraf'],[30,'30 min vooraf'],[60,'1 uur vooraf']];
+function alarmAt(r){ if(!r||!r.alarm||r.done||!r.date) return null; if(r.snooze) return r.snooze; const [y,mo,dd]=r.date.split('-').map(Number), [h,mi]=String(r.time||'08:00').split(':').map(Number);
+  const d=new Date(y,mo-1,dd,h,mi-(Number(r.alarmBefore)||0)); return `${iso(d)} ${pad(d.getHours())}:${pad(d.getMinutes())}`; }
+const alarmMs=a=>{ const [d,t]=a.split(' '), [y,mo,dd]=d.split('-').map(Number), [h,mi]=t.split(':').map(Number); return new Date(y,mo-1,dd,h,mi).getTime(); };
 const remDue=r=>{const now=new Date(), t=today(); if(r.done) return false; if(r.date<t) return true; if(r.date>t) return false; return hhmm(now.getTime())>=(r.time||'08:00');};
 function remChips(d){ const rs=remsOn(d); if(!rs.length) return '';
   const open=rs.filter(r=>!r.done), done=rs.filter(r=>r.done);
@@ -1729,12 +1747,16 @@ function reminderSheet(r,day,preset){
       <label class="field"><span>Uur (optioneel)</span><input class="in" type="time" id="r-time" value="${esc(r.time||'')}"></label></div>
     <p class="set-note" style="margin:0">Zonder uur krijg je de melding die dag om 8u 's morgens.</p>
     <div class="field"><span>Wie krijgt de melding</span>${chips('rwho',opts,r.who||[me])}</div>
+    <div class="field"><span>Alarm</span>${chips('ralarm',[{v:'0',l:'Gewone melding'},{v:'1',l:'⏰ Alarm'}],[r.alarm?'1':'0'],false)}</div>
+    <div id="r-alarm-o" class="field" ${r.alarm?'':'hidden'}><span>Wanneer afgaan</span>${chips('rbefore',ALARM_BEFORE.map(([v,l])=>({v:String(v),l})),[String(Number(r.alarmBefore)||0)],false)}
+      <p class="set-note" style="margin:6px 0 0">Een alarm blijft op je scherm staan, trilt en gaat tot 3 keer opnieuw af (om de 5 minuten) tot je het stopt. Staat de app open, dan rinkelt ze ook.</p></div>
     ${!isNew&&!r.done?`<button type="button" class="btn" id="r-done">${icon('check')} Gedaan</button>`:''}
   </div>`,{
-    mount:p=>{ const ti=p.querySelector('#r-title'); if(isNew) setTimeout(()=>ti.focus(),80); const dn=p.querySelector('#r-done'); if(dn) dn.addEventListener('click',async()=>{closeSheet();await upd('reminders',r.id,{done:true,doneAt:Date.now()});toast('✓ Herinnering afgevinkt')}); },
-    onSave:async p=>{ const g=id=>p.querySelector(id).value.trim(); const d={title:g('#r-title'),date:g('#r-date'),time:g('#r-time'),who:chipVals(p,'rwho')};
+    mount:p=>{ const ti=p.querySelector('#r-title'); if(isNew) setTimeout(()=>ti.focus(),80);
+      p.addEventListener('click',e=>{ if(e.target.closest('[data-group="ralarm"]')) setTimeout(()=>{ p.querySelector('#r-alarm-o').hidden=(chipVals(p,'ralarm')[0]||'0')!=='1'; },0); }); const dn=p.querySelector('#r-done'); if(dn) dn.addEventListener('click',async()=>{closeSheet();await upd('reminders',r.id,{done:true,doneAt:Date.now()});toast('✓ Herinnering afgevinkt')}); },
+    onSave:async p=>{ const g=id=>p.querySelector(id).value.trim(); const d={title:g('#r-title'),date:g('#r-date'),time:g('#r-time'),who:chipVals(p,'rwho'),alarm:(chipVals(p,'ralarm')[0]||'0')==='1',alarmBefore:Number(chipVals(p,'rbefore')[0]||0),snooze:'',ack:''};
       if(!d.title){toast('Waaraan moet ik herinneren?');return false} if(!d.date){toast('Kies een dag.');return false} if(!d.who.length) d.who=[me];
-      if(isNew){ d.done=false; await add('reminders',d); toast(`🔔 Herinnering gezet voor ${relDay(d.date)}${d.time?' om '+d.time:''}`); if(d.who.some(w=>w!==me)) log(`zette een herinnering "${d.title}" (${relDay(d.date)}${d.time?' '+d.time:''})`,d.who.filter(w=>w!==me),'agenda'); }
+      if(isNew){ d.done=false; await add('reminders',d); toast(`${d.alarm?'⏰ Alarm':'🔔 Herinnering'} gezet voor ${relDay(d.date)}${d.time?' om '+d.time:''}${d.alarm&&d.alarmBefore?` (${d.alarmBefore} min vooraf)`:''}`); if(d.who.some(w=>w!==me)) log(`zette een herinnering "${d.title}" (${relDay(d.date)}${d.time?' '+d.time:''})`,d.who.filter(w=>w!==me),'agenda'); }
       else { if(d.date!==r.date||d.time!==r.time) d.done=false; await upd('reminders',r.id,d); } },
     onDelete:isNew?null:async()=>{ await del('reminders',r.id); toast('Herinnering verwijderd'); }
   });
@@ -4758,7 +4780,9 @@ function tick(){
   if(now%30000<1100){
     { const nd=new Date(); const tw=me&&isParent(me)&&typeof wasteOn==='function'?wasteOn(addDays(today(),1)):null; const k='w'+today(); if(tw&&wasteCfg().remind&&nd.getHours()>=19&&!fired.has(k)){ markFired(k); const txt=`Morgen ophaling: ${tw.types.map(x=>WASTE[x]?.l||x).join(' + ')}. Zet ze buiten!`; toast(`${wasteEmo(tw.types)} ${txt}`); sysNotify('Afval',txt,['gft','pmd','rest'].find(x=>(tw.types||[]).includes(x))||'rest'); chime(660); } }
     checkStock();
-    for(const r of (S.reminders||[])){ if(!(r.who||[]).includes(me)||!remDue(r)) continue; const k='r'+r.id+r.date+(r.time||''); if(fired.has(k)) continue; markFired(k);
+    for(const r of (S.reminders||[])){ const a=alarmAt(r); if(!a||!(r.who||[]).includes(me)||r.ack===a) continue; const el=now-alarmMs(a);
+      if(el>=0&&el<15*6e4&&!fired.has('a'+r.id+a)){ markFired('a'+r.id+a); alarmRing(r,a); } }
+    for(const r of (S.reminders||[])){ if(r.alarm||!(r.who||[]).includes(me)||!remDue(r)) continue; const k='r'+r.id+r.date+(r.time||''); if(fired.has(k)) continue; markFired(k);
       toast(`🔔 ${r.title}`); sysNotify('Herinnering',r.title,'bell'); chime(740); setTimeout(()=>chime(988),160); vib(30); scheduleRender(); }
     const d=today();
     for(const o of eventsOn(d,isParent(me)?null:new Set([me]))){
@@ -4782,6 +4806,27 @@ function toast(msg,by,undo){
 function sysNotify(title,body,ico){ try{ if('Notification' in window && Notification.permission==='granted') new Notification(title,{body,icon:ico?`icons/n/${ico}.png`:'icons/v3/icon-192.png'}); }catch(e){} }
 let AC=null;
 function unlockAudio(){ try{ if(!AC){const A=window.AudioContext||window.webkitAudioContext; if(A) AC=new A();} if(AC&&AC.state==='suspended') AC.resume(); }catch(e){} }
+/* alarm in de app: scherm met de herinnering, rinkelt en trilt tot je stopt of snoozet */
+let alarmLoop=null;
+function alarmRing(r,a){
+  alarmStop(); const el=document.createElement('div'); el.className='alarm-ov'; el.setAttribute('role','alertdialog'); el.setAttribute('aria-label','Alarm');
+  el.innerHTML=`<div class="alarm-box"><div class="alarm-ic" aria-hidden="true">⏰</div><div class="alarm-t">${esc(r.title)}</div><div class="alarm-s">${r.time?'Om '+esc(r.time):relDay(r.date)}${r.alarmBefore&&!r.snooze?` · over ${r.alarmBefore} min`:''}</div>
+    <div class="alarm-b"><button class="btn primary" data-alarm="done">${icon('check')} Gedaan</button><button class="btn" data-alarm="snooze">10 min later</button><button class="btn ghost" data-alarm="stop">Stop</button></div></div>`;
+  document.body.appendChild(el);
+  el.addEventListener('click',async e=>{ const b=e.target.closest('[data-alarm]'); if(!b) return; const k=b.dataset.alarm; alarmStop(); await alarmAction(r.id,k,a); });
+  const ring=()=>{ chime(880); setTimeout(()=>chime(1175),180); setTimeout(()=>chime(880),360); try{ navigator.vibrate&&navigator.vibrate([400,150,400]); }catch(e){} };
+  try{ AC&&AC.state==='suspended'&&AC.resume(); }catch(e){}
+  ring(); alarmLoop=setInterval(ring,2200); setTimeout(()=>{ if(alarmLoop) alarmStop(true); },90000);
+  sysNotify('⏰ '+r.title,r.time?'Om '+r.time:'Alarm','bell');
+}
+function alarmStop(keep){ if(alarmLoop){ clearInterval(alarmLoop); alarmLoop=null; } if(!keep) document.querySelectorAll('.alarm-ov').forEach(x=>x.remove()); }
+async function alarmAction(id,k,a){ const r=(S.reminders||[]).find(x=>x.id===id); if(!r) return; a=a||alarmAt(r);
+  if(k==='done'){ await upd('reminders',id,{done:true,doneAt:Date.now(),ack:a}); toast('✓ Gedaan'); }
+  else if(k==='snooze'){ const d=new Date(Date.now()+10*6e4); await upd('reminders',id,{snooze:`${iso(d)} ${pad(d.getHours())}:${pad(d.getMinutes())}`,ack:a}); toast('⏰ Over 10 minuten opnieuw'); }
+  else { await upd('reminders',id,{ack:a}); } }
+/* knoppen in de pushmelding (via de service worker) of een link #alarm=actie:id */
+if('serviceWorker' in navigator) navigator.serviceWorker.addEventListener('message',e=>{ const d=e.data||{}; if(d.alarm&&d.id){ alarmStop(); const go=()=>S.reminders&&S.reminders.length?alarmAction(d.id,d.alarm):setTimeout(go,800); go(); } });
+{ const m=location.hash.match(/^#alarm=(done|snooze|stop):(.+)$/); if(m){ history.replaceState(null,'',location.pathname+location.search); const go=(n=0)=>(S.reminders||[]).some(x=>x.id===m[2])?alarmAction(m[2],m[1]):n<20&&setTimeout(()=>go(n+1),500); setTimeout(go,600); } }
 function chime(f){ try{ if(!AC||prefs().sound===false) return; const o=AC.createOscillator(), g=AC.createGain(); o.type='sine'; o.frequency.value=f; g.gain.setValueAtTime(.0001,AC.currentTime); g.gain.exponentialRampToValueAtTime(.18,AC.currentTime+.02); g.gain.exponentialRampToValueAtTime(.0001,AC.currentTime+.45); o.connect(g).connect(AC.destination); o.start(); o.stop(AC.currentTime+.5);}catch(e){} }
 function floatStar(x,y){ const s=document.createElement('span'); s.className='floatstar'; s.innerHTML=STAR; s.style.left=x+'px'; s.style.top=y+'px'; document.body.appendChild(s); setTimeout(()=>s.remove(),950); }
 function highFive(t){ const r=t.getBoundingClientRect(); const s=document.createElement('span'); s.className='floatstar'; s.style.color='var(--mecol)'; s.innerHTML=icon('hand'); s.style.left=(r.left+r.width/2)+'px'; s.style.top=r.top+'px'; document.body.appendChild(s); setTimeout(()=>s.remove(),950); chime(740); }

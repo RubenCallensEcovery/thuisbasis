@@ -36,13 +36,25 @@ Deno.serve(async (req) => {
   (rows || []).forEach((r: any) => C[r.col].push({ id: r.id, ...r.data }));
 
   const now = local(); const t = now.date, hm = now.time, H = Number(hm.slice(0, 2));
-  const out: { key: string; to: string[]; title: string; body: string; tag?: string; icon?: string }[] = [];
+  const out: { key: string; to: string[]; title: string; body: string; tag?: string; icon?: string; alarm?: boolean; id?: string }[] = [];
   const ico = (n: string) => `icons/n/${n}.png`; // icoon links in de melding, volgens het onderwerp
   const names = (w: string[]) => (w || []).map((x) => NAMES[x] || x).join(", ");
 
   // 1. herinneringen
   for (const r of C.reminders) {
     if (r.done || !r.date || r.date < addDays(t, -1)) continue;
+    if (r.alarm) {
+      // alarm: op het uur of x min vooraf (of na 'snooze'); 3 keer, om de 5 minuten, tot iemand het stopt
+      let ad = r.date, am = toMin(r.time || "08:00") - (Number(r.alarmBefore) || 0);
+      while (am < 0) { am += 1440; ad = addDays(ad, -1); }
+      if (typeof r.snooze === "string" && /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}$/.test(r.snooze)) { ad = r.snooze.slice(0, 10); am = toMin(r.snooze.slice(11)); }
+      const at = `${ad} ${String(Math.floor(am / 60)).padStart(2, "0")}:${String(am % 60).padStart(2, "0")}`;
+      if (r.ack === at) continue;
+      const el = diffDays(t, ad) * 1440 + toMin(hm) - am;
+      if (el < 0 || el >= 15) continue;
+      out.push({ key: `ra:${r.id}:${at}:${Math.floor(el / 5)}`, to: r.who || [], title: `⏰ ${r.title}`, body: r.time ? `Om ${r.time}` + (Number(r.alarmBefore) && !r.snooze ? ` (over ${r.alarmBefore} min)` : "") : "Alarm", tag: "r" + r.id, icon: ico("bell"), alarm: true, id: r.id });
+      continue;
+    }
     if (r.date > t || (r.date === t && hm < (r.time || "08:00"))) continue;
     out.push({ key: `r:${r.id}:${r.date}${r.time || ""}`, to: r.who || [], title: "🔔 Herinnering", body: r.title, tag: "r" + r.id, icon: ico("bell") });
   }
@@ -98,7 +110,7 @@ Deno.serve(async (req) => {
     const { error } = await sb.from("push_sent").insert({ key: m.key });
     if (error) continue; // al verstuurd
     for (const s of subs.filter((x: any) => m.to.includes(x.member))) {
-      try { await webpush.sendNotification(s.sub, JSON.stringify({ title: m.title, body: m.body, tag: m.tag, icon: m.icon })); sent++; }
+      try { await webpush.sendNotification(s.sub, JSON.stringify({ title: m.title, body: m.body, tag: m.tag, icon: m.icon, alarm: m.alarm || undefined, id: m.id || undefined })); sent++; }
       catch (e: any) { if (e && (e.statusCode === 404 || e.statusCode === 410)) await sb.from("push_subs").delete().eq("endpoint", s.endpoint); }
     }
   }
