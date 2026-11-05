@@ -1998,10 +1998,11 @@ function renderAgenda(){
     const lastD=iso(new Date(a.getFullYear(),a.getMonth()+1,0)); const weeks=Math.ceil((diffDays(lastD,start)+1)/7);
     const coll=ui.mColl, gStart=coll?monday(ui.agSel):start, gDays=coll?7:weeks*7;
     let g=`<div class="mgrid ${coll?'coll':''}">${['ma','di','wo','do','vr','za','zo'].map(x=>`<div class="wd">${x}</div>`).join('')}`;
-    const vacAt=[...Array(gDays)].map((_,i)=>{const m=eventsOn(addDays(gStart,i),ui.filter).find(o=>o.len>0);return m?m.ev:null});
+    const isVac=o=>o.ev.virtual==='holiday'||o.ev.type==='Vakantie';
+    const vacAt=[...Array(gDays)].map((_,i)=>{const m=eventsOn(addDays(gStart,i),ui.filter).find(o=>o.len>0||isVac(o));return m?m.ev:null});
     for(let i=0;i<gDays;i++){
       const d=addDays(gStart,i), evs=eventsOn(d,ui.filter);
-      const dots=evs.filter(o=>o.ev.virtual!=='school'&&o.ev.virtual!=='waste'&&!isRoutine(o.ev)&&!o.ev.info&&o.ev.type!=='Werk'&&o.ev.type!=='School'&&o.ev.type!=='Crèche').map(o=>{ const g=whoGroups(o.ev.who); return Object.assign(g.map(x=>x.c),{t:g.map(x=>x.t).join(', ')}); }).filter(w=>w.length);
+      const dots=evs.filter(o=>!isVac(o)&&o.ev.virtual!=='school'&&o.ev.virtual!=='waste'&&!isRoutine(o.ev)&&!o.ev.info&&o.ev.type!=='Werk'&&o.ev.type!=='School'&&o.ev.type!=='Crèche').map(o=>{ const g=whoGroups(o.ev.who); return Object.assign(g.map(x=>x.c),{t:g.map(x=>x.t).join(', ')}); }).filter(w=>w.length);
       const multi=evs.find(o=>o.len>0);
       const V=vacAt[i], same=j=>j>=0&&j<gDays&&!!vacAt[j]&&!!V;
       const vs=V?{t:!same(i-7),b:!same(i+7),l:i%7===0||!same(i-1),r:i%7===6||!same(i+1)}:null;
