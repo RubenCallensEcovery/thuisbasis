@@ -26,7 +26,7 @@
 :root{
   --bg:#F1F4F9; --surface:#FFFFFF; --surface-2:#E8EDF5; --ink:#151B31; --muted:#5B6480; --line:#DCE2ED;
   --primary:#151B31; --on-primary:#FFFFFF; --danger:#CC3535; --ok:#178F52; --warn:#B86E00;
-  --listed:#D9483B; --on-listed:#FFFFFF; --c-charlotte:#DB3F76; --c-ruben:#2C6FCB; --c-nant:#CF8600; --c-abel:#1F9858; --c-max:#8550D3; --c-all:#4A5370;
+  --listed:#D9483B; --on-listed:#FFFFFF; --c-charlotte:#DB3F76; --c-ruben:#2C6FCB; --c-nant:#CF8600; --c-abel:#1F9858; --c-max:#8550D3; --c-all:#F2B705; --c-kids:#7B3FC4;
   --f-display:"TBEmoji","Fredoka","Trebuchet MS",system-ui,sans-serif;
   --f-body:"TBEmoji","Figtree",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
   --r:18px; --nav-h:68px;
@@ -35,12 +35,12 @@
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
   --bg:#10131C; --surface:#191E2C; --surface-2:#232A3C; --ink:#EDF0F8; --muted:#A1A9C2; --line:#2C3449;
   --primary:#EDF0F8; --on-primary:#10131C; --danger:#F06A6A; --ok:#3DC985; --warn:#F0A63A;
-  --listed:#C9443A; --on-listed:#FFFFFF; --c-charlotte:#F0679A; --c-ruben:#5C98EA; --c-nant:#F0A62A; --c-abel:#3FC07F; --c-max:#A57BEB; --c-all:#8C95B3;
+  --listed:#C9443A; --on-listed:#FFFFFF; --c-charlotte:#F0679A; --c-ruben:#5C98EA; --c-nant:#F0A62A; --c-abel:#3FC07F; --c-max:#A57BEB; --c-all:#F2B705; --c-kids:#7B3FC4;
   --shadow:0 1px 2px rgba(0,0,0,.3); color-scheme:dark}}
 :root[data-theme="dark"]{
   --bg:#10131C; --surface:#191E2C; --surface-2:#232A3C; --ink:#EDF0F8; --muted:#A1A9C2; --line:#2C3449;
   --primary:#EDF0F8; --on-primary:#10131C; --danger:#F06A6A; --ok:#3DC985; --warn:#F0A63A;
-  --listed:#C9443A; --on-listed:#FFFFFF; --c-charlotte:#F0679A; --c-ruben:#5C98EA; --c-nant:#F0A62A; --c-abel:#3FC07F; --c-max:#A57BEB; --c-all:#8C95B3;
+  --listed:#C9443A; --on-listed:#FFFFFF; --c-charlotte:#F0679A; --c-ruben:#5C98EA; --c-nant:#F0A62A; --c-abel:#3FC07F; --c-max:#A57BEB; --c-all:#F2B705; --c-kids:#7B3FC4;
   --shadow:0 1px 2px rgba(0,0,0,.3); color-scheme:dark}
 
 *{box-sizing:border-box}
@@ -905,7 +905,7 @@ html[data-style="bauhaus"] .rem-ok{border-radius:0;background:var(--surface-2);c
 :root{
   --bg:#F2F2F7; --surface:#FFFFFF; --surface-2:#EDEDF2; --ink:#1C1C1E; --text:var(--ink); --muted:#8A8A8E; --line:rgba(60,60,67,.13);
   --primary:#007AFF; --on-primary:#FFFFFF; --danger:#FF3B30; --ok:#34C759; --warn:#FF9500;
-  --c-charlotte:#FF375F; --c-ruben:#0A84FF; --c-nant:#FF9F0A; --c-abel:#30B455; --c-max:#AF52DE; --c-all:#8E8E93;
+  --c-charlotte:#FF375F; --c-ruben:#0A84FF; --c-nant:#FF9F0A; --c-abel:#30B455; --c-max:#AF52DE; --c-all:#F2B705; --c-kids:#7B3FC4;
   --f-display:"TBEmoji",-apple-system,BlinkMacSystemFont,"SF Pro Display","Inter",system-ui,sans-serif;
   --f-body:"TBEmoji",-apple-system,BlinkMacSystemFont,"SF Pro Text","Inter",system-ui,sans-serif;
   --r:14px; --shadow:0 0 0 .5px rgba(0,0,0,.035),0 1px 2px rgba(0,0,0,.035);
@@ -913,11 +913,11 @@ html[data-style="bauhaus"] .rem-ok{border-radius:0;background:var(--surface-2);c
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
   --bg:#000000; --surface:#1C1C1E; --surface-2:#2C2C2E; --ink:#FFFFFF; --muted:#8E8E93; --line:rgba(84,84,88,.6);
   --primary:#0A84FF; --on-primary:#FFFFFF; --danger:#FF453A; --ok:#30D158; --warn:#FF9F0A;
-  --c-charlotte:#FF375F; --c-ruben:#0A84FF; --c-nant:#FF9F0A; --c-abel:#30D158; --c-max:#BF5AF2; --c-all:#98989D; --shadow:none}}
+  --c-charlotte:#FF375F; --c-ruben:#0A84FF; --c-nant:#FF9F0A; --c-abel:#30D158; --c-max:#BF5AF2; --c-all:#F2B705; --c-kids:#7B3FC4; --shadow:none}}
 :root[data-theme="dark"]{
   --bg:#000000; --surface:#1C1C1E; --surface-2:#2C2C2E; --ink:#FFFFFF; --muted:#8E8E93; --line:rgba(84,84,88,.6);
   --primary:#0A84FF; --on-primary:#FFFFFF; --danger:#FF453A; --ok:#30D158; --warn:#FF9F0A;
-  --c-charlotte:#FF375F; --c-ruben:#0A84FF; --c-nant:#FF9F0A; --c-abel:#30D158; --c-max:#BF5AF2; --c-all:#98989D; --shadow:none}
+  --c-charlotte:#FF375F; --c-ruben:#0A84FF; --c-nant:#FF9F0A; --c-abel:#30D158; --c-max:#BF5AF2; --c-all:#F2B705; --c-kids:#7B3FC4; --shadow:none}
 
 body{font-size:15px;letter-spacing:-.01em;-webkit-font-smoothing:antialiased}
 h1,h2,h3{font-weight:700;letter-spacing:-.022em}
@@ -1093,16 +1093,16 @@ html[data-style="bauhaus"]{
   --bh-red:#D7301F; --bh-blue:#1D4E9E; --bh-yellow:#F3C11B; --bh-black:#141414; --bh-paper:#F4F0E6;
   --bg:var(--bh-paper); --surface:#FFFFFF; --surface-2:#ECE6D8; --ink:var(--bh-black); --text:var(--ink); --muted:#5E5A52; --line:var(--bh-black);
   --primary:var(--bh-black); --on-primary:#FFFFFF; --danger:var(--bh-red); --ok:#2E7D32; --warn:#C98A00;
-  --c-charlotte:#D7301F; --c-ruben:#1D4E9E; --c-nant:#E8A800; --c-abel:#2E7D4F; --c-max:#6B3FA0; --c-all:#141414;
+  --c-charlotte:#D7301F; --c-ruben:#1D4E9E; --c-nant:#E8A800; --c-abel:#2E7D4F; --c-max:#6B3FA0; --c-all:#F2B705; --c-kids:#7B3FC4;
   --f-display:"TBEmoji","Jost","Futura","Century Gothic",system-ui,sans-serif; --f-body:"TBEmoji","Jost","Futura","Century Gothic",system-ui,sans-serif;
   --r:0px; --shadow:none; --bw:2px;
 }
 @media (prefers-color-scheme: dark){html[data-style="bauhaus"]:not([data-theme="light"]){
   --bh-black:#F4F0E6; --bh-paper:#121212; --bg:#121212; --surface:#1C1C1C; --surface-2:#2A2824; --ink:#F4F0E6; --muted:#B5AFA3; --line:#F4F0E6;
-  --primary:#F4F0E6; --on-primary:#121212; --c-all:#F4F0E6}}
+  --primary:#F4F0E6; --on-primary:#121212; --c-all:#F2B705; --c-kids:#7B3FC4}}
 html[data-style="bauhaus"][data-theme="dark"]{
   --bh-black:#F4F0E6; --bh-paper:#121212; --bg:#121212; --surface:#1C1C1C; --surface-2:#2A2824; --ink:#F4F0E6; --muted:#B5AFA3; --line:#F4F0E6;
-  --primary:#F4F0E6; --on-primary:#121212; --c-all:#F4F0E6}
+  --primary:#F4F0E6; --on-primary:#121212; --c-all:#F2B705; --c-kids:#7B3FC4}
 html[data-style="bauhaus"],html[data-style="bauhaus"] body{background:var(--bg)}
 html[data-style="bauhaus"] body{letter-spacing:0}
 html[data-style="bauhaus"] h1,html[data-style="bauhaus"] h2,html[data-style="bauhaus"] h3{font-weight:600;letter-spacing:.01em}
@@ -1445,6 +1445,11 @@ html[data-style="bauhaus"] .qctl .qb{border-radius:0}
 @keyframes alarmIn{from{opacity:0}to{opacity:1}}
 html[data-style="bauhaus"] .alarm-box{border-radius:0;border:var(--bw) solid var(--ink);box-shadow:8px 8px 0 var(--bh-red,#d33)}
 @media (prefers-reduced-motion:reduce){.alarm-ic{animation:none}}
+
+/* 'Iedereen samen': aparte, gele knop op een eigen rij */
+.chips[data-group="who"] .chip[data-v="__all"]{flex-basis:100%;justify-content:center;font-weight:700}
+.chips[data-group="who"] .chip[data-v="__all"][aria-pressed="true"]{background:var(--c-all);border-color:var(--c-all);color:#141414}
+.chips[data-group="who"] .chip[data-v="__all"][aria-pressed="true"] .dot{background:#141414}
 </style>
 
 </head><body>
@@ -1677,7 +1682,9 @@ function eventsOn(day,filter){
   for(const ev of schoolEntries(day)){ if(filter && !ev.who.some(w=>filter.has(w))) continue; out.push({ev,day,k:0,len:0}); }
   return out.sort((a,b)=>(a.ev.allDay?0:1)-(b.ev.allDay?0:1)||(a.ev.start||'').localeCompare(b.ev.start||''));
 }
-const evColor=ev=>(ev.who&&ev.who.length===1)?col(ev.who[0]):(ev.who&&ev.who.length===ALL.length?col('all'):col(ev.who?.[0]||'all'));
+/* kleur van een activiteit: iedereen samen = geel, twee of meer kinderen samen = paars, anders de kleur van de persoon */
+const isAllWho=w=>!!w&&ALL.every(i=>w.includes(i));
+const evColor=ev=>{ const w=ev.who||[]; if(isAllWho(w)) return col('all'); if(w.filter(x=>['nant','abel','max'].includes(x)).length>=2) return col('kids'); return col(w[0]||'all'); };
 function evTitle(ev,day){ if(ev.type==='Training') return `${sportOf(ev).e} ${ev.title||sportDefault('Training',ev.sport)}`; if(ev.virtual==='waste') return `${wasteEmo(ev.types)} ${ev.title} buiten`; if(ev.type==='Match') return `${sportOf(ev).e} ${ev.title||sportDefault('Match',ev.sport)}${ev.opponent?' tegen '+ev.opponent:''}${ev.homeAway?' ('+ev.homeAway+')':''}${isCand(ev)?' ❔':''}`; if(ev.id&&ev.id.startsWith('bd-')){const m=MID[ev.who[0]];const age=parse(day).getFullYear()-parse(m.born).getFullYear();return `${m.name} wordt ${age}!`;} return ev.title; }
 /* jeugdploegen: matchen van meerdere ploegen, selectie pas in de week bekend */
 const isCand=ev=>!!(ev&&ev.squad)&&ev.sel!=='ja';
@@ -2036,7 +2043,7 @@ function eventSheet(ev,day,preset){
       <div class="row" style="gap:6px;flex-wrap:wrap"><button type="button" class="btn sm ${ev.sel==='ja'?'primary':''}" data-act="squad-pick" data-v="${esc(ev.id)}|ja">✅ Speelt deze match</button><button type="button" class="btn sm ${ev.sel==='nee'?'primary':''}" data-act="squad-pick" data-v="${esc(ev.id)}|nee">❌ Speelt niet</button>${ev.sel?`<button type="button" class="btn sm ghost" data-act="squad-pick" data-v="${esc(ev.id)}|reset">↺ Nog niet bekend</button>`:''}</div></div>
       <p class="set-note" style="margin:0">Uit de RBFA-kalender (via foot24.be), wekelijks bijgewerkt. Duid per match aan of Nant speelt: hij kan ook voor beide ploegen geselecteerd zijn. Een match waarvoor hij niet speelt, verdwijnt uit de agenda.</p></div>`:''}
     <label class="field"><span>Wat</span><input class="in" id="f-title" value="${esc(ev.title||'')}" placeholder="Bv. Zwemles, Tandarts, Herfstvakantie"></label>
-    <div class="field"><span>Voor wie</span>${chips('who',[...MEMBERS.map(m=>({v:m.id,l:m.name,c:col(m.id),dot:1})),{v:'__all',l:'Iedereen'}],ev.who)}</div>
+    <div class="field"><span>Voor wie</span>${chips('who',[{v:'__all',l:'Iedereen samen',c:col('all'),dot:1},...MEMBERS.map(m=>({v:m.id,l:m.name,c:col(m.id),dot:1}))],isAllWho(ev.who)?[...ev.who,'__all']:ev.who)}</div>
     <div class="field"><span>Soort</span>${chips('type',EV_TYPES.map(x=>({v:x,l:x})),[ev.type],false)}</div>
     <div class="frow"><label class="field"><span>Datum</span><input class="in" type="date" id="f-date" value="${ev.date}"></label>
       <label class="field"><span>Tot en met (optioneel)</span><input class="in" type="date" id="f-end-date" value="${ev.endDate||''}"></label></div>
@@ -2087,7 +2094,8 @@ function eventSheet(ev,day,preset){
       const outBox=p.querySelector('#f-out'); outBox.addEventListener('change',()=>outBox.dataset.touched='1');
       const outSync=()=>{ if(outBox.dataset.touched) return; const g=id=>(p.querySelector(id)||{}).value||''; outBox.checked=OUTDOOR_GUESS({type:chipVals(p,'type')[0],sport:chipVals(p,'sport')[0],title:g('#f-title'),place:g('#f-place')}); };
       p.addEventListener('click',e=>{if(e.target.closest('[data-group="type"],[data-group="sport"]'))setTimeout(outSync,0)}); p.querySelector('#f-title').addEventListener('input',outSync); p.querySelector('#f-place').addEventListener('input',outSync);
-      p.querySelector('[data-group="who"]').addEventListener('click',e=>{const b=e.target.closest('.chip');if(b&&b.dataset.v==='__all'){const on=b.getAttribute('aria-pressed')!=='true';p.querySelectorAll('[data-group="who"] .chip').forEach(c=>{if(c!==b)c.setAttribute('aria-pressed',on)});}}); },
+      p.querySelector('[data-group="who"]').addEventListener('click',e=>{const b=e.target.closest('.chip');if(b&&b.dataset.v==='__all'){const on=b.getAttribute('aria-pressed')!=='true';p.querySelectorAll('[data-group="who"] .chip').forEach(c=>{if(c!==b)c.setAttribute('aria-pressed',on)});}
+        else if(b) setTimeout(()=>{ const a=p.querySelector('[data-group="who"] .chip[data-v="__all"]'); if(a) a.setAttribute('aria-pressed',String(isAllWho(chipVals(p,'who')))); },0);}); },
     onSave:async p=>{
       const v=id=>p.querySelector(id).value.trim();
       const who=chipVals(p,'who').filter(x=>x!=='__all');
