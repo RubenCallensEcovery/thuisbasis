@@ -124,7 +124,7 @@ final class Scheduler {
             long at = System.currentTimeMillis() + sec * 1000L;
             JSONArray a = Store.alarms(c);
             a.put(new JSONObject().put("id", "proef" + at).put("key", AlarmService.keyOf(at) + ":" + at)
-                .put("at", at).put("kind", "alarm").put("title", "Proefalarm").put("body", "Zo klinkt een alarm van Thuisbasis"));
+                .put("at", at).put("kind", "alarm").put("title", "Proefalarm").put("body", "Zo klinkt een alarm van Planner"));
             Store.alarms(c, a);
         } catch (Exception ignored) {}
         apply(c);

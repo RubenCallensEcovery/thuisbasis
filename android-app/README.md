@@ -1,7 +1,11 @@
-# Thuisbasis Android
+# Planner (Android-app van Thuisbasis)
 
 Android-app rond de bestaande webapp. **Staat volledig los van de webapp**: niets in `index.html`, `runtime.js`,
 `sw.js` of de workflows Controle/Publiceren is hiervoor aangepast.
+
+## Gegevens
+De app laadt dezelfde site en gebruikt dezelfde Supabase-databank: alle gegevens zijn dezelfde als in de webapp
+(Planner test → testgegevens, Planner → echte gegevens). Er wordt niets gekopieerd.
 
 ## Hoe het werkt
 - **Capacitor-omhulsel** dat de site laadt: de testapp laadt `…/thuisbasis/test/`, de live-app `…/thuisbasis/`.
@@ -21,8 +25,8 @@ Android-app rond de bestaande webapp. **Staat volledig los van de webapp**: niet
 GitHub Actions (`.github/workflows/android.yml`) bouwt bij elke wijziging in `android-app/`:
 | Branch | App | Download |
 |---|---|---|
-| `test` | Thuisbasis test (rode TEST-band) | https://github.com/RubenCallensEcovery/thuisbasis/releases/download/android-test/thuisbasis-test.apk |
-| `main` | Thuisbasis | https://github.com/RubenCallensEcovery/thuisbasis/releases/download/android/thuisbasis.apk |
+| `test` | Planner test (rode TEST-band) | https://github.com/RubenCallensEcovery/thuisbasis/releases/download/android-test/planner-test.apk |
+| `main` | Planner | https://github.com/RubenCallensEcovery/thuisbasis/releases/download/android/planner.apk |
 
 Beide apps kunnen naast elkaar geïnstalleerd zijn. Een nieuwe APK installeert gewoon over de vorige.
 

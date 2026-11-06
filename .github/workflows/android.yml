@@ -1,6 +1,6 @@
 # Android-app — bouwt de APK. Staat volledig los van Controle/Publiceren van de webapp.
-#   branch "test" → "Thuisbasis test" (laadt de testversie)  → release "android-test" → thuisbasis-test.apk
-#   branch "main" → "Thuisbasis"      (laadt de live webapp) → release "android"      → thuisbasis.apk
+#   branch "test" → "Planner test" (laadt de testversie)  → release "android-test" → planner-test.apk
+#   branch "main" → "Planner"      (laadt de live webapp) → release "android"      → planner.apk
 # Enkel bij wijzigingen in android-app/ (of deze workflow), of met de hand via "Run workflow".
 # Ondertekening: geheimen ANDROID_KEYSTORE_B64, ANDROID_KEYSTORE_PASSWORD, ANDROID_KEY_ALIAS, ANDROID_KEY_PASSWORD.
 name: Android-app
@@ -25,7 +25,7 @@ jobs:
       VARIANT: ${{ github.ref_name == 'main' && 'live' || 'test' }}
       FLAVOR: ${{ github.ref_name == 'main' && 'Live' || 'Proef' }}
       FLAVOR_DIR: ${{ github.ref_name == 'main' && 'live' || 'proef' }}
-      APK: ${{ github.ref_name == 'main' && 'thuisbasis.apk' || 'thuisbasis-test.apk' }}
+      APK: ${{ github.ref_name == 'main' && 'planner.apk' || 'planner-test.apk' }}
       TAG: ${{ github.ref_name == 'main' && 'android' || 'android-test' }}
     steps:
       - uses: actions/checkout@v4
@@ -70,8 +70,8 @@ jobs:
         run: |
           NOTES="Versie 1.${{ github.run_number }} ($VARIANT) · commit ${GITHUB_SHA::7} · $(TZ=Europe/Brussels date '+%d/%m/%Y %H:%M')"
           if ! gh release view "$TAG" >/dev/null 2>&1; then
-            if [ "$VARIANT" = live ]; then gh release create "$TAG" --target "$GITHUB_SHA" --title "Thuisbasis Android" --notes "$NOTES" --latest
-            else gh release create "$TAG" --target "$GITHUB_SHA" --title "Thuisbasis Android (test)" --notes "$NOTES" --prerelease; fi
+            if [ "$VARIANT" = live ]; then gh release create "$TAG" --target "$GITHUB_SHA" --title "Planner Android" --notes "$NOTES" --latest
+            else gh release create "$TAG" --target "$GITHUB_SHA" --title "Planner Android (test)" --notes "$NOTES" --prerelease; fi
           fi
           gh release upload "$TAG" "$RUNNER_TEMP/$APK" --clobber
           gh release edit "$TAG" --notes "$NOTES"

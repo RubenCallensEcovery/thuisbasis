@@ -57,7 +57,7 @@ public class MainActivity extends BridgeActivity {
         if (!Scheduler.exactAllowed(this) && !p.getBoolean("asked_exact", false) && Build.VERSION.SDK_INT >= 31) {
             p.edit().putBoolean("asked_exact", true).apply();
             explain("Alarmen op het juiste moment",
-                "Zet 'Alarmen en herinneringen' aan voor Thuisbasis, zodat je alarmen exact op tijd afgaan.",
+                "Zet 'Alarmen en herinneringen' aan voor Planner, zodat je alarmen exact op tijd afgaan.",
                 new Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM, Uri.parse("package:" + getPackageName())));
             return;
         }
