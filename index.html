@@ -7,7 +7,9 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Thuisbasis">
-<link rel="manifest" href="manifest.webmanifest">
+<link rel="manifest" href="manifest.webmanifest" id="tb-manifest">
+<script>/* ?praat: aparte app 'Jonah' (eigen icoon op het beginscherm) die meteen een gesprek opent */
+if(/[?&]praat\b/.test(location.search)){document.getElementById('tb-manifest').href='jonah.webmanifest';document.querySelector('meta[name="apple-mobile-web-app-title"]').content='Jonah';document.querySelector('meta[name="theme-color"]').content='#F2B705';document.addEventListener('DOMContentLoaded',function(){var a=document.querySelector('link[rel="apple-touch-icon"]');if(a)a.href='icons/jonah/apple-touch-icon.png';document.title='Jonah';});}</script>
 <link rel="icon" href="icons/v3/icon-192.png">
 <link rel="apple-touch-icon" href="icons/v3/apple-touch-icon.png">
 <style>
@@ -1454,6 +1456,15 @@ html[data-style="bauhaus"] .alarm-box{border-radius:0;border:var(--bw) solid var
 .av.all{color:#141414}
 .av.grp{width:auto;min-width:var(--s,22px);padding:0 6px;border-radius:999px;font-size:10.5px;letter-spacing:.5px}
 html[data-style="bauhaus"] .av.grp{border-radius:999px}
+
+/* gespreksmodus met Jonah */
+.talk-big{display:flex;align-items:center;justify-content:center;gap:12px;width:100%;min-height:64px;margin:6px 0 8px;border:0;border-radius:18px;background:#F2B705;color:#141414;font:inherit;font-size:18px;font-weight:800;cursor:pointer}
+.talk-dot{width:18px;height:18px;border-radius:50%;background:#141414}
+.chat-panel:has(.chat-mic.on) .talk-big{background:var(--danger);color:#fff}
+.chat-panel:has(.chat-mic.on) .talk-dot{background:#fff;animation:talkPulse 1s ease-in-out infinite}
+.chat-panel:has(.chat-mic.on) .talk-l::after{content:" · ik luister"}
+@keyframes talkPulse{0%,100%{transform:scale(.7);opacity:.6}50%{transform:scale(1.15);opacity:1}}
+html[data-style="bauhaus"] .talk-big{border-radius:0;border:var(--bw) solid var(--ink)}
 </style>
 
 </head><body>
@@ -3817,13 +3828,17 @@ function voiceListen(qi,btn){
   rec.onend=async()=>{ const q=(final||qi.value||'').trim(); voiceStop(); if(!q) return; qi.value=''; chat.speak=true; await chatAsk(q); };
   try{ rec.start(); VOICE.on=true; btn.classList.add('on'); vib(10); }catch(e){ voiceStop(); }
 }
-function speakText(md){
+/* gespreksmodus (via het Jonah-icoon): na het antwoord meteen opnieuw luisteren, tot je niets meer zegt of Jonah sluit */
+function talkAgain(){ if(!chat.talk) return; setTimeout(()=>{ const qi=$('#chat-q'), mic=$('#chat-mic'); if(qi&&mic&&!VOICE.on&&!chat.busy) voiceListen(qi,mic); },350); }
+function praatStart(){ chat.talk=true; chatSheet(); setTimeout(()=>{ const qi=$('#chat-q'), mic=$('#chat-mic'); if(qi&&mic&&!VOICE.on) try{ voiceListen(qi,mic); }catch(e){} },400); }
+function speakText(md,done){
   if(!('speechSynthesis' in window)) return;
   const txt=String(md||'').replace(/\(_?\(.*?\)_?\)/g,'').replace(/[*_#>`|]/g,'').replace(/\[(.*?)\]\(.*?\)/g,'$1').replace(/\p{Extended_Pictographic}/gu,'').replace(/\s+/g,' ').trim();
-  if(!txt) return;
+  if(!txt){ done&&done(); return; }
   speakStop();
   const u=new SpeechSynthesisUtterance(txt.slice(0,1200)); u.lang='nl-BE'; u.rate=1.02;
   const vs=speechSynthesis.getVoices(), v=vs.find(x=>/nl[-_]BE/i.test(x.lang))||vs.find(x=>/^nl/i.test(x.lang)); if(v) u.voice=v;
+  if(done){ let fired=false; const f=()=>{ if(!fired){ fired=true; done(); } }; u.onend=f; u.onerror=f; }
   speechSynthesis.speak(u);
 }
 async function chatAsk(q){
@@ -3834,7 +3849,7 @@ async function chatAsk(q){
   let r=null;
   if(claudeOn()){
     await claudeAsk(bot);
-    if(!bot.err){ chat.busy=false; drawChat(); if(chat.speak){ chat.speak=false; speakText(bot.content); } return; }
+    if(!bot.err){ chat.busy=false; drawChat(); if(chat.speak){ chat.speak=false; speakText(bot.content,talkAgain); } return; }
     /* Claude niet beschikbaar: val terug op de ingebouwde assistent */
     const why=bot.content; bot.err=false; bot.claude=false; bot.content='';
     try{ r=answer(q); if(r.act) r=await r.act(); }catch(e){ r={unknown:true,text:'Er liep iets mis bij het zoeken.',links:[]}; }
@@ -3844,7 +3859,7 @@ async function chatAsk(q){
     await new Promise(x=>setTimeout(x,250)); bot.content=r.text; chat.links=r.links||[]; chat.actions=r.actions||[];
   }
   chat.busy=false; drawChat();
-  if(chat.speak){ chat.speak=false; speakText(bot.content); }
+  if(chat.speak){ chat.speak=false; speakText(bot.content,talkAgain); }
 }
 function md(s){ return esc(s).replace(/\*\*(.+?)\*\*/g,'<b>$1</b>').replace(/(^|\s)_\((.+?)\)_/g,'$1<small class="muted">($2)</small>').replace(/^- (.*)$/gm,'<span class="cb-li">$1</span>').replace(/\n/g,'<br>').replace(/(<\/span>)<br>/g,'$1'); }
 const CHAT_SUGG=()=>isParent(me)?['Ben ik zaterdag vrij?','Wanneer is de volgende match van Ruben?','Wat staat er deze week op het programma?','Zet melk en brood op het lijstje','Start de wasmachine','Hoe geraak ik naar de match van Nant?','Wordt het droog weer?','Wat moet ik nog regelen?']
@@ -3922,6 +3937,8 @@ function chatSheet(prefill){
     ${chat.turns.length?'<button type="button" class="btn sm ghost" id="chat-new" style="align-self:center">Nieuw gesprek</button>':''}</div>`,{lead:WOLF('chomp-once'),mount:p=>{
     p.classList.add('chat-panel'); drawChat();
     const qi=p.querySelector('#chat-q');
+    if(chat.talk&&VOICE.ok){ const tb=document.createElement('button'); tb.type='button'; tb.className='talk-big'; tb.innerHTML='<span class="talk-dot" aria-hidden="true"></span><span class="talk-l">Tik en praat</span>'; p.querySelector('#chat-form').before(tb);
+      tb.addEventListener('click',()=>{ const m=p.querySelector('#chat-mic'); if(m) voiceListen(qi,m); }); }
     p.querySelector('#chat-form').addEventListener('submit',e=>{e.preventDefault();const v=qi.value;qi.value='';chatAsk(v)});
     p.querySelector('#chat-stop').addEventListener('click',()=>chat.ctl&&chat.ctl.abort());
     const mic=p.querySelector('#chat-mic'); if(mic) mic.addEventListener('click',()=>voiceListen(qi,mic));
@@ -4582,7 +4599,7 @@ function openSheet(title,body,opts={}){
   el.hidden=false; document.body.classList.add('noscroll');
   if(opts.mount) opts.mount(el.querySelector('.panel'));
 }
-function closeSheet(){ if(typeof stopFocus==='function') stopFocus(); if(typeof voiceStop==='function'){ voiceStop(); speakStop(); } const el=$('#sheet'); el.hidden=true; el.innerHTML=''; sheetOpts=null; document.body.classList.remove('noscroll'); }
+function closeSheet(){ if(typeof stopFocus==='function') stopFocus(); if(typeof chat!=='undefined') chat.talk=false; if(typeof voiceStop==='function'){ voiceStop(); speakStop(); } const el=$('#sheet'); el.hidden=true; el.innerHTML=''; sheetOpts=null; document.body.classList.remove('noscroll'); }
 const chips=(group,opts,sel,multi=true)=>`<div class="chips" data-group="${group}" data-multi="${multi?1:0}">${opts.map(o=>`<button type="button" class="chip" data-act="chip" data-v="${esc(o.v)}" aria-pressed="${(sel||[]).includes(o.v)}" ${o.c?`style="--cc:${o.c}"`:''}>${o.dot?'<i class="dot"></i>':''}${esc(o.l)}</button>`).join('')}</div>`;
 const chipVals=(root,g)=>[...root.querySelectorAll(`.chips[data-group="${g}"] .chip[aria-pressed="true"]`)].map(c=>c.dataset.v);
 
@@ -4843,6 +4860,7 @@ async function alarmAction(id,k,a){ const r=(S.reminders||[]).find(x=>x.id===id)
   else { await upd('reminders',id,{ack:a}); } }
 /* knoppen in de pushmelding (via de service worker) of een link #alarm=actie:id */
 if('serviceWorker' in navigator) navigator.serviceWorker.addEventListener('message',e=>{ const d=e.data||{}; if(d.alarm&&d.id){ alarmStop(); const go=()=>S.reminders&&S.reminders.length?alarmAction(d.id,d.alarm):setTimeout(go,800); go(); } });
+if(/[?&]praat\b/.test(location.search)){ history.replaceState(null,'',location.pathname); const go=(n=0)=>{ if(me&&document.querySelector('.top')) praatStart(); else if(n<60) setTimeout(()=>go(n+1),250); }; setTimeout(go,500); }
 { const m=location.hash.match(/^#alarm=(done|snooze|stop):(.+)$/); if(m){ history.replaceState(null,'',location.pathname+location.search); const go=(n=0)=>(S.reminders||[]).some(x=>x.id===m[2])?alarmAction(m[2],m[1]):n<20&&setTimeout(()=>go(n+1),500); setTimeout(go,600); } }
 function chime(f){ try{ if(!AC||prefs().sound===false) return; const o=AC.createOscillator(), g=AC.createGain(); o.type='sine'; o.frequency.value=f; g.gain.setValueAtTime(.0001,AC.currentTime); g.gain.exponentialRampToValueAtTime(.18,AC.currentTime+.02); g.gain.exponentialRampToValueAtTime(.0001,AC.currentTime+.45); o.connect(g).connect(AC.destination); o.start(); o.stop(AC.currentTime+.5);}catch(e){} }
 function floatStar(x,y){ const s=document.createElement('span'); s.className='floatstar'; s.innerHTML=STAR; s.style.left=x+'px'; s.style.top=y+'px'; document.body.appendChild(s); setTimeout(()=>s.remove(),950); }

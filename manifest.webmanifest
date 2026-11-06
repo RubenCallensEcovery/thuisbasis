@@ -26,5 +26,19 @@
       "type": "image/png",
       "purpose": "maskable"
     }
+  ],
+  "shortcuts": [
+    {
+      "name": "Praat met Jonah",
+      "short_name": "Jonah",
+      "url": "./?praat=1",
+      "icons": [
+        {
+          "src": "icons/jonah/icon-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    }
   ]
 }
