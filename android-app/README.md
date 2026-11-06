@@ -37,6 +37,11 @@ update niet over de bestaande app geïnstalleerd worden.
 Lokaal: `npm ci && TB_VARIANT=test npm run sync`, daarna `cd android && ./gradlew assembleProefRelease` (Java 21, Android SDK).
 Iconen en beltoon opnieuw maken: `python3 tools/assets.py`.
 
-## Beperking (nu)
-Zonder pushdienst ziet de gsm nieuwe of gewijzigde herinneringen pas als de app eens geopend werd
-(bv. een alarm dat Charlotte voor Ruben zet). Wat al gesynchroniseerd is, gaat altijd af.
+## Pushmeldingen (Firebase)
+- Planner schrijft zijn Firebase-code in `push_subs` (`endpoint = fcm:…`, `sub = {fcm, env, app}`).
+- `supabase/functions/notify` stuurt naar die toestellen via Firebase (geheim `FCM_SERVICE_ACCOUNT` in Supabase):
+  gewone meldingen (wat anderen deden, afspraken, afval, voorraad, ochtend) én een **plan** per gezinslid
+  (alarmen, herinneringen, machines) zodra er iets verandert. De app plant dat meteen exact in, ook als ze dicht is.
+- De webapp krijgt nog altijd gewone webpush, ongewijzigd.
+- Planner test krijgt meldingen uit de testgegevens.
+- Bouwen: geheim `GOOGLE_SERVICES_JSON` (inhoud van `google-services.json`) in GitHub. Zonder dat geheim werkt de app, maar zonder push.
