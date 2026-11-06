@@ -8,6 +8,8 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Thuisbasis">
 <link rel="manifest" href="manifest.webmanifest">
+<script>/* via het Jonah-icoon (?praat): enkel Jonah tonen, niet de rest van de app (als je al ingelogd bent) */
+try{if(/[?&]praat\b/.test(location.search)&&localStorage.getItem('tb_me'))document.documentElement.classList.add('praat-only');}catch(e){}</script>
 <link rel="icon" href="icons/v3/icon-192.png">
 <link rel="apple-touch-icon" href="icons/v3/apple-touch-icon.png">
 <style>
@@ -1463,6 +1465,13 @@ html[data-style="bauhaus"] .av.grp{border-radius:999px}
 .chat-panel:has(.chat-mic.on) .talk-l::after{content:" · ik luister"}
 @keyframes talkPulse{0%,100%{transform:scale(.7);opacity:.6}50%{transform:scale(1.15);opacity:1}}
 html[data-style="bauhaus"] .talk-big{border-radius:0;border:var(--bw) solid var(--ink)}
+
+/* aparte Jonah-app: enkel het gesprek, schermvullend */
+html.praat-only #root{visibility:hidden}
+html.praat-only #sheet{align-items:stretch}
+html.praat-only #sheet .scrim{background:var(--bg);opacity:1}
+html.praat-only #sheet .panel{width:100%;max-width:none;height:100%;max-height:100%;border-radius:0;padding-top:max(14px,env(safe-area-inset-top))}
+html.praat-only #sheet .panel > header [data-act="sheet-close"]{display:none}
 </style>
 
 </head><body>
@@ -3951,6 +3960,7 @@ function chatSheet(prefill){
       const l=e.target.closest('[data-link]'); if(l){ const L=chat.links[Number(l.dataset.link)]; if(!L) return;
         if(L.claude){ if(chat.busy) return; chat.busy=true; chat.links=[]; chat.actions=[]; const bot={role:'assistant',content:''}; chat.turns.push(bot); drawChat(); claudeAsk(bot).finally(()=>{chat.busy=false;drawChat()}); return; }
         if(L.ev){ closeSheet(); if(isParent(me)) eventSheet(null,L.ev.date,L.ev); else toast('Vraag het aan mama of papa.'); return; }
+        document.documentElement.classList.remove('praat-only'); /* bewust naar een scherm van de app: dan wel de hele app tonen */
         goTarget(L.k,L.date); }
     });
     if(prefill) chatAsk(prefill); else if(innerWidth>=700) setTimeout(()=>qi.focus(),100);
@@ -4597,7 +4607,9 @@ function openSheet(title,body,opts={}){
   el.hidden=false; document.body.classList.add('noscroll');
   if(opts.mount) opts.mount(el.querySelector('.panel'));
 }
-function closeSheet(){ if(typeof stopFocus==='function') stopFocus(); if(typeof chat!=='undefined') chat.talk=false; if(typeof voiceStop==='function'){ voiceStop(); speakStop(); } const el=$('#sheet'); el.hidden=true; el.innerHTML=''; sheetOpts=null; document.body.classList.remove('noscroll'); }
+function closeSheet(){ if(typeof stopFocus==='function') stopFocus(); if(typeof chat!=='undefined') chat.talk=false;
+  /* in de aparte Jonah-app: nooit terug naar de rest van de app, maar weer naar het gesprek */
+  if(document.documentElement.classList.contains('praat-only')) setTimeout(()=>{ if($('#sheet').hidden){ chat.talk=true; chatSheet(); } },0); if(typeof voiceStop==='function'){ voiceStop(); speakStop(); } const el=$('#sheet'); el.hidden=true; el.innerHTML=''; sheetOpts=null; document.body.classList.remove('noscroll'); }
 const chips=(group,opts,sel,multi=true)=>`<div class="chips" data-group="${group}" data-multi="${multi?1:0}">${opts.map(o=>`<button type="button" class="chip" data-act="chip" data-v="${esc(o.v)}" aria-pressed="${(sel||[]).includes(o.v)}" ${o.c?`style="--cc:${o.c}"`:''}>${o.dot?'<i class="dot"></i>':''}${esc(o.l)}</button>`).join('')}</div>`;
 const chipVals=(root,g)=>[...root.querySelectorAll(`.chips[data-group="${g}"] .chip[aria-pressed="true"]`)].map(c=>c.dataset.v);
 
