@@ -36,7 +36,7 @@ Deno.serve(async (req) => {
   (rows || []).forEach((r: any) => C[r.col].push({ id: r.id, ...r.data }));
 
   const now = local(); const t = now.date, hm = now.time, H = Number(hm.slice(0, 2));
-  const out: { key: string; to: string[]; title: string; body: string; tag?: string; icon?: string; alarm?: boolean; id?: string }[] = [];
+  const out: { key: string; to: string[]; title: string; body: string; tag?: string; icon?: string; alarm?: boolean; id?: string; silent?: boolean; sticky?: boolean }[] = [];
   const ico = (n: string) => `icons/n/${n}.png`; // icoon links in de melding, volgens het onderwerp
   const names = (w: string[]) => (w || []).map((x) => NAMES[x] || x).join(", ");
 
@@ -85,8 +85,16 @@ Deno.serve(async (req) => {
   // 5. machines die klaar zijn
   for (const m of C.timers) {
     const end = (m.startedAt || 0) + (m.minutes || 0) * 6e4;
+    if (m.startedAt && end > Date.now()) {
+      // draait nog: blijvende, stille melding met de resterende tijd, om de 5 minuten bijgewerkt
+      const el = Math.floor((Date.now() - m.startedAt) / 6e4), left = Math.max(1, Math.ceil((end - Date.now()) / 6e4)), n = Math.round(Math.min(1, el / Math.max(1, m.minutes)) * 10);
+      const hh = new Intl.DateTimeFormat("nl-BE", { timeZone: "Europe/Brussels", hour: "2-digit", minute: "2-digit" }).format(new Date(end));
+      const fm = left >= 60 ? `${Math.floor(left / 60)}u${String(left % 60).padStart(2, "0")}` : `${left} min`;
+      out.push({ key: `tr:${m.id}:${m.startedAt}:${Math.floor(el / 5)}`, to: PARENTS, title: `🫧 ${m.label || "Machine"} draait`, body: `${"▰".repeat(n)}${"▱".repeat(10 - n)}  nog ${fm} · klaar om ${hh}`, tag: "m" + m.id, icon: ico("machine"), silent: true, sticky: true });
+      continue;
+    }
     if (end > Date.now() || Date.now() - end > 60 * 6e4) continue;
-    out.push({ key: `t:${m.id}:${m.startedAt}`, to: PARENTS, title: "🫧 Klaar", body: `${m.label || "De machine"} is klaar. Tijd om uit te halen.`, icon: ico("machine") });
+    out.push({ key: `t:${m.id}:${m.startedAt}`, to: PARENTS, title: "🫧 Klaar", body: `${m.label || "De machine"} is klaar. Tijd om uit te halen.`, tag: "m" + m.id, icon: ico("machine") });
   }
   // 6. voorraad: één keer per dag vanaf 17u
   if (H >= 17) {
@@ -110,7 +118,7 @@ Deno.serve(async (req) => {
     const { error } = await sb.from("push_sent").insert({ key: m.key });
     if (error) continue; // al verstuurd
     for (const s of subs.filter((x: any) => m.to.includes(x.member))) {
-      try { await webpush.sendNotification(s.sub, JSON.stringify({ title: m.title, body: m.body, tag: m.tag, icon: m.icon, alarm: m.alarm || undefined, id: m.id || undefined })); sent++; }
+      try { await webpush.sendNotification(s.sub, JSON.stringify({ title: m.title, body: m.body, tag: m.tag, icon: m.icon, alarm: m.alarm || undefined, id: m.id || undefined, silent: m.silent || undefined, sticky: m.sticky || undefined })); sent++; }
       catch (e: any) { if (e && (e.statusCode === 404 || e.statusCode === 410)) await sb.from("push_subs").delete().eq("endpoint", s.endpoint); }
     }
   }

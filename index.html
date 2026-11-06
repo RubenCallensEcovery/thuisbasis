@@ -1524,7 +1524,7 @@ const P={heart:'M12 20s-7-4.4-7-9.5A4 4 0 0 1 12 8a4 4 0 0 1 7 2.5C19 15.6 12 20
 const shapeWave=()=>`<span class="shape-wave" aria-label="Jonah denkt na">${ALL.map((id,n)=>`<i class="sw${n+1}" style="--mc:${col(id)};--n:${n}"></i>`).join('')}</span>`;
 const WOLF=(cls='')=>`<svg class="wolf ${cls}" viewBox="125 95 770 725" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="36" stroke-linecap="round" stroke-linejoin="round"><path d="M400 293 L419 130 Q482 200 503 272"/><path d="M548 295 L565 130 Q628 200 650 280 Q790 330 798 552"/><path d="M355 348 Q395 290 470 282 L548 295"/><circle cx="178" cy="305" r="29"/><path d="M355 348 L204 326 L182 432 L224 402 L258 437 L292 410 L326 440 L360 410 L396 440 L420 414 L455 498"/><path class="jaw" d="M455 498 L426 516 L396 494 L362 524 L330 494 L296 524 L262 494 L228 524 L194 494 L210 580 L465 606 L610 546"/><path d="M610 546 L562 512 L652 466 L582 432 L662 402"/><path d="M455 375 Q490 330 525 380"/><path d="M364 622 L322 676 L404 690 L350 722 L426 706 L378 790"/><path d="M735 515 L862 622 L768 602 L857 716"/><path d="M711 680 L744 754"/></svg>`;
 /* hoofdmenu-iconen in dezelfde getekende stijl als Jonah */
-const NAV_I={"home":"<path d=\"M14 48 L50 16 L86 48\"/><path d=\"M24 40 V84 H76 V40\"/><path d=\"M68 30 V16 H78 V38\"/><path d=\"M42 84 V64 Q50 56 58 64 V84\"/>","agenda":"<rect x=\"14\" y=\"22\" width=\"72\" height=\"64\" rx=\"4\"/><path d=\"M14 40 H86\"/><path d=\"M32 12 V30 M68 12 V30\"/><path d=\"M26 66 L34 56 L42 66 L50 56 L58 66 L66 56 L74 66\"/>","food":"<path d=\"M8 18 H22 L32 64 H80 L88 32 H26\"/><path d=\"M38 48 H82\"/><circle cx=\"38\" cy=\"80\" r=\"6\"/><circle cx=\"74\" cy=\"80\" r=\"6\"/>","house":"<path d=\"M10 50 L50 16 L90 50\"/><path d=\"M22 41 V86 H78 V41\"/><path d=\"M50 48 Q52 62 64 65 Q52 68 50 82 Q48 68 36 65 Q48 62 50 48 Z\"/>","opvang":"<path d=\"M50 86 C20 66 8 50 10 34 C12 18 32 12 44 24 L50 30 L56 24 C68 12 88 18 90 34 C92 50 80 66 50 86 Z\"/><path d=\"M36 48 Q50 62 64 48\"/>","school":"<path d=\"M28 34 Q28 14 50 14 Q72 14 72 34\"/><rect x=\"20\" y=\"32\" width=\"60\" height=\"56\" rx=\"10\"/><path d=\"M20 54 H80\"/><path d=\"M38 66 H62 V80 H38 Z\"/><path d=\"M40 14 V6 H60 V14\"/>"};
+const NAV_I={"home":"<path d=\"M14 48 L50 16 L86 48\"/><path d=\"M24 40 V84 H76 V40\"/><path d=\"M68 30 V16 H78 V38\"/><path d=\"M42 84 V64 Q50 56 58 64 V84\"/>","agenda":"<rect x=\"14\" y=\"22\" width=\"72\" height=\"64\" rx=\"4\"/><path d=\"M14 40 H86\"/><path d=\"M32 12 V30 M68 12 V30\"/><path d=\"M26 66 L34 56 L42 66 L50 56 L58 66 L66 56 L74 66\"/>","food":"<path d=\"M8 18 H22 L32 64 H80 L88 32 H26\"/><path d=\"M38 48 H82\"/><circle cx=\"38\" cy=\"80\" r=\"6\"/><circle cx=\"74\" cy=\"80\" r=\"6\"/>","house":"<rect x=\"26\" y=\"12\" width=\"48\" height=\"76\" rx=\"6\"/><path d=\"M40 12 V6 H60 V12\"/><path d=\"M38 38 L46 46 L60 32\"/><path d=\"M38 64 L46 72 L60 58\"/>","opvang":"<path d=\"M50 86 C20 66 8 50 10 34 C12 18 32 12 44 24 L50 30 L56 24 C68 12 88 18 90 34 C92 50 80 66 50 86 Z\"/><path d=\"M36 48 Q50 62 64 48\"/>","school":"<path d=\"M28 34 Q28 14 50 14 Q72 14 72 34\"/><rect x=\"20\" y=\"32\" width=\"60\" height=\"56\" rx=\"10\"/><path d=\"M20 54 H80\"/><path d=\"M38 66 H62 V80 H38 Z\"/><path d=\"M40 14 V6 H60 V14\"/>"};
 const icon=(n,cls='')=>`<svg class="i ${cls}" viewBox="0 0 24 24" aria-hidden="true"><path d="${P[n]}"/></svg>`;
 const STAR='<svg viewBox="0 0 24 24" width="26" height="26" aria-hidden="true"><path fill="currentColor" d="M12 2.5l2.9 6.1 6.6.8-4.9 4.6 1.3 6.6L12 17.3l-5.9 3.3 1.3-6.6L2.5 9.4l6.6-.8z"/></svg>';
 const av=(id,s)=>`<span class="av" style="--mc:${MID[id]?col(id):'var(--listed)'}${s?';--s:'+s+'px':''}" title="${esc(nm(id))}">${esc(nm(id)[0])}</span>`;
@@ -3607,7 +3607,7 @@ const P_ACT={
   meal:(date,title)=>proposal('Weekmenu',`${dlong(date)}: ${title}`,async()=>{const r=S.recipes.find(x=>norm(x.name)===norm(title));await put('meals',date,{title:r?r.name:title,recipeId:r?r.id:'',by:me,at:Date.now()});return 'In het weekmenu gezet'}),
   done:(kind,item)=>proposal('Afvinken',`${item.title}`,async()=>{ if(kind==='task'){await upd('tasks',item.id,{done:true,doneBy:me,doneAt:Date.now()});} else if(kind==='admin'){await upd('admin',item.id,{done:true,doneBy:me,doneAt:Date.now()});} else { await upd('chores',item.id,{lastDone:today(),doneBy:me,snoozeTo:''}); await add('chorelog',{choreId:item.id,title:item.title}); } log(`vinkte "${item.title}" af`,PARENTS,'taak'); return 'Afgevinkt ✓'}),
   schooloff:(date,kids,reason)=>proposal('Geen school',`${dlong(date)} · ${names(kids)} · ${reason}`,async()=>{await add('schoolx',{date,kids,kind:'vrij',title:reason,start:'',end:''});log(`zette ${dshort(date)} als "${reason}" voor ${names(kids)}: geen school`,[...new Set([...kids,...PARENTS])],'school');return 'Uitzondering bewaard'}),
-  machine:(label,min)=>proposal('Machine starten',`${label} · ${fmtMin(min)} · klaar om ${hhmm(Date.now()+min*6e4)}`,async()=>{await add('timers',{label,minutes:min,startedAt:Date.now()});log(`zette de ${label.toLowerCase()} aan, klaar om ${hhmm(Date.now()+min*6e4)}`,PARENTS,'machine');return 'Timer loopt'}),
+  machine:(label,min)=>proposal('Machine starten',`${label} · ${fmtMin(min)} · klaar om ${hhmm(Date.now()+min*6e4)}`,async()=>{await add('timers',{label,minutes:min,startedAt:Date.now()});setTimeout(machineNotes,300);log(`zette de ${label.toLowerCase()} aan, klaar om ${hhmm(Date.now()+min*6e4)}`,PARENTS,'machine');return 'Timer loopt'}),
 };
 function findByTitle(list,title){ const q=norm(title); return list.find(x=>norm(x.title)===q)||list.find(x=>norm(x.title).includes(q))||list.find(x=>q.includes(norm(x.title))); }
 
@@ -4461,7 +4461,7 @@ function timerSheet(label){
     mount:p=>{ const show=()=>{p.querySelector('#m-min').textContent=fmtMin(min);p.querySelector('#m-ready').textContent='Klaar om '+hhmm(Date.now()+min*6e4)+'. Iedereen ziet de timer lopen en krijgt een melding als het klaar is.'};show();
       p.addEventListener('click',e=>{const b=e.target.closest('[data-step]');if(b){min=Math.max(5,min+Number(b.dataset.step));show();p.querySelectorAll('[data-group="quick"] .chip').forEach(c=>c.setAttribute('aria-pressed',c.dataset.v==String(min)))}
         const c=e.target.closest('[data-group="quick"] .chip');if(c){setTimeout(()=>{min=Number(c.dataset.v);show()},0)}});},
-    onSave:async p=>{const l=p.querySelector('#m-label').value.trim()||'Machine';await add('timers',{label:l,minutes:min,startedAt:Date.now()});log(`zette de ${l.toLowerCase()} aan, klaar om ${hhmm(Date.now()+min*6e4)}`,PARENTS,'machine')}});
+    onSave:async p=>{const l=p.querySelector('#m-label').value.trim()||'Machine';await add('timers',{label:l,minutes:min,startedAt:Date.now()});setTimeout(machineNotes,300);log(`zette de ${l.toLowerCase()} aan, klaar om ${hhmm(Date.now()+min*6e4)}`,PARENTS,'machine')}});
 }
 const fmtMin=m=>m<60?m+' min':Math.floor(m/60)+' u'+(m%60?' '+m%60:'');
 const fmtRem=ms=>{const s=Math.ceil(ms/1000),h=Math.floor(s/3600),m=Math.floor(s%3600/60),ss=s%60;return h?`${h}u ${pad(m)}m`:`${m}:${pad(ss)}`};
@@ -4726,7 +4726,7 @@ const ACT={
   'ing-add':(v,t)=>t.closest('.field').querySelector('.ing-list').insertAdjacentHTML('beforeend',ingRow()),
   'ing-del':(v,t)=>t.closest('.ing-row').remove(),
   'timer-new':v=>{closeSheet();timerSheet(v)},
-  'timer-empty':async v=>{const t=S.timers.find(x=>x.id===v);await del('timers',v);if(t){toast(`${t.label} uitgehaald`);log(`haalde de ${t.label.toLowerCase()} leeg`,PARENTS,'machine')}},
+  'timer-empty':async v=>{const t=S.timers.find(x=>x.id===v);await del('timers',v);try{const reg=await navigator.serviceWorker.ready;(await reg.getNotifications({tag:'m'+v})).forEach(n=>n.close());}catch(e){}if(t){toast(`${t.label} uitgehaald`);log(`haalde de ${t.label.toLowerCase()} leeg`,PARENTS,'machine')}},
   'task-new':()=>{closeSheet();ui.view='house';ui.houseTab='klusjes';render();setTimeout(()=>$('#t-new')?.focus(),60)},
   'task-toggle':async(v,t)=>{const x=S.tasks.find(k=>k.id===v);if(!x)return;const d=!x.done;await upd('tasks',v,{done:d,doneBy:d?me:'',doneAt:d?Date.now():0});if(d){highFive(t);vib(20);toast(`✓ ${x.title}`,null,()=>upd('tasks',v,{done:false,doneBy:'',doneAt:0}));log(`deed "${x.title}"`,PARENTS,'taak')}},
   'task-remove':v=>removeWithUndo('tasks',v),
@@ -4824,6 +4824,7 @@ function tick(){
   if(now%30000<1100){
     { const nd=new Date(); const tw=me&&isParent(me)&&typeof wasteOn==='function'?wasteOn(addDays(today(),1)):null; const k='w'+today(); if(tw&&wasteCfg().remind&&nd.getHours()>=19&&!fired.has(k)){ markFired(k); const txt=`Morgen ophaling: ${tw.types.map(x=>WASTE[x]?.l||x).join(' + ')}. Zet ze buiten!`; toast(`${wasteEmo(tw.types)} ${txt}`); sysNotify('Afval',txt,['gft','pmd','rest'].find(x=>(tw.types||[]).includes(x))||'rest'); chime(660); } }
     checkStock();
+    if(!fired.has('mn'+Math.floor(now/6e4))){ markFired('mn'+Math.floor(now/6e4)); machineNotes(); }
     for(const r of (S.reminders||[])){ const a=alarmAt(r); if(!a||!(r.who||[]).includes(me)||r.ack===a) continue; const el=now-alarmMs(a);
       if(el>=0&&el<15*6e4&&!fired.has('a'+r.id+a)){ markFired('a'+r.id+a); alarmRing(r,a); } }
     for(const r of (S.reminders||[])){ if(r.alarm||!(r.who||[]).includes(me)||!remDue(r)) continue; const k='r'+r.id+r.date+(r.time||''); if(fired.has(k)) continue; markFired(k);
@@ -4847,6 +4848,16 @@ function toast(msg,by,undo){
   const box=$('#toasts'); while(box.children.length>2) box.firstChild.remove();
   box.appendChild(el); setTimeout(()=>{el.style.transition='opacity .3s, transform .3s';el.style.opacity='0';el.style.transform='translateY(8px)';setTimeout(()=>el.remove(),320)},undo?5500:3800);
 }
+/* draaiende machine: een blijvende melding met de resterende tijd (op dit toestel meteen; de andere toestellen krijgen ze via de server) */
+function machineBody(t){ const end=t.startedAt+t.minutes*6e4, left=Math.max(0,Math.ceil((end-Date.now())/6e4)), f=Math.max(0,Math.min(1,1-left/Math.max(1,t.minutes))), n=Math.round(f*10);
+  return `${'▰'.repeat(n)}${'▱'.repeat(10-n)}  nog ${fmtMin(left)} · klaar om ${hhmm(end)}`; }
+async function machineNotes(){ try{
+  if(!('serviceWorker' in navigator)||!('Notification' in window)||Notification.permission!=='granted') return;
+  const reg=await navigator.serviceWorker.ready, open=await reg.getNotifications();
+  const run=(S.timers||[]).filter(t=>t.startedAt&&t.startedAt+t.minutes*6e4>Date.now());
+  for(const n of open) if(/^m/.test(n.tag||'')&&n.data&&n.data.running&&!run.some(t=>'m'+t.id===n.tag)) n.close();
+  for(const t of run) await reg.showNotification(`🫧 ${t.label} draait`,{body:machineBody(t),tag:'m'+t.id,icon:'icons/n/machine.png',badge:'icons/badge-96.png',silent:true,renotify:false,requireInteraction:true,data:{url:'./',running:1}});
+}catch(e){} }
 function sysNotify(title,body,ico){ try{ if('Notification' in window && Notification.permission==='granted') new Notification(title,{body,icon:ico?`icons/n/${ico}.png`:'icons/v3/icon-192.png'}); }catch(e){} }
 let AC=null;
 function unlockAudio(){ try{ if(!AC){const A=window.AudioContext||window.webkitAudioContext; if(A) AC=new A();} if(AC&&AC.state==='suspended') AC.resume(); }catch(e){} }
