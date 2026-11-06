@@ -33,7 +33,7 @@ android {
     // twee apps naast elkaar: "Thuisbasis test" (testversie van de site) en "Thuisbasis" (live)
     flavorDimensions += "omgeving"
     productFlavors {
-        testapp {
+        proef {
             dimension "omgeving"
             applicationIdSuffix ".test"
             resValue "string", "app_name", "Thuisbasis test"

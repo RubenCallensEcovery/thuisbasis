@@ -46,4 +46,4 @@ def tone():
         w.setnchannels(1); w.setsampwidth(2); w.setframerate(sr)
         w.writeframes(b''.join(struct.pack('<h', int(x / peak * 26000)) for x in buf))
 
-write('live', False); write('testapp', True); tone(); print('ok')
+write('live', False); write('proef', True); tone(); print('ok')

@@ -23,8 +23,8 @@ jobs:
         working-directory: android-app
     env:
       VARIANT: ${{ github.ref_name == 'main' && 'live' || 'test' }}
-      FLAVOR: ${{ github.ref_name == 'main' && 'Live' || 'Testapp' }}
-      FLAVOR_DIR: ${{ github.ref_name == 'main' && 'live' || 'testapp' }}
+      FLAVOR: ${{ github.ref_name == 'main' && 'Live' || 'Proef' }}
+      FLAVOR_DIR: ${{ github.ref_name == 'main' && 'live' || 'proef' }}
       APK: ${{ github.ref_name == 'main' && 'thuisbasis.apk' || 'thuisbasis-test.apk' }}
       TAG: ${{ github.ref_name == 'main' && 'android' || 'android-test' }}
     steps:

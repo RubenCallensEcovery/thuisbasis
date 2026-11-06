@@ -30,7 +30,7 @@ Ondertekening: enkel via GitHub-secrets `ANDROID_KEYSTORE_B64`, `ANDROID_KEYSTOR
 `ANDROID_KEY_PASSWORD`. Bewaar een reservekopie van de sleutel buiten GitHub: zonder dezelfde sleutel kan een
 update niet over de bestaande app geïnstalleerd worden.
 
-Lokaal: `npm ci && TB_VARIANT=test npm run sync`, daarna `cd android && ./gradlew assembleTestappRelease` (Java 21, Android SDK).
+Lokaal: `npm ci && TB_VARIANT=test npm run sync`, daarna `cd android && ./gradlew assembleProefRelease` (Java 21, Android SDK).
 Iconen en beltoon opnieuw maken: `python3 tools/assets.py`.
 
 ## Beperking (nu)
