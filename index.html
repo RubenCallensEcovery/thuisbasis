@@ -7,9 +7,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Thuisbasis">
-<link rel="manifest" href="manifest.webmanifest" id="tb-manifest">
-<script>/* ?praat: aparte app 'Jonah' (eigen icoon op het beginscherm) die meteen een gesprek opent */
-if(/[?&]praat\b/.test(location.search)){document.getElementById('tb-manifest').href='jonah.webmanifest';document.querySelector('meta[name="apple-mobile-web-app-title"]').content='Jonah';document.querySelector('meta[name="theme-color"]').content='#F2B705';document.addEventListener('DOMContentLoaded',function(){var a=document.querySelector('link[rel="apple-touch-icon"]');if(a)a.href='icons/jonah/apple-touch-icon.png';document.title='Jonah';});}</script>
+<link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icons/v3/icon-192.png">
 <link rel="apple-touch-icon" href="icons/v3/apple-touch-icon.png">
 <style>
