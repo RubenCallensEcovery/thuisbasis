@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Jonah</title>
+<meta name="theme-color" content="#F2B705">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Jonah">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="../icons/jonah/apple-touch-icon.png">
+<link rel="icon" href="../icons/jonah/icon-192.png">
+<script>
+/* geopend vanaf het Jonah-icoon (of zonder installatie-uitleg nodig): meteen door naar het gesprek */
+if (matchMedia('(display-mode: standalone)').matches || navigator.standalone) location.replace('../?praat=1');
+</script>
+<style>
+  :root{--y:#F2B705;--k:#141414;--bg:#F4F0E6}
+  *{box-sizing:border-box}
+  body{margin:0;min-height:100dvh;background:var(--y);color:var(--k);font:17px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;display:grid;place-items:center;padding:24px 16px}
+  main{width:min(440px,100%);text-align:center}
+  img{width:132px;height:132px;border:3px solid var(--k);box-shadow:8px 8px 0 var(--k)}
+  h1{font-size:30px;margin:22px 0 6px}
+  p{margin:0 0 14px}
+  .btn{display:block;width:100%;margin:18px 0 10px;padding:16px;border:3px solid var(--k);background:var(--k);color:#fff;font:inherit;font-weight:800;font-size:19px;cursor:pointer}
+  .btn.alt{background:var(--bg);color:var(--k)}
+  .box{background:var(--bg);border:3px solid var(--k);padding:14px 16px;text-align:left;margin-top:16px}
+  .box b{display:block;margin-bottom:6px}
+  ol{margin:0;padding-left:20px}
+  [hidden]{display:none!important}
+</style>
+</head>
+<body>
+<main>
+  <img src="../icons/jonah/icon-192.png" alt="Jonah-icoon">
+  <h1>Jonah op je beginscherm</h1>
+  <p>Een apart geel icoon: één tik en je babbelt meteen met Jonah.</p>
+
+  <button class="btn" id="install" hidden>Zet Jonah op mijn beginscherm</button>
+  <p id="done" hidden><b>Gelukt!</b> Je vindt het gele Jonah-icoon nu op je beginscherm.</p>
+
+  <div class="box" id="ios" hidden>
+    <b>Op je iPhone (in Safari):</b>
+    <ol><li>Tik onderaan op <b style="display:inline">Deel</b> (vierkantje met pijl).</li><li>Kies <b style="display:inline">Zet op beginscherm</b>.</li><li>Tik op <b style="display:inline">Voeg toe</b>.</li></ol>
+  </div>
+  <div class="box" id="android" hidden>
+    <b>Zie je geen knop?</b>
+    <ol><li>Tik rechtsboven in Chrome op <b style="display:inline">⋮</b>.</li><li>Kies <b style="display:inline">Toevoegen aan startscherm</b> of <b style="display:inline">App installeren</b>.</li><li>Kies <b style="display:inline">Installeren</b>.</li></ol>
+  </div>
+
+  <a class="btn alt" href="../?praat=1">Nu meteen met Jonah praten</a>
+</main>
+<script>
+  const ua = navigator.userAgent, ios = /iPhone|iPad|iPod/.test(ua) || (/Macintosh/.test(ua) && 'ontouchend' in document);
+  let ev = null;
+  if (ios) document.getElementById('ios').hidden = false;
+  else document.getElementById('android').hidden = false;
+  addEventListener('beforeinstallprompt', e => { e.preventDefault(); ev = e; document.getElementById('install').hidden = false; });
+  document.getElementById('install').addEventListener('click', async () => {
+    if (!ev) return; ev.prompt(); const r = await ev.userChoice; ev = null;
+    if (r && r.outcome === 'accepted') { document.getElementById('install').hidden = true; document.getElementById('done').hidden = false; }
+  });
+  addEventListener('appinstalled', () => { document.getElementById('install').hidden = true; document.getElementById('done').hidden = false; });
+</script>
+</body>
+</html>

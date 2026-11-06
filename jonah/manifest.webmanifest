@@ -1,0 +1,17 @@
+{
+  "id": "../?praat",
+  "name": "Jonah",
+  "short_name": "Jonah",
+  "description": "Meteen babbelen met Jonah, de assistent van Thuisbasis",
+  "lang": "nl",
+  "start_url": "../?praat=1",
+  "scope": "../",
+  "display": "standalone",
+  "background_color": "#F2B705",
+  "theme_color": "#F2B705",
+  "icons": [
+    { "src": "../icons/jonah/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "../icons/jonah/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "../icons/jonah/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
