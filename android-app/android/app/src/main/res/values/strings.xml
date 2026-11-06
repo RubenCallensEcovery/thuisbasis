@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="package_name">be.callens.thuisbasis</string>
+    <string name="custom_url_scheme">be.callens.thuisbasis</string>
+    <string name="sc_proef">Proefalarm</string>
+    <string name="sc_proef_lang">Proefalarm over 10 seconden</string>
+</resources>

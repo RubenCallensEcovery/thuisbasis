@@ -1,0 +1,177 @@
+package be.callens.thuisbasis;
+
+import android.app.Notification;
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
+import android.app.PendingIntent;
+import android.content.Context;
+import android.content.Intent;
+import android.media.AudioAttributes;
+import android.media.RingtoneManager;
+import android.net.Uri;
+import android.os.Build;
+import androidx.core.app.NotificationCompat;
+import androidx.core.app.NotificationManagerCompat;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.Locale;
+
+/** Alle meldingen van de app. */
+final class Notif {
+    private Notif() {}
+
+    static final String CH_ALARM = "alarm";
+    static final String CH_NOTE = "herinnering";
+    static final String CH_MACHINE = "machine";
+    static final String CH_KLAAR = "klaar";
+    static final String CH_GEMIST = "gemist";
+    static final int ID_ALARM = 1001;
+
+    static void channels(Context c) {
+        if (Build.VERSION.SDK_INT < 26) return;
+        NotificationManager nm = c.getSystemService(NotificationManager.class);
+        // alarm: het geluid komt van de alarmdienst zelf (alarmvolume, ook als de gsm op stil staat)
+        NotificationChannel a = new NotificationChannel(CH_ALARM, "Alarmen", NotificationManager.IMPORTANCE_HIGH);
+        a.setDescription("Herinneringen met alarm: rinkelt tot je stopt");
+        a.setSound(null, null);
+        a.enableVibration(false);
+        a.setLockscreenVisibility(Notification.VISIBILITY_PUBLIC);
+        a.setBypassDnd(true);
+        nm.createNotificationChannel(a);
+
+        NotificationChannel n = new NotificationChannel(CH_NOTE, "Herinneringen", NotificationManager.IMPORTANCE_HIGH);
+        n.setDescription("Gewone herinneringen zonder alarm");
+        nm.createNotificationChannel(n);
+
+        NotificationChannel m = new NotificationChannel(CH_MACHINE, "Machine draait", NotificationManager.IMPORTANCE_LOW);
+        m.setDescription("Blijvende melding die aftelt tot de was- of droogmachine klaar is");
+        m.setShowBadge(false);
+        nm.createNotificationChannel(m);
+
+        NotificationChannel k = new NotificationChannel(CH_KLAAR, "Machine klaar", NotificationManager.IMPORTANCE_HIGH);
+        k.setDescription("Als de machine klaar is");
+        k.setSound(RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION),
+            new AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_NOTIFICATION).build());
+        nm.createNotificationChannel(k);
+
+        NotificationChannel g = new NotificationChannel(CH_GEMIST, "Gemiste alarmen", NotificationManager.IMPORTANCE_DEFAULT);
+        nm.createNotificationChannel(g);
+    }
+
+    static int flags() {
+        return PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE;
+    }
+
+    static PendingIntent openApp(Context c) {
+        Intent i = new Intent(c, MainActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+        return PendingIntent.getActivity(c, 0, i, flags());
+    }
+
+    static PendingIntent action(Context c, String act, String id, String key, String title) {
+        Intent i = new Intent(c, AlarmReceiver.class).setAction(AlarmReceiver.ACT)
+            .setData(Uri.parse("thuis://actie/" + act + "/" + Uri.encode(id)))
+            .putExtra("act", act).putExtra("id", id).putExtra("key", key).putExtra("title", title);
+        return PendingIntent.getBroadcast(c, (act + id).hashCode(), i, flags());
+    }
+
+    static Intent screen(Context c, String id, String key, String title, String body) {
+        return new Intent(c, AlarmActivity.class)
+            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_NO_USER_ACTION)
+            .putExtra("id", id).putExtra("key", key).putExtra("title", title).putExtra("body", body);
+    }
+
+    /** melding van een rinkelend alarm (hoort bij de alarmdienst) */
+    static Notification alarm(Context c, String id, String key, String title, String body) {
+        PendingIntent full = PendingIntent.getActivity(c, 1, screen(c, id, key, title, body), flags());
+        return new NotificationCompat.Builder(c, CH_ALARM)
+            .setSmallIcon(R.drawable.ic_stat_thuis)
+            .setContentTitle("⏰ " + title)
+            .setContentText(body)
+            .setCategory(NotificationCompat.CATEGORY_ALARM)
+            .setPriority(NotificationCompat.PRIORITY_MAX)
+            .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+            .setOngoing(true)
+            .setAutoCancel(false)
+            .setFullScreenIntent(full, true)
+            .setContentIntent(full)
+            .addAction(0, "Gedaan", action(c, "done", id, key, title))
+            .addAction(0, "10 min later", action(c, "snooze", id, key, title))
+            .addAction(0, "Stop", action(c, "stop", id, key, title))
+            .build();
+    }
+
+    static void missed(Context c, String id, String key, String title) {
+        Notification n = new NotificationCompat.Builder(c, CH_GEMIST)
+            .setSmallIcon(R.drawable.ic_stat_thuis)
+            .setContentTitle("Gemist alarm")
+            .setContentText(title)
+            .setAutoCancel(true)
+            .setContentIntent(openApp(c))
+            .addAction(0, "Gedaan", action(c, "done", id, key, title))
+            .addAction(0, "10 min later", action(c, "snooze", id, key, title))
+            .build();
+        show(c, ("g" + id).hashCode(), n);
+    }
+
+    static void note(Context c, String id, String title, String body) {
+        Notification n = new NotificationCompat.Builder(c, CH_NOTE)
+            .setSmallIcon(R.drawable.ic_stat_thuis)
+            .setContentTitle("🔔 Herinnering")
+            .setContentText(title)
+            .setStyle(new NotificationCompat.BigTextStyle().bigText(title + (body == null || body.isEmpty() ? "" : "\n" + body)))
+            .setCategory(NotificationCompat.CATEGORY_REMINDER)
+            .setAutoCancel(true)
+            .setContentIntent(openApp(c))
+            .build();
+        show(c, ("r" + id).hashCode(), n);
+    }
+
+    static String hhmm(long t) {
+        return new SimpleDateFormat("HH:mm", Locale.getDefault()).format(new Date(t));
+    }
+
+    /** draaiende machine: blijvende melding die zelf aftelt */
+    static void running(Context c, String id, String label, long start, long end) {
+        int max = (int) Math.max(1, (end - start) / 60000), done = (int) Math.max(0, Math.min(max, (System.currentTimeMillis() - start) / 60000));
+        Notification n = new NotificationCompat.Builder(c, CH_MACHINE)
+            .setSmallIcon(R.drawable.ic_stat_thuis)
+            .setContentTitle("🫧 " + label + " draait")
+            .setContentText("Klaar om " + hhmm(end))
+            .setSubText("klaar om " + hhmm(end))
+            .setWhen(end)
+            .setShowWhen(true)
+            .setUsesChronometer(true)
+            .setChronometerCountDown(true)
+            .setProgress(max, done, false)
+            .setOngoing(true)
+            .setOnlyAlertOnce(true)
+            .setSilent(true)
+            .setCategory(NotificationCompat.CATEGORY_PROGRESS)
+            .setContentIntent(openApp(c))
+            .build();
+        show(c, ("m" + id).hashCode(), n);
+    }
+
+    static void machineDone(Context c, String id, String label) {
+        Notification n = new NotificationCompat.Builder(c, CH_KLAAR)
+            .setSmallIcon(R.drawable.ic_stat_thuis)
+            .setContentTitle("🫧 Klaar")
+            .setContentText(label + " is klaar. Tijd om uit te halen.")
+            .setAutoCancel(true)
+            .setContentIntent(openApp(c))
+            .build();
+        show(c, ("m" + id).hashCode(), n);
+    }
+
+    static void cancel(Context c, int id) {
+        NotificationManagerCompat.from(c).cancel(id);
+    }
+
+    static void show(Context c, int id, Notification n) {
+        try {
+            NotificationManagerCompat.from(c).notify(id, n);
+        } catch (SecurityException e) {
+            // geen toestemming voor meldingen
+        }
+    }
+}

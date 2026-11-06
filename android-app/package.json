@@ -1,0 +1,16 @@
+{
+  "name": "thuisbasis-android",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Android-omhulsel voor Thuisbasis (Capacitor). Los van de webapp.",
+  "scripts": {
+    "sync": "node scripts/config.mjs && cap sync android"
+  },
+  "dependencies": {
+    "@capacitor/android": "8.6.0",
+    "@capacitor/core": "8.6.0"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "8.6.0"
+  }
+}

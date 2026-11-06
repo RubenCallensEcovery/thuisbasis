@@ -1,0 +1,78 @@
+# Android-app — bouwt de APK. Staat volledig los van Controle/Publiceren van de webapp.
+#   branch "test" → "Thuisbasis test" (laadt de testversie)  → release "android-test" → thuisbasis-test.apk
+#   branch "main" → "Thuisbasis"      (laadt de live webapp) → release "android"      → thuisbasis.apk
+# Enkel bij wijzigingen in android-app/ (of deze workflow), of met de hand via "Run workflow".
+# Ondertekening: geheimen ANDROID_KEYSTORE_B64, ANDROID_KEYSTORE_PASSWORD, ANDROID_KEY_ALIAS, ANDROID_KEY_PASSWORD.
+name: Android-app
+on:
+  push:
+    branches: [main, test]
+    paths: ['android-app/**', '.github/workflows/android.yml']
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: android-${{ github.ref_name }}
+  cancel-in-progress: true
+jobs:
+  apk:
+    if: github.ref_name == 'main' || github.ref_name == 'test'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: android-app
+    env:
+      VARIANT: ${{ github.ref_name == 'main' && 'live' || 'test' }}
+      FLAVOR: ${{ github.ref_name == 'main' && 'Live' || 'Testapp' }}
+      FLAVOR_DIR: ${{ github.ref_name == 'main' && 'live' || 'testapp' }}
+      APK: ${{ github.ref_name == 'main' && 'thuisbasis.apk' || 'thuisbasis-test.apk' }}
+      TAG: ${{ github.ref_name == 'main' && 'android' || 'android-test' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: 21, cache: gradle }
+      - name: Capacitor klaarzetten
+        run: npm ci && TB_VARIANT=$VARIANT npm run sync
+      - name: Ondertekeningssleutel
+        env:
+          KS: ${{ secrets.ANDROID_KEYSTORE_B64 }}
+        run: |
+          if [ -z "$KS" ]; then echo "::warning::Geheim ANDROID_KEYSTORE_B64 ontbreekt: enkel controle of alles compileert, geen APK"; echo "HAS_KEY=0" >> "$GITHUB_ENV"; exit 0; fi
+          echo "$KS" | base64 -d > "$RUNNER_TEMP/thuisbasis.jks"
+          echo "TB_KEYSTORE_FILE=$RUNNER_TEMP/thuisbasis.jks" >> "$GITHUB_ENV"
+          echo "HAS_KEY=1" >> "$GITHUB_ENV"
+      - name: APK bouwen
+        working-directory: android-app/android
+        env:
+          TB_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          TB_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          TB_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+          TB_VERSION_CODE: ${{ github.run_number }}
+        run: |
+          export TB_VERSION_NAME="1.${{ github.run_number }}-$VARIANT"
+          chmod +x gradlew
+          ./gradlew --no-daemon "assemble${FLAVOR}Release"
+          ls -R app/build/outputs/apk
+          [ "$HAS_KEY" = 1 ] || exit 0
+          cp "app/build/outputs/apk/$FLAVOR_DIR/release/app-$FLAVOR_DIR-release.apk" "$RUNNER_TEMP/$APK"
+          rm -f "$RUNNER_TEMP/thuisbasis.jks"
+      - uses: actions/upload-artifact@v4
+        if: env.HAS_KEY == '1'
+        with:
+          name: ${{ env.APK }}
+          path: ${{ runner.temp }}/${{ env.APK }}
+      - name: Downloadlink bijwerken
+        if: env.HAS_KEY == '1'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          NOTES="Versie 1.${{ github.run_number }} ($VARIANT) · commit ${GITHUB_SHA::7} · $(TZ=Europe/Brussels date '+%d/%m/%Y %H:%M')"
+          if ! gh release view "$TAG" >/dev/null 2>&1; then
+            if [ "$VARIANT" = live ]; then gh release create "$TAG" --target "$GITHUB_SHA" --title "Thuisbasis Android" --notes "$NOTES" --latest
+            else gh release create "$TAG" --target "$GITHUB_SHA" --title "Thuisbasis Android (test)" --notes "$NOTES" --prerelease; fi
+          fi
+          gh release upload "$TAG" "$RUNNER_TEMP/$APK" --clobber
+          gh release edit "$TAG" --notes "$NOTES"
+          echo "### Download: https://github.com/${{ github.repository }}/releases/download/$TAG/$APK" >> "$GITHUB_STEP_SUMMARY"
