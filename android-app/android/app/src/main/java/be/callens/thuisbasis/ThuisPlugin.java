@@ -55,13 +55,27 @@ public class ThuisPlugin extends Plugin {
         JSArray alarms = call.getArray("alarms", new JSArray());
         JSArray timers = call.getArray("timers", new JSArray());
         JSObject conn = call.getObject("conn", new JSObject());
-        // proefalarmen bestaan enkel op dit toestel: bewaren
         org.json.JSONArray old = Store.alarms(getContext());
+        // acties die nog niet op de server staan (bv. "10 min later" zonder netwerk): lokale versie houden
+        java.util.Set<String> waiting = new java.util.HashSet<>();
+        org.json.JSONArray pend = Store.pending(getContext());
+        for (int i = 0; i < pend.length(); i++) { org.json.JSONObject o = pend.optJSONObject(i); if (o != null) waiting.add(o.optString("id")); }
+        org.json.JSONArray merged = new org.json.JSONArray();
+        for (int i = 0; i < alarms.length(); i++) {
+            org.json.JSONObject o = alarms.optJSONObject(i);
+            if (o == null) continue;
+            org.json.JSONObject local = waiting.contains(o.optString("id")) ? Store.find(old, o.optString("id")) : null;
+            merged.put(local != null ? local : o);
+        }
         for (int i = 0; i < old.length(); i++) {
             org.json.JSONObject o = old.optJSONObject(i);
-            if (o != null && o.optString("id").startsWith("proef") && o.optLong("at") > System.currentTimeMillis() - 10 * 60_000L) alarms.put(o);
+            if (o == null) continue;
+            String id = o.optString("id");
+            // proefalarmen bestaan enkel op dit toestel; uitgestelde alarmen in afwachting van de server ook bewaren
+            boolean keep = (id.startsWith("proef") && o.optLong("at") > System.currentTimeMillis() - 10 * 60_000L) || waiting.contains(id);
+            if (keep && Store.find(merged, id) == null) merged.put(o);
         }
-        Store.alarms(getContext(), alarms);
+        Store.alarms(getContext(), merged);
         Store.timers(getContext(), timers);
         Store.str(getContext(), "url", conn.getString("url", ""));
         Store.str(getContext(), "apikey", conn.getString("key", ""));
