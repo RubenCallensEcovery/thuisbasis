@@ -75,6 +75,7 @@
       if (!r.ok) return;
       var out = build(await r.json(), me);
       out.conn = { url: C.supabaseUrl, key: C.supabaseKey, token: token, pfx: PFX };
+      register(C, token, me);
       var sig = JSON.stringify([out.alarms, out.timers, token]);
       if (sig === last) return; // niets veranderd
       last = sig;
@@ -82,6 +83,21 @@
     } catch (e) {
       console.warn('thuis-app sync', e);
     } finally { busy = false; }
+  }
+
+  /* pushmeldingen: dit toestel (Firebase-code) bij het gezinslid zetten in push_subs; de server stuurt dan via Firebase */
+  var registered = '';
+  async function register(C, token, me) {
+    try {
+      var r = await plugin().pushToken(); var fcm = r && r.token;
+      if (!fcm || registered === fcm + me) return;
+      var res = await fetch(C.supabaseUrl + '/rest/v1/push_subs?on_conflict=endpoint', {
+        method: 'POST',
+        headers: { apikey: C.supabaseKey, authorization: 'Bearer ' + token, 'content-type': 'application/json', prefer: 'resolution=merge-duplicates,return=minimal' },
+        body: JSON.stringify({ endpoint: 'fcm:' + fcm, member: me, sub: { fcm: fcm, env: ENV, app: 'planner' }, updated_at: new Date().toISOString() })
+      });
+      if (res.ok) registered = fcm + me;
+    } catch (e) { console.warn('thuis-app push', e); }
   }
 
   // even wachten tot de app ingelogd is; daarna om de 20 s zolang de app open is, en bij terugkeren

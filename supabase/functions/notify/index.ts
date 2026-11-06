@@ -1,6 +1,11 @@
 // Thuisbasis — meldingen: wordt elke minuut opgeroepen (Supabase Cron) en stuurt pushmeldingen
 // naar de toestellen van het gezin: herinneringen, afspraken die eraan komen, wat anderen deden,
 // afval buitenzetten, machines die klaar zijn en voorraad die bijna op is.
+// Twee soorten toestellen in push_subs:
+//  - webapp (webpush, zoals altijd)
+//  - Android-app Planner (sub.fcm): via Firebase. Krijgt dezelfde meldingen, behalve alarmen/herinneringen/machines:
+//    die plant de app zelf exact in uit een "plan" (lijst per gezinslid) dat meteen na elke wijziging verstuurd wordt.
+//    Planner test (sub.env = "test") krijgt hetzelfde, maar dan uit de testgegevens (test~).
 import { createClient } from "npm:@supabase/supabase-js@2.117.3";
 import webpush from "npm:web-push@3.6.7";
 
@@ -30,13 +35,23 @@ Deno.serve(async (req) => {
 
   const { data: subs } = await sb.from("push_subs").select("*");
   if (!subs || !subs.length) return new Response("geen toestellen");
+  const isApp = (s: any) => !!(s.sub && s.sub.fcm);
+  const web = subs.filter((s: any) => !isApp(s));
+  const appLive = subs.filter((s: any) => isApp(s) && s.sub.env !== "test");
+  const appTest = subs.filter((s: any) => isApp(s) && s.sub.env === "test");
   const cols = ["reminders", "events", "waste", "timers", "stock", "notifs", "settings"];
-  const { data: rows } = await sb.from("docs").select("col,id,data").in("col", cols);
-  const C: Record<string, any[]> = {}; cols.forEach((c) => (C[c] = []));
-  (rows || []).forEach((r: any) => C[r.col].push({ id: r.id, ...r.data }));
+  const load = async (pfx: string) => {
+    const { data: rows } = await sb.from("docs").select("col,id,data").in("col", cols.map((c) => pfx + c));
+    const C: Record<string, any[]> = {}; cols.forEach((c) => (C[c] = []));
+    (rows || []).forEach((r: any) => C[r.col.slice(pfx.length)].push({ id: r.id, ...r.data }));
+    return C;
+  };
 
   const now = local(); const t = now.date, hm = now.time, H = Number(hm.slice(0, 2));
-  const out: { key: string; to: string[]; title: string; body: string; tag?: string; icon?: string; alarm?: boolean; id?: string; silent?: boolean; sticky?: boolean }[] = [];
+  type Out = { key: string; to: string[]; title: string; body: string; tag?: string; icon?: string; alarm?: boolean; id?: string; silent?: boolean; sticky?: boolean };
+  let wx: any = undefined;
+  const build = async (C: Record<string, any[]>, devs: any[]) => {
+  const out: Out[] = [];
   const ico = (n: string) => `icons/n/${n}.png`; // icoon links in de melding, volgens het onderwerp
   const names = (w: string[]) => (w || []).map((x) => NAMES[x] || x).join(", ");
 
@@ -65,7 +80,6 @@ Deno.serve(async (req) => {
     out.push({ key: `n:${n.id}`, to, title: NAMES[n.by] || "Thuisbasis", body: n.text, icon: ico(n.kind === "agenda" ? "agenda" : n.kind === "voorraad" || n.kind === "eten" ? "cart" : "chat") });
   }
   // 3. afspraken die binnen 30 minuten beginnen (met kledijtip bij buitenactiviteiten)
-  let wx: any = undefined;
   for (const ev of C.events) {
     if (ev.allDay || !ev.start || ev.info || (ev.squad && ev.sel === "nee")) continue;
     if (ev.repeat && ev.repeat !== "none" && (ev.type === "Werk" || ev.type === "Crèche")) continue;
@@ -106,25 +120,141 @@ Deno.serve(async (req) => {
   const mc = (C.settings.find((x) => x.id === "morning") || {}).members || {};
   for (const id of [...PARENTS, ...KIDS]) {
     const cfg = mc[id] || {}; const on = cfg.on !== undefined ? !!cfg.on : PARENTS.includes(id);
-    if (!on || !subs.some((x: any) => x.member === id)) continue;
+    if (!on || !devs.some((x: any) => x.member === id)) continue;
     const at = toMin(cfg.time || "07:00"), nowM = toMin(hm);
     if (nowM < at || nowM > at + 180) continue;
     if (wx === undefined) wx = await weather();
     out.push({ key: `m:${id}:${t}`, to: [id], title: `Goeiemorgen ${NAMES[id]}`, body: morningText(id, C, t, wx), icon: ico("morning") });
   }
 
+  return out;
+  };
+
+  // alarmen, herinneringen en machines plant de app zelf in (via het plan); die gaan niet als gewone melding naar de app
+  const appMsg = (m: Out) => !/^(ra|r|tr|t):/.test(m.key);
+  const toApp = async (s: any, m: Out) => (await fcmSend(sb, s, { type: "msg", title: m.title, body: m.body, tag: m.tag || "" })) ? 1 : 0;
+
   let sent = 0;
+  const C = await load("");
+  const out = await build(C, [...web, ...appLive]);
   for (const m of out) {
     const { error } = await sb.from("push_sent").insert({ key: m.key });
     if (error) continue; // al verstuurd
-    for (const s of subs.filter((x: any) => m.to.includes(x.member))) {
+    for (const s of web.filter((x: any) => m.to.includes(x.member))) {
       try { await webpush.sendNotification(s.sub, JSON.stringify({ title: m.title, body: m.body, tag: m.tag, icon: m.icon, alarm: m.alarm || undefined, id: m.id || undefined, silent: m.silent || undefined, sticky: m.sticky || undefined })); sent++; }
       catch (e: any) { if (e && (e.statusCode === 404 || e.statusCode === 410)) await sb.from("push_subs").delete().eq("endpoint", s.endpoint); }
     }
+    if (appMsg(m)) for (const s of appLive.filter((x: any) => m.to.includes(x.member))) sent += await toApp(s, m);
+  }
+
+  // Planner test: zelfde meldingen, uit de testgegevens, enkel naar testtoestellen
+  let CT: Record<string, any[]> | null = null;
+  if (appTest.length) {
+    CT = await load("test~");
+    for (const m of await build(CT, appTest)) {
+      if (!appMsg(m)) continue;
+      const { error } = await sb.from("push_sent").insert({ key: "test|" + m.key });
+      if (error) continue;
+      for (const s of appTest.filter((x: any) => m.to.includes(x.member))) sent += await toApp(s, m);
+    }
+  }
+
+  // plan per app-toestel: enkel versturen als het veranderde (of om de 6 uur, voor de zekerheid)
+  let plans = 0;
+  for (const s of [...appLive, ...appTest]) {
+    const src = s.sub.env === "test" ? CT : C;
+    if (!src) continue;
+    const p = planFor(src, s.member), h = await hash(JSON.stringify(p));
+    if (s.sub.plan === h && Date.now() - (Number(s.sub.planAt) || 0) < 6 * 3600e3) continue;
+    if (await fcmSend(sb, s, { type: "plan", alarms: JSON.stringify(p.alarms), timers: JSON.stringify(p.timers) }, "86400s")) {
+      plans++;
+      await sb.from("push_subs").update({ sub: { ...s.sub, plan: h, planAt: Date.now() } }).eq("endpoint", s.endpoint);
+    }
   }
   await sb.from("push_sent").delete().lt("at", new Date(Date.now() - 14 * 864e5).toISOString());
-  return new Response(JSON.stringify({ candidates: out.length, sent }), { headers: { "content-type": "application/json" } });
+  return new Response(JSON.stringify({ candidates: out.length, sent, plans }), { headers: { "content-type": "application/json" } });
 });
+
+/* ---------- Planner (Android): plan per gezinslid, zelfde regels als in de app ---------- */
+function planFor(C: Record<string, any[]>, me: string) {
+  const now = Date.now(), horizon = now + 14 * 864e5, pad = (n: number) => String(n).padStart(2, "0");
+  const cut = (x: string) => String(x || "").slice(0, 80);
+  const alarms: any[] = [];
+  for (const r of C.reminders) {
+    if (r.done || !r.date || !(r.who || []).includes(me)) continue;
+    if (r.alarm) {
+      let key: string;
+      if (r.snooze) key = String(r.snooze);
+      else { let ad = r.date, am = toMin(r.time || "08:00") - (Number(r.alarmBefore) || 0); while (am < 0) { am += 1440; ad = addDays(ad, -1); } key = `${ad} ${pad(Math.floor(am / 60))}:${pad(am % 60)}`; }
+      if (r.ack === key || !/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}$/.test(key)) continue;
+      const at = bxMs(key); if (at < now - 15 * 6e4 || at > horizon) continue;
+      alarms.push({ i: r.id, k: key, a: at, n: "a", t: cut(r.title || "Alarm"), b: r.time ? `Om ${r.time}` + (Number(r.alarmBefore) && !r.snooze ? ` (over ${r.alarmBefore} min)` : "") : "Alarm" });
+    } else {
+      const key = `${r.date} ${r.time || "08:00"}`, at = bxMs(key);
+      if (at < now - 15 * 6e4 || at > horizon) continue;
+      alarms.push({ i: r.id, k: key, a: at, n: "n", t: cut(r.title || "Herinnering"), b: r.time ? `Om ${r.time}` : "" });
+    }
+  }
+  alarms.sort((a, b) => a.a - b.a);
+  const timers: any[] = [];
+  if (PARENTS.includes(me)) for (const m of C.timers) {
+    if (!m.startedAt || !m.minutes) continue;
+    const end = m.startedAt + m.minutes * 6e4;
+    if (now - end > 60 * 6e4) continue;
+    timers.push({ i: m.id, l: cut(m.label || "Machine"), s: m.startedAt, e: end });
+  }
+  return { alarms: alarms.slice(0, 20), timers };
+}
+/* "JJJJ-MM-DD UU:MM" in Belgische tijd → tijdstip in ms */
+function bxMs(key: string) {
+  const want = Date.UTC(+key.slice(0, 4), +key.slice(5, 7) - 1, +key.slice(8, 10), +key.slice(11, 13), +key.slice(14, 16));
+  let t = want;
+  for (let k = 0; k < 2; k++) {
+    const p = Object.fromEntries(new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Brussels", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hour12: false }).formatToParts(new Date(t)).map((x) => [x.type, x.value]));
+    t += want - Date.UTC(+p.year, +p.month - 1, +p.day, +p.hour % 24, +p.minute);
+  }
+  return t;
+}
+async function hash(s: string) {
+  const d = new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(s)));
+  return Array.from(d.slice(0, 12)).map((x) => x.toString(16).padStart(2, "0")).join("");
+}
+
+/* ---------- Firebase Cloud Messaging (geheim FCM_SERVICE_ACCOUNT = JSON-sleutel van het serviceaccount) ---------- */
+let fcmAuth: { token: string; exp: number; project: string } | null = null;
+const b64url = (u: Uint8Array) => { let b = ""; u.forEach((x) => (b += String.fromCharCode(x))); return btoa(b).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, ""); };
+async function fcmLogin() {
+  if (fcmAuth && fcmAuth.exp > Date.now() + 60e3) return fcmAuth;
+  let sa: any;
+  try { sa = JSON.parse(String(Deno.env.get("FCM_SERVICE_ACCOUNT") || "").trim()); } catch (_) { return null; }
+  if (!sa || !sa.private_key || !sa.client_email || !sa.project_id) return null;
+  const enc = (o: unknown) => b64url(new TextEncoder().encode(JSON.stringify(o)));
+  const iat = Math.floor(Date.now() / 1000);
+  const unsigned = enc({ alg: "RS256", typ: "JWT" }) + "." + enc({ iss: sa.client_email, scope: "https://www.googleapis.com/auth/firebase.messaging", aud: "https://oauth2.googleapis.com/token", iat, exp: iat + 3600 });
+  const der = Uint8Array.from(atob(String(sa.private_key).replace(/-----[^-]+-----/g, "").replace(/\s/g, "")), (c) => c.charCodeAt(0));
+  const key = await crypto.subtle.importKey("pkcs8", der, { name: "RSASSA-PKCS1-v1_5", hash: "SHA-256" }, false, ["sign"]);
+  const sig = new Uint8Array(await crypto.subtle.sign("RSASSA-PKCS1-v1_5", key, new TextEncoder().encode(unsigned)));
+  const r = await fetch("https://oauth2.googleapis.com/token", { method: "POST", headers: { "content-type": "application/x-www-form-urlencoded" },
+    body: "grant_type=" + encodeURIComponent("urn:ietf:params:oauth:grant-type:jwt-bearer") + "&assertion=" + unsigned + "." + b64url(sig) });
+  if (!r.ok) { console.warn("fcm login", r.status, (await r.text()).slice(0, 200)); return null; }
+  const j = await r.json();
+  fcmAuth = { token: j.access_token, exp: Date.now() + (Number(j.expires_in) || 3600) * 1000, project: sa.project_id };
+  return fcmAuth;
+}
+async function fcmSend(sb: any, s: any, data: Record<string, string>, ttl = "3600s") {
+  try {
+    const a = await fcmLogin(); if (!a) return false;
+    const r = await fetch(`https://fcm.googleapis.com/v1/projects/${a.project}/messages:send`, {
+      method: "POST", headers: { authorization: `Bearer ${a.token}`, "content-type": "application/json" },
+      body: JSON.stringify({ message: { token: s.sub.fcm, data, android: { priority: "HIGH", ttl } } })
+    });
+    if (r.ok) return true;
+    const txt = await r.text();
+    if (r.status === 404 || /UNREGISTERED/.test(txt)) await sb.from("push_subs").delete().eq("endpoint", s.endpoint);
+    else console.warn("fcm", r.status, txt.slice(0, 200));
+  } catch (e) { console.warn("fcm", e); }
+  return false;
+}
 
 /* ---------- ochtendmelding: korte samenvatting van de dag ---------- */
 function morningText(id: string, C: Record<string, any[]>, t: string, wx: any) {

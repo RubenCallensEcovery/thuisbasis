@@ -3,6 +3,7 @@
 #   branch "main" → "Planner"      (laadt de live webapp) → release "android"      → planner.apk
 # Enkel bij wijzigingen in android-app/ (of deze workflow), of met de hand via "Run workflow".
 # Ondertekening: geheimen ANDROID_KEYSTORE_B64, ANDROID_KEYSTORE_PASSWORD, ANDROID_KEY_ALIAS, ANDROID_KEY_PASSWORD.
+# Pushmeldingen: geheim GOOGLE_SERVICES_JSON (inhoud van google-services.json uit Firebase).
 name: Android-app
 on:
   push:
@@ -35,6 +36,13 @@ jobs:
         with: { distribution: temurin, java-version: 21, cache: gradle }
       - name: Capacitor klaarzetten
         run: npm ci && TB_VARIANT=$VARIANT npm run sync
+      - name: Firebase (pushmeldingen)
+        env:
+          GS: ${{ secrets.GOOGLE_SERVICES_JSON }}
+        run: |
+          if [ -z "$GS" ]; then echo "::warning::Geheim GOOGLE_SERVICES_JSON ontbreekt: app zonder pushmeldingen"; exit 0; fi
+          printf '%s' "$GS" > android/app/google-services.json
+          node -e "JSON.parse(require('fs').readFileSync('android/app/google-services.json','utf8'))"
       - name: Ondertekeningssleutel
         env:
           KS: ${{ secrets.ANDROID_KEYSTORE_B64 }}

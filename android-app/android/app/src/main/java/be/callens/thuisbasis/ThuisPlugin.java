@@ -55,36 +55,29 @@ public class ThuisPlugin extends Plugin {
         JSArray alarms = call.getArray("alarms", new JSArray());
         JSArray timers = call.getArray("timers", new JSArray());
         JSObject conn = call.getObject("conn", new JSObject());
-        org.json.JSONArray old = Store.alarms(getContext());
-        // acties die nog niet op de server staan (bv. "10 min later" zonder netwerk): lokale versie houden
-        java.util.Set<String> waiting = new java.util.HashSet<>();
-        org.json.JSONArray pend = Store.pending(getContext());
-        for (int i = 0; i < pend.length(); i++) { org.json.JSONObject o = pend.optJSONObject(i); if (o != null) waiting.add(o.optString("id")); }
-        org.json.JSONArray merged = new org.json.JSONArray();
-        for (int i = 0; i < alarms.length(); i++) {
-            org.json.JSONObject o = alarms.optJSONObject(i);
-            if (o == null) continue;
-            org.json.JSONObject local = waiting.contains(o.optString("id")) ? Store.find(old, o.optString("id")) : null;
-            merged.put(local != null ? local : o);
-        }
-        for (int i = 0; i < old.length(); i++) {
-            org.json.JSONObject o = old.optJSONObject(i);
-            if (o == null) continue;
-            String id = o.optString("id");
-            // proefalarmen bestaan enkel op dit toestel; uitgestelde alarmen in afwachting van de server ook bewaren
-            boolean keep = (id.startsWith("proef") && o.optLong("at") > System.currentTimeMillis() - 10 * 60_000L) || waiting.contains(id);
-            if (keep && Store.find(merged, id) == null) merged.put(o);
-        }
-        Store.alarms(getContext(), merged);
-        Store.timers(getContext(), timers);
+        Scheduler.plan(getContext(), alarms, timers);
         Store.str(getContext(), "url", conn.getString("url", ""));
         Store.str(getContext(), "apikey", conn.getString("key", ""));
         Store.str(getContext(), "token", conn.getString("token", ""));
         Store.str(getContext(), "pfx", conn.getString("pfx", ""));
-        Scheduler.apply(getContext());
-        AlarmService.stopIfGone(getContext());
         Remote.flush(getContext());
         call.resolve(status());
+    }
+
+    /** Firebase-pushcode van dit toestel (leeg als push niet ingebouwd is) */
+    @PluginMethod
+    public void pushToken(PluginCall call) {
+        try {
+            com.google.firebase.messaging.FirebaseMessaging.getInstance().getToken().addOnCompleteListener(t -> {
+                JSObject r = new JSObject();
+                r.put("token", t.isSuccessful() && t.getResult() != null ? t.getResult() : "");
+                call.resolve(r);
+            });
+        } catch (Exception e) {
+            JSObject r = new JSObject();
+            r.put("token", "");
+            call.resolve(r);
+        }
     }
 
     @PluginMethod

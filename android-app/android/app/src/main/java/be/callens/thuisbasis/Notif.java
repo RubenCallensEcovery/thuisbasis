@@ -25,6 +25,7 @@ final class Notif {
     static final String CH_MACHINE = "machine";
     static final String CH_KLAAR = "klaar";
     static final String CH_GEMIST = "gemist";
+    static final String CH_MSG = "meldingen";
     static final int ID_ALARM = 1001;
 
     static void channels(Context c) {
@@ -53,6 +54,10 @@ final class Notif {
         k.setSound(RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION),
             new AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_NOTIFICATION).build());
         nm.createNotificationChannel(k);
+
+        NotificationChannel b = new NotificationChannel(CH_MSG, "Meldingen", NotificationManager.IMPORTANCE_HIGH);
+        b.setDescription("Wat anderen deden, afspraken, afval, voorraad en de ochtendmelding");
+        nm.createNotificationChannel(b);
 
         NotificationChannel g = new NotificationChannel(CH_GEMIST, "Gemiste alarmen", NotificationManager.IMPORTANCE_DEFAULT);
         nm.createNotificationChannel(g);
@@ -124,6 +129,22 @@ final class Notif {
             .setContentIntent(openApp(c))
             .build();
         show(c, ("r" + id).hashCode(), n);
+    }
+
+    /** gewone melding van de server; zelfde 'tag' vervangt de vorige */
+    static void message(Context c, String tag, String title, String body) {
+        if (title == null) title = "Planner";
+        if (body == null) body = "";
+        Notification n = new NotificationCompat.Builder(c, CH_MSG)
+            .setSmallIcon(R.drawable.ic_stat_thuis)
+            .setContentTitle(title)
+            .setContentText(body)
+            .setStyle(new NotificationCompat.BigTextStyle().bigText(body))
+            .setAutoCancel(true)
+            .setContentIntent(openApp(c))
+            .build();
+        int id = tag != null && !tag.isEmpty() ? ("s" + tag).hashCode() : (int) (System.currentTimeMillis() % 1_000_000_000L);
+        show(c, id, n);
     }
 
     static String hhmm(long t) {

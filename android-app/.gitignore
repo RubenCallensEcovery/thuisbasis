@@ -2,3 +2,4 @@ node_modules/
 capacitor.config.json
 *.jks
 *.keystore
+google-services.json

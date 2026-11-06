@@ -129,4 +129,32 @@ final class Scheduler {
         } catch (Exception ignored) {}
         apply(c);
     }
+
+    /** nieuwe lijst (van de app of via push) overnemen en alles opnieuw inplannen */
+    static synchronized void plan(Context c, JSONArray alarms, JSONArray timers) {
+        JSONArray old = Store.alarms(c);
+        // acties die nog niet op de server staan (bv. "10 min later" zonder netwerk): lokale versie houden
+        Set<String> waiting = new HashSet<>();
+        JSONArray pend = Store.pending(c);
+        for (int i = 0; i < pend.length(); i++) { JSONObject o = pend.optJSONObject(i); if (o != null) waiting.add(o.optString("id")); }
+        JSONArray merged = new JSONArray();
+        for (int i = 0; i < alarms.length(); i++) {
+            JSONObject o = alarms.optJSONObject(i);
+            if (o == null) continue;
+            JSONObject local = waiting.contains(o.optString("id")) ? Store.find(old, o.optString("id")) : null;
+            merged.put(local != null ? local : o);
+        }
+        for (int i = 0; i < old.length(); i++) {
+            JSONObject o = old.optJSONObject(i);
+            if (o == null) continue;
+            String id = o.optString("id");
+            // proefalarmen bestaan enkel op dit toestel; uitgestelde alarmen in afwachting van de server ook bewaren
+            boolean keep = (id.startsWith("proef") && o.optLong("at") > System.currentTimeMillis() - 10 * 60_000L) || waiting.contains(id);
+            if (keep && Store.find(merged, id) == null) merged.put(o);
+        }
+        Store.alarms(c, merged);
+        Store.timers(c, timers);
+        apply(c);
+        AlarmService.stopIfGone(c);
+    }
 }
