@@ -1472,6 +1472,8 @@ html.praat-only #sheet{align-items:stretch}
 html.praat-only #sheet .scrim{background:var(--bg);opacity:1}
 html.praat-only #sheet .panel{width:100%;max-width:none;height:100%;max-height:100%;border-radius:0;padding-top:max(14px,env(safe-area-inset-top))}
 html.praat-only #sheet .panel > header [data-act="sheet-close"]{display:none}
+
+.flash{animation:flash 1.6s}
 </style>
 
 </head><body>
@@ -1592,8 +1594,9 @@ const DEFAULT_STORES=['Colruyt','Delhaize','Carrefour','Aldi','Lidl','Bakker','S
 const stores=()=>{const l=setting('stores').list;return l&&l.length?l:DEFAULT_STORES};
 
 /* meldingen */
-async function log(text,to=['all'],kind='info',by){
-  await add('notifs',by?{text,to,kind,by}:{text,to,kind});
+async function log(text,to=['all'],kind='info',by,go){
+  const n=by?{text,to,kind,by}:{text,to,kind}; if(go) n.go=go; /* go: waar een tik op de pushmelding naartoe gaat */
+  await add('notifs',n);
   if(mode==='db' && S.notifs.length>=58){ const old=[...S.notifs].sort((a,b)=>a.at-b.at)[0]; if(old) del('notifs',old.id); }
 }
 const visibleNotif=n=>n.by!==me && (isParent(me) ? true : (n.to||[]).includes(me)) && (typeof kindOn!=='function'||kindOn(n.kind));
@@ -1719,7 +1722,7 @@ async function squadPick(id,val){
   const ev=S.events.find(x=>x.id===id); if(!ev||!isParent(me)) return;
   const sib=squadSiblings(ev), to=[...new Set([...(ev.who||[]),...PARENTS])];
   if(val==='ja'){ await upd('events',id,{sel:'ja'});
-    toast(`⚽ ${names(ev.who)} speelt met ${ev.squad} (${dshort(ev.date)} ${ev.start})`); log(`duidde aan dat ${names(ev.who)} met ${ev.squad} speelt op ${relDay(ev.date)}${ev.opponent?' tegen '+ev.opponent:''}`,to,'agenda'); }
+    toast(`⚽ ${names(ev.who)} speelt met ${ev.squad} (${dshort(ev.date)} ${ev.start})`); log(`duidde aan dat ${names(ev.who)} met ${ev.squad} speelt op ${relDay(ev.date)}${ev.opponent?' tegen '+ev.opponent:''}`,to,'agenda',undefined,`day:${ev.date}`); }
   else if(val==='nee'){ await upd('events',id,{sel:'nee'}); toast(`${ev.squad} op ${dshort(ev.date)} verborgen`); }
   else if(val==='geen'){ for(const x of [ev,...sib]) await upd('events',x.id,{sel:'nee'}); toast(`Geen match voor ${names(ev.who)} in de week van ${dshort(monday(ev.date))}`); log(`zette dat ${names(ev.who)} niet speelt in de week van ${dshort(monday(ev.date))}`,to,'agenda'); }
   else { for(const x of [ev,...sib]) await upd('events',x.id,{sel:''}); toast('Selectie gewist: beide ploegen staan terug in de agenda'); }
@@ -2135,9 +2138,9 @@ function eventSheet(ev,day,preset){
       if(d.endDate&&d.endDate<d.date) d.endDate='';
       const to=[...new Set([...who,...PARENTS])];
       { const cs=conflictsOn(d.date,d,isNew?undefined:ev.id).filter(c=>c.ids.includes('__new')); if(cs.length&&!d.allDay) setTimeout(()=>toast('⚠️ Let op: '+cs[0].text.replace(/\*\*/g,'')),400); }
-      if(isNew){ await add('events',d); log(`zette "${evTitle(d,d.date)}" in de agenda voor ${names(who)} (${relDay(d.date)})`,to,'agenda');
+      if(isNew){ await add('events',d); log(`zette "${evTitle(d,d.date)}" in de agenda voor ${names(who)} (${relDay(d.date)})`,to,'agenda',undefined,`day:${d.date}`);
         if(d.type==='Match'&&p.querySelector('#f-next')&&p.querySelector('#f-next').checked){ const nx={title:d.title,sport:d.sport,place:d.homeAway==='uit'?'':d.place,who:d.who,type:'Match',date:addDays(d.date,7),allDay:false,start:d.start,end:d.end,repeat:'none',homeAway:d.homeAway==='thuis'?'uit':'thuis',meet:d.meet}; setTimeout(()=>eventSheet(null,nx.date,nx),350); } }
-      else { await upd('events',ev.id,d); log(`wijzigde "${d.title}" in de agenda`,to,'agenda'); }
+      else { await upd('events',ev.id,d); log(`wijzigde "${d.title}" in de agenda`,to,'agenda',undefined,`day:${d.date}`); }
     },
     onDelete:isNew?null:async()=>{ await del('events',ev.id); log(`haalde "${ev.title}" uit de agenda`,[...new Set([...(ev.who||[]),...PARENTS])],'agenda'); }
   });
@@ -4879,8 +4882,19 @@ async function alarmAction(id,k,a){ const r=(S.reminders||[]).find(x=>x.id===id)
   if(k==='done'){ await upd('reminders',id,{done:true,doneAt:Date.now(),ack:a}); toast('✓ Gedaan'); }
   else if(k==='snooze'){ const d=new Date(Date.now()+10*6e4); await upd('reminders',id,{snooze:`${iso(d)} ${pad(d.getHours())}:${pad(d.getMinutes())}`,ack:a}); toast('⏰ Over 10 minuten opnieuw'); }
   else { await upd('reminders',id,{ack:a}); } }
+/* tik op een melding: rechtstreeks naar de herinnering, de afspraak (op die dag) of het juiste scherm.
+   formaat: rem:<id> | ev:<id>:<datum> | day:<datum> | k:<scherm>[:<datum>] */
+function openGo(g){ if(!g) return; const [t,a,b]=String(g).split(':'); document.documentElement.classList.remove('praat-only');
+  if(t==='rem'){ const r=(S.reminders||[]).find(x=>x.id===a); if(r){ if(r.date) goTarget('agenda',r.date); setTimeout(()=>reminderSheet(r,r.date),r.date?350:0); } else remListSheet(); return; }
+  if(t==='ev'||t==='day'){ const d=t==='ev'?b:a; goTarget('agenda',d||today());
+    if(t==='ev') setTimeout(()=>{ const el=document.querySelector(`[data-act="ev-edit"][data-v^="${CSS.escape(a)}|"]`); if(el){ el.classList.remove('flash'); void el.offsetWidth; el.classList.add('flash'); el.scrollIntoView({block:'center',behavior:'smooth'}); } },450);
+    return; }
+  if(t==='k') goTarget(a,b); }
+let goPending=null;
+function goWhenReady(g,n=0){ if(me&&S.events&&document.querySelector('.top')) openGo(g); else if(n<60) setTimeout(()=>goWhenReady(g,n+1),250); }
+{ const m=location.hash.match(/^#go=(.+)$/); if(m){ history.replaceState(null,'',location.pathname+location.search); setTimeout(()=>goWhenReady(decodeURIComponent(m[1])),500); } }
 /* knoppen in de pushmelding (via de service worker) of een link #alarm=actie:id */
-if('serviceWorker' in navigator) navigator.serviceWorker.addEventListener('message',e=>{ const d=e.data||{}; if(d.alarm&&d.id){ alarmStop(); const go=()=>S.reminders&&S.reminders.length?alarmAction(d.id,d.alarm):setTimeout(go,800); go(); } });
+if('serviceWorker' in navigator) navigator.serviceWorker.addEventListener('message',e=>{ const d=e.data||{}; if(d.go){ goWhenReady(d.go); return; } if(d.alarm&&d.id){ alarmStop(); const go=()=>S.reminders&&S.reminders.length?alarmAction(d.id,d.alarm):setTimeout(go,800); go(); } });
 if(/[?&]praat\b/.test(location.search)){ history.replaceState(null,'',location.pathname); const go=(n=0)=>{ if(me&&document.querySelector('.top')) praatStart(); else if(n<60) setTimeout(()=>go(n+1),250); }; setTimeout(go,500); }
 { const m=location.hash.match(/^#alarm=(done|snooze|stop):(.+)$/); if(m){ history.replaceState(null,'',location.pathname+location.search); const go=(n=0)=>(S.reminders||[]).some(x=>x.id===m[2])?alarmAction(m[2],m[1]):n<20&&setTimeout(()=>go(n+1),500); setTimeout(go,600); } }
 function chime(f){ try{ if(!AC||prefs().sound===false) return; const o=AC.createOscillator(), g=AC.createGain(); o.type='sine'; o.frequency.value=f; g.gain.setValueAtTime(.0001,AC.currentTime); g.gain.exponentialRampToValueAtTime(.18,AC.currentTime+.02); g.gain.exponentialRampToValueAtTime(.0001,AC.currentTime+.45); o.connect(g).connect(AC.destination); o.start(); o.stop(AC.currentTime+.5);}catch(e){} }

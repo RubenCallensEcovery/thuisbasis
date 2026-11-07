@@ -48,7 +48,7 @@ Deno.serve(async (req) => {
   };
 
   const now = local(); const t = now.date, hm = now.time, H = Number(hm.slice(0, 2));
-  type Out = { key: string; to: string[]; title: string; body: string; tag?: string; icon?: string; alarm?: boolean; id?: string; silent?: boolean; sticky?: boolean };
+  type Out = { key: string; to: string[]; title: string; body: string; tag?: string; icon?: string; alarm?: boolean; id?: string; silent?: boolean; sticky?: boolean; go?: string };
   let wx: any = undefined;
   const build = async (C: Record<string, any[]>, devs: any[]) => {
   const out: Out[] = [];
@@ -67,17 +67,18 @@ Deno.serve(async (req) => {
       if (r.ack === at) continue;
       const el = diffDays(t, ad) * 1440 + toMin(hm) - am;
       if (el < 0 || el >= 15) continue;
-      out.push({ key: `ra:${r.id}:${at}:${Math.floor(el / 5)}`, to: r.who || [], title: `⏰ ${r.title}`, body: r.time ? `Om ${r.time}` + (Number(r.alarmBefore) && !r.snooze ? ` (over ${r.alarmBefore} min)` : "") : "Alarm", tag: "r" + r.id, icon: ico("bell"), alarm: true, id: r.id });
+      out.push({ key: `ra:${r.id}:${at}:${Math.floor(el / 5)}`, to: r.who || [], title: `⏰ ${r.title}`, body: r.time ? `Om ${r.time}` + (Number(r.alarmBefore) && !r.snooze ? ` (over ${r.alarmBefore} min)` : "") : "Alarm", tag: "r" + r.id, icon: ico("bell"), alarm: true, id: r.id, go: `rem:${r.id}` });
       continue;
     }
     if (r.date > t || (r.date === t && hm < (r.time || "08:00"))) continue;
-    out.push({ key: `r:${r.id}:${r.date}${r.time || ""}`, to: r.who || [], title: "🔔 Herinnering", body: r.title, tag: "r" + r.id, icon: ico("bell") });
+    out.push({ key: `r:${r.id}:${r.date}${r.time || ""}`, to: r.who || [], title: "🔔 Herinnering", body: r.title, tag: "r" + r.id, icon: ico("bell"), go: `rem:${r.id}` });
   }
   // 2. wat anderen deden (activiteiten van de laatste 15 minuten)
   for (const n of C.notifs) {
     if (!n.at || Date.now() - n.at > 15 * 6e4) continue;
     const to = [...PARENTS, ...KIDS].filter((m) => m !== n.by && (PARENTS.includes(m) || (n.to || []).includes(m) || (n.to || []).includes("all")));
-    out.push({ key: `n:${n.id}`, to, title: NAMES[n.by] || "Thuisbasis", body: n.text, icon: ico(n.kind === "agenda" ? "agenda" : n.kind === "voorraad" || n.kind === "eten" ? "cart" : "chat") });
+    out.push({ key: `n:${n.id}`, to, title: NAMES[n.by] || "Thuisbasis", body: n.text, icon: ico(n.kind === "agenda" ? "agenda" : n.kind === "voorraad" || n.kind === "eten" ? "cart" : "chat"),
+      go: n.go || ({ agenda: "k:agenda", voorraad: "k:voorraad", eten: "k:boodschappen", machine: "k:machines", taak: "k:klusjes", ritme: "k:ritme", regelen: "k:regelen", school: "k:rugzak" } as Record<string, string>)[n.kind] || "k:home" });
   }
   // 3. afspraken die binnen 30 minuten beginnen (met kledijtip bij buitenactiviteiten)
   for (const ev of C.events) {
@@ -90,12 +91,12 @@ Deno.serve(async (req) => {
     const kids = (ev.who || []).filter((w: string) => KIDS.includes(w));
     let tip = "";
     if (outdoor(ev)) { if (wx === undefined) wx = await weather(); tip = wxTip(wx, t, ev.start); }
-    out.push({ key: `e:${ev.id}:${t}`, to: [...PARENTS, ...kids], title: `Om ${ev.start}`, body: `${ev.title}${ev.who && ev.who.length ? " — " + names(ev.who) : ""}${tip ? "\n" + tip : ""}`, tag: "e" + ev.id, icon: ico(ev.type === "Match" || ev.type === "Training" ? "sport" : "agenda") });
+    out.push({ key: `e:${ev.id}:${t}`, to: [...PARENTS, ...kids], title: `Om ${ev.start}`, body: `${ev.title}${ev.who && ev.who.length ? " — " + names(ev.who) : ""}${tip ? "\n" + tip : ""}`, tag: "e" + ev.id, icon: ico(ev.type === "Match" || ev.type === "Training" ? "sport" : "agenda"), go: `ev:${ev.id}:${t}` });
   }
   // 4. afval: de avond ervoor vanaf 19u
   const w = C.waste.find((x) => (x.date || x.id) === addDays(t, 1));
   const ws = C.settings.find((x) => x.id === "waste") || {};
-  if (w && H >= 19 && ws.remind !== false) out.push({ key: `w:${addDays(t, 1)}`, to: PARENTS, title: "🗑️ Morgen ophaling", body: `${(w.types || []).map((x: string) => WASTE[x] || x).join(" + ")}: zet ze vanavond buiten.`, icon: ico((["gft", "pmd", "rest"].find((x) => (w.types || []).includes(x))) || "rest") });
+  if (w && H >= 19 && ws.remind !== false) out.push({ key: `w:${addDays(t, 1)}`, to: PARENTS, title: "🗑️ Morgen ophaling", body: `${(w.types || []).map((x: string) => WASTE[x] || x).join(" + ")}: zet ze vanavond buiten.`, icon: ico((["gft", "pmd", "rest"].find((x) => (w.types || []).includes(x))) || "rest"), go: `day:${addDays(t, 1)}` });
   // 5. machines die klaar zijn
   for (const m of C.timers) {
     const end = (m.startedAt || 0) + (m.minutes || 0) * 6e4;
@@ -104,16 +105,16 @@ Deno.serve(async (req) => {
       const el = Math.floor((Date.now() - m.startedAt) / 6e4), left = Math.max(1, Math.ceil((end - Date.now()) / 6e4)), n = Math.round(Math.min(1, el / Math.max(1, m.minutes)) * 10);
       const hh = new Intl.DateTimeFormat("nl-BE", { timeZone: "Europe/Brussels", hour: "2-digit", minute: "2-digit" }).format(new Date(end));
       const fm = left >= 60 ? `${Math.floor(left / 60)}u${String(left % 60).padStart(2, "0")}` : `${left} min`;
-      out.push({ key: `tr:${m.id}:${m.startedAt}:${Math.floor(el / 5)}`, to: PARENTS, title: `🫧 ${m.label || "Machine"} draait`, body: `${"▰".repeat(n)}${"▱".repeat(10 - n)}  nog ${fm} · klaar om ${hh}`, tag: "m" + m.id, icon: ico("machine"), silent: true, sticky: true });
+      out.push({ key: `tr:${m.id}:${m.startedAt}:${Math.floor(el / 5)}`, to: PARENTS, title: `🫧 ${m.label || "Machine"} draait`, body: `${"▰".repeat(n)}${"▱".repeat(10 - n)}  nog ${fm} · klaar om ${hh}`, tag: "m" + m.id, icon: ico("machine"), silent: true, sticky: true, go: "k:machines" });
       continue;
     }
     if (end > Date.now() || Date.now() - end > 60 * 6e4) continue;
-    out.push({ key: `t:${m.id}:${m.startedAt}`, to: PARENTS, title: "🫧 Klaar", body: `${m.label || "De machine"} is klaar. Tijd om uit te halen.`, tag: "m" + m.id, icon: ico("machine") });
+    out.push({ key: `t:${m.id}:${m.startedAt}`, to: PARENTS, title: "🫧 Klaar", body: `${m.label || "De machine"} is klaar. Tijd om uit te halen.`, tag: "m" + m.id, icon: ico("machine"), go: "k:machines" });
   }
   // 6. voorraad: één keer per dag vanaf 17u
   if (H >= 17) {
     const low = C.stock.filter((s) => { const c = stockLeft(s, t); return c !== null && c <= (Number(s.warnDays) || 2); }).map((s) => s.name);
-    if (low.length) out.push({ key: `s:${t}`, to: PARENTS, title: "🛒 Bijna op", body: low.join(", "), icon: ico("cart") });
+    if (low.length) out.push({ key: `s:${t}`, to: PARENTS, title: "🛒 Bijna op", body: low.join(", "), icon: ico("cart"), go: "k:voorraad" });
   }
 
   // 7. ochtendmelding: per gezinslid op het gekozen uur (aan/uit in Instellingen → Meldingen)
@@ -124,7 +125,7 @@ Deno.serve(async (req) => {
     const at = toMin(cfg.time || "07:00"), nowM = toMin(hm);
     if (nowM < at || nowM > at + 180) continue;
     if (wx === undefined) wx = await weather();
-    out.push({ key: `m:${id}:${t}`, to: [id], title: `Goeiemorgen ${NAMES[id]}`, body: morningText(id, C, t, wx), icon: ico("morning") });
+    out.push({ key: `m:${id}:${t}`, to: [id], title: `Goeiemorgen ${NAMES[id]}`, body: morningText(id, C, t, wx), icon: ico("morning"), go: `day:${t}` });
   }
 
   return out;
@@ -141,7 +142,7 @@ Deno.serve(async (req) => {
     const { error } = await sb.from("push_sent").insert({ key: m.key });
     if (error) continue; // al verstuurd
     for (const s of web.filter((x: any) => m.to.includes(x.member))) {
-      try { await webpush.sendNotification(s.sub, JSON.stringify({ title: m.title, body: m.body, tag: m.tag, icon: m.icon, alarm: m.alarm || undefined, id: m.id || undefined, silent: m.silent || undefined, sticky: m.sticky || undefined })); sent++; }
+      try { await webpush.sendNotification(s.sub, JSON.stringify({ title: m.title, body: m.body, tag: m.tag, icon: m.icon, alarm: m.alarm || undefined, id: m.id || undefined, silent: m.silent || undefined, sticky: m.sticky || undefined, go: m.go || undefined })); sent++; }
       catch (e: any) { if (e && (e.statusCode === 404 || e.statusCode === 410)) await sb.from("push_subs").delete().eq("endpoint", s.endpoint); }
     }
     if (appMsg(m)) for (const s of appLive.filter((x: any) => m.to.includes(x.member))) sent += await toApp(s, m);
