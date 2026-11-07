@@ -4607,25 +4607,15 @@ function notifSheet(){
   openSheet('Meldingen',body,{mount:p=>{const b=p.querySelector('#n-sys');if(b)b.addEventListener('click',async()=>{try{const r=await Notification.requestPermission();b.outerHTML=r==='granted'?'<p class="muted">Toestelmeldingen staan aan zolang de app open staat.</p>':'<p class="muted">Je toestel staat geen meldingen toe vanuit deze pagina. Je ziet ze wel hier en als pop-up in de app.</p>'}catch(e){b.outerHTML='<p class="muted">Je toestel staat geen meldingen toe vanuit deze pagina. Je ziet ze wel hier en als pop-up in de app.</p>'}})}});
   ls.set(seenKey(),Date.now()); scheduleRender();
 }
-/* ---------- MIJN CYCLUS: enkel voor Charlotte. Alles wordt op haar toestel versleuteld met haar eigen code (AES-GCM);
-   in de gedeelde opslag staat enkel onleesbare tekst, dus ook de rest van het gezin, Jonah en de server kunnen het niet lezen. ---------- */
-const CY={key:null,salt:null,data:null,month:null,busy:false};
+/* ---------- MIJN CYCLUS: enkel voor Charlotte (alleen in haar profielmenu; Jonah krijgt deze gegevens niet mee) ---------- */
+const CY={data:null,month:null};
 const CY_OWNERS=['charlotte'];
 const cyOwner=()=>CY_OWNERS.includes(me);
 const cyId=()=>`cyclus-${me}`;
 const cyDocGet=()=>(S.privaat||[]).find(x=>x.id===cyId());
-const cyB64=u=>{let b='';new Uint8Array(u).forEach(x=>b+=String.fromCharCode(x));return btoa(b)}, cyUnb64=s=>Uint8Array.from(atob(s),c=>c.charCodeAt(0));
-async function cyDerive(code,salt){ const base=await crypto.subtle.importKey('raw',new TextEncoder().encode(code),'PBKDF2',false,['deriveKey']);
-  return crypto.subtle.deriveKey({name:'PBKDF2',salt,iterations:250000,hash:'SHA-256'},base,{name:'AES-GCM',length:256},true,['encrypt','decrypt']); }
-async function cyDecrypt(key,doc){ const pt=await crypto.subtle.decrypt({name:'AES-GCM',iv:cyUnb64(doc.iv)},key,cyUnb64(doc.ct)); return JSON.parse(new TextDecoder().decode(pt)); }
-async function cySave(){ const iv=crypto.getRandomValues(new Uint8Array(12));
-  const ct=await crypto.subtle.encrypt({name:'AES-GCM',iv},CY.key,new TextEncoder().encode(JSON.stringify(CY.data)));
-  await put('privaat',cyId(),{v:1,salt:cyB64(CY.salt),iv:cyB64(iv),ct:cyB64(ct),at:Date.now(),by:me}); }
-async function cyRemember(on){ try{ if(on) ls.set('tb_cy_'+me,cyB64(await crypto.subtle.exportKey('raw',CY.key))); else localStorage.removeItem('tb_cy_'+me); }catch(e){} }
-/* onthouden sleutel op dit toestel: automatisch openen */
-async function cyAuto(){ if(CY.data||!cyOwner()) return; const doc=cyDocGet(), raw=ls.get('tb_cy_'+me,null); if(!doc||!raw) return;
-  try{ const key=await crypto.subtle.importKey('raw',cyUnb64(raw),{name:'AES-GCM'},true,['encrypt','decrypt']); CY.data=await cyDecrypt(key,doc); CY.key=key; CY.salt=cyUnb64(doc.salt); scheduleRender(); }catch(e){ localStorage.removeItem('tb_cy_'+me); } }
-function cyLock(){ CY.key=null; CY.data=null; cyRemember(false); render(); }
+function cyLoad(){ const d=cyDocGet(); CY.data=d&&d.data?JSON.parse(JSON.stringify(d.data)):null; if(CY.data){ CY.data.settings=CY.data.settings||{}; CY.data.periods=CY.data.periods||[]; CY.data.days=CY.data.days||{}; } }
+async function cySave(){ await put('privaat',cyId(),{v:2,data:CY.data,at:Date.now(),by:me}); }
+function cyAuto(){ if(cyOwner()) { cyLoad(); if(ui.view==='cyclus') scheduleRender(); } }
 
 /* ---- berekeningen ---- */
 function cyCalc(){
@@ -4666,9 +4656,8 @@ const CY_FLOW=[['spotting','Spotting'],['licht','Licht'],['normaal','Normaal'],[
 /* ---- scherm ---- */
 function renderCycle(){
   if(!cyOwner()) return `<p class="empty">Dit deel is persoonlijk.</p>`;
-  const doc=cyDocGet();
-  if(!doc) return cySetupView();
-  if(!CY.data) return cyUnlockView();
+  if(!CY.data) cyLoad();
+  if(!CY.data) return cySetupView();
   const C=cyCalc(), t=today(), ph=CY_PHASE[C.phase];
   const m=CY.month||t.slice(0,7)+'-01';
   let h=`<section class="cy">
@@ -4722,40 +4711,25 @@ function renderCycle(){
       <label class="field" style="flex:1"><span>Menstruatie (dagen)</span><input class="in" type="number" min="1" max="14" id="cy-plen" value="${Number(CY.data.settings.periodLen)||5}"></label></div>
       <p class="set-note" style="margin:0">Die waarden gebruikt de app zolang er nog te weinig cycli genoteerd zijn. Daarna rekent ze met je eigen gemiddelde.</p>
       <label class="check"><input type="checkbox" id="cy-home" ${CY.data.settings.home?'checked':''}> Toon een klein vakje op de startpagina (enkel als jij aangemeld bent)</label>
-      <div class="row" style="gap:8px;flex-wrap:wrap"><button class="btn" data-act="cy-saveset">Bewaren</button><button class="btn" data-act="cy-lock">🔒 Vergrendelen</button><button class="btn ghost" data-act="cy-wipe" style="color:var(--danger)">Alles wissen</button></div>
-      <p class="set-note" style="margin:0">🔒 Alles wordt op dit toestel versleuteld met jouw code. Niemand anders in het gezin, ook Jonah niet, kan het lezen. Vergeet je je code, dan zijn de gegevens niet meer te herstellen.</p></div></div>`;
+      <div class="row" style="gap:8px;flex-wrap:wrap"><button class="btn" data-act="cy-saveset">Bewaren</button><button class="btn ghost" data-act="cy-wipe" style="color:var(--danger)">Alles wissen</button></div>
+      <p class="set-note" style="margin:0">Dit staat enkel in jouw profielmenu en Jonah krijgt het niet te zien.</p></div></div>`;
   return h+`</section>`;
 }
 function cySetupView(){
   return `<section class="cy"><div class="card cy-intro"><div style="font-size:44px">🌸</div><h2>Mijn cyclus</h2>
     <p>Hou je menstruatie bij in je eigen kalender. De app voorspelt je volgende menstruatie, je vruchtbare dagen en je eisprong, en legt uit wat er in elke fase gebeurt.</p>
-    <p class="muted">🔒 Alleen voor jou. Alles wordt versleuteld met een code die enkel jij kent. Ruben, de kinderen en Jonah zien hier niets van.</p>
+    <p class="muted">Dit staat enkel in jouw profielmenu. Jonah krijgt deze gegevens niet mee.</p>
     <form class="form" data-form="cy-setup">
-      <label class="field"><span>Kies een code (minstens 4 tekens)</span><input class="in" type="password" id="cy-c1" autocomplete="new-password" minlength="4" required></label>
-      <label class="field"><span>Nog een keer</span><input class="in" type="password" id="cy-c2" autocomplete="new-password" minlength="4" required></label>
       <label class="field"><span>Eerste dag van je laatste menstruatie (mag leeg)</span><input class="in" type="date" id="cy-last" max="${today()}"></label>
       <div class="row" style="gap:10px"><label class="field" style="flex:1"><span>Gewone cyclus (dagen)</span><input class="in" type="number" id="cy-len0" value="28" min="15" max="60"></label>
       <label class="field" style="flex:1"><span>Menstruatie (dagen)</span><input class="in" type="number" id="cy-plen0" value="5" min="1" max="14"></label></div>
-      <label class="check"><input type="checkbox" id="cy-rem" checked> Onthoud mijn code op dit toestel (zet uit op een gedeelde tablet)</label>
-      <p class="set-note" style="margin:0">Vergeet je je code, dan kan niemand je gegevens nog openen, ook Ruben niet.</p>
       <button class="btn primary" type="submit">Starten</button></form></div></section>`;
 }
-function cyUnlockView(){
-  return `<section class="cy"><div class="card cy-intro"><div style="font-size:44px">🔒</div><h2>Mijn cyclus</h2><p class="muted">Tik je code om je gegevens te openen.</p>
-    <form class="form" data-form="cy-unlock"><input class="in" type="password" id="cy-code" autocomplete="current-password" placeholder="Code" required>
-    <label class="check"><input type="checkbox" id="cy-rem" checked> Onthoud op dit toestel</label>
-    <p id="cy-err" class="muted" style="color:var(--danger);margin:0" hidden>Die code klopt niet.</p>
-    <button class="btn primary" type="submit">Openen</button></form></div></section>`;
-}
 async function cyForm(f){
-  if(f.dataset.form==='cy-setup'){ const a=$('#cy-c1').value, b=$('#cy-c2').value; if(a.length<4) return toast('Kies een code van minstens 4 tekens'); if(a!==b) return toast('De twee codes zijn niet gelijk');
-    CY.salt=crypto.getRandomValues(new Uint8Array(16)); CY.key=await cyDerive(a,CY.salt);
-    const last=$('#cy-last').value;
-    CY.data={v:1,settings:{cycleLen:Math.min(60,Math.max(15,Number($('#cy-len0').value)||28)),periodLen:Math.min(14,Math.max(1,Number($('#cy-plen0').value)||5)),home:false},periods:last?[{s:last,e:diffDays(today(),last)>=Number($('#cy-plen0').value||5)?addDays(last,(Number($('#cy-plen0').value)||5)-1):null}]:[],days:{}};
-    await cySave(); await cyRemember($('#cy-rem').checked); toast('🌸 Je cyclus staat klaar'); render(); return; }
-  if(f.dataset.form==='cy-unlock'){ const doc=cyDocGet(); const btn=f.querySelector('button[type=submit]'); btn.disabled=true; btn.textContent='Even geduld…';
-    try{ const salt=cyUnb64(doc.salt), key=await cyDerive($('#cy-code').value,salt); CY.data=await cyDecrypt(key,doc); CY.key=key; CY.salt=salt; await cyRemember($('#cy-rem').checked); render(); }
-    catch(e){ btn.disabled=false; btn.textContent='Openen'; $('#cy-err').hidden=false; $('#cy-code').select(); } }
+  if(f.dataset.form!=='cy-setup') return;
+  const last=$('#cy-last').value, pl=Math.min(14,Math.max(1,Number($('#cy-plen0').value)||5));
+  CY.data={v:2,settings:{cycleLen:Math.min(60,Math.max(15,Number($('#cy-len0').value)||28)),periodLen:pl,home:false},periods:last?[{s:last,e:diffDays(today(),last)>=pl?addDays(last,pl-1):null}]:[],days:{}};
+  await cySave(); toast('🌸 Je cyclus staat klaar'); render();
 }
 /* menstruatie op een dag aan/uit: perioden bijwerken */
 function cySetPeriodDay(d,on){
@@ -4811,7 +4785,7 @@ function pinSheet(id,purpose){
         const o=Object.assign({},setting('pins'));delete o.id;o[id]=hash(code);await put('settings','pins',o);closeSheet();toast('Pincode ingesteld');return}
       if(hash(code)===setting('pins')[id]){closeSheet();doLogin(id)}else{code='';p.querySelector('.pin-dots').classList.add('err');p.querySelector('#pin-msg').textContent='Dat klopt niet. Probeer opnieuw.';setTimeout(()=>{p.querySelector('.pin-dots').classList.remove('err');draw(p)},400)}})}});
 }
-function doLogin(id){ if(typeof CY!=='undefined'){ CY.key=null; CY.data=null; } me=id; ls.set('tb_me',id); if(window.TB_PUSH) TB_PUSH.enable(id,false).catch(()=>{}); lastNotifAt=Math.max(Date.now()-1000, ls.get('tb_seen_'+id,0)); ui.view='home'; ui.filter=new Set(ALL); render(); window.scrollTo(0,0); }
+function doLogin(id){ if(typeof CY!=='undefined') CY.data=null; me=id; ls.set('tb_me',id); if(window.TB_PUSH) TB_PUSH.enable(id,false).catch(()=>{}); lastNotifAt=Math.max(Date.now()-1000, ls.get('tb_seen_'+id,0)); ui.view='home'; ui.filter=new Set(ALL); render(); window.scrollTo(0,0); }
 function quickSheet(){
   const kid=!isParent(me);
   const opts=kid?[['school-new','Toets of werkje','in je rugzak'],['rem-new','Herinnering','op een dag of uur'],['food-tab|lijst','Iets op het lijstje','boodschappen']]:
@@ -4890,8 +4864,7 @@ const ACT={
   'cy-start':async()=>{ const t=today(); cySetPeriodDay(t,true); CY.data.days=CY.data.days||{}; CY.data.days[t]=Object.assign({},CY.data.days[t],{flow:'normaal'}); await cySave(); toast('🌸 Genoteerd: menstruatie begonnen'); render(); },
   'cy-stop':async()=>{ const P=(CY.data.periods||[]).slice().sort((a,b)=>a.s.localeCompare(b.s)), l=P[P.length-1]; if(l){ l.e=today()<l.s?l.s:today(); CY.data.periods=P; await cySave(); toast('Genoteerd: menstruatie gestopt'); render(); } },
   'cy-saveset':async()=>{ const s2=CY.data.settings; s2.cycleLen=Math.min(60,Math.max(15,Number($('#cy-len').value)||28)); s2.periodLen=Math.min(14,Math.max(1,Number($('#cy-plen').value)||5)); s2.home=$('#cy-home').checked; await cySave(); toast('Bewaard'); render(); },
-  'cy-lock':()=>{ cyLock(); toast('🔒 Vergrendeld'); },
-  'cy-wipe':()=>openSheet('Alles wissen?',`<p>Al je cyclusgegevens worden definitief verwijderd. Dit kan niet ongedaan gemaakt worden.</p>`,{saveLabel:'Definitief wissen',onSave:async()=>{ await del('privaat',cyId()); CY.key=null; CY.data=null; cyRemember(false); toast('Gewist'); render(); }}),
+  'cy-wipe':()=>openSheet('Alles wissen?',`<p>Al je cyclusgegevens worden definitief verwijderd. Dit kan niet ongedaan gemaakt worden.</p>`,{saveLabel:'Definitief wissen',onSave:async()=>{ await del('privaat',cyId()); CY.data=null; toast('Gewist'); render(); }}),
   'stock-step':v=>{const [id,d]=v.split('|');const s=S.stock.find(x=>x.id===id);if(s)stockStepQty(id,Number(d)*qStep(s))},
   'stock-setq':v=>{const [id,q]=v.split('|');stockStepQty(id,0,Number(q))},
   'stock-qadd':async v=>{const b=document.querySelector(`[data-act="stock-qadd"][data-v="${CSS.escape(v)}"]`);if(b)b.classList.add('pop');vib(8);const d=await stockQuickAdd(v);if(d)toast(`${d.name} staat in de voorraad`);setTimeout(()=>{if(document.querySelector('[data-act="stock-qadd"]'))stockQuickSheet()},320)},
