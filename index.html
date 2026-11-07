@@ -1510,6 +1510,19 @@ html.praat-only #sheet .panel > header [data-act="sheet-close"]{display:none}
 .cy-mini{display:flex;align-items:center;gap:8px;margin:0 0 12px;padding:10px 14px;border-radius:14px;background:var(--surface);box-shadow:var(--shadow);cursor:pointer;font-size:14.5px}
 html[data-style="bauhaus"] .cy-head,html[data-style="bauhaus"] .cy-mini{border-radius:0;border:var(--bw) solid var(--line);border-left:10px solid var(--pc);box-shadow:none}
 html[data-style="bauhaus"] .cy-stats div,html[data-style="bauhaus"] .cy-flag{border-radius:0}
+
+.cy-soon{margin-top:10px;padding:8px 10px;border-radius:10px;background:color-mix(in srgb,var(--pc) 12%,var(--surface));font-size:14px}
+.cy-quick{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-top:14px}
+.cy-quick>span{font-weight:700;font-size:13px;color:var(--muted);margin-right:2px}
+.cy-q{border:2px solid #D9455F;background:transparent;color:#D9455F;border-radius:999px;padding:7px 12px;font:inherit;font-weight:700;font-size:14px;cursor:pointer}
+.cy-q.none{border-color:var(--line);color:var(--muted)}
+.cy-q[aria-pressed="true"]{background:#D9455F;color:#fff}
+.cy-q.none[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:var(--bg)}
+.cy-q.spotting{border-style:dashed}
+.cy-pat{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px}
+.cy-rep{white-space:pre-wrap;font:13.5px/1.5 ui-monospace,Menlo,monospace;background:var(--surface-2);padding:12px;border-radius:10px;max-height:50vh;overflow:auto;margin:0}
+.cy-plist{display:flex;flex-wrap:wrap;gap:6px}.cy-plist span{font-size:12.5px;padding:3px 8px;border-radius:999px;background:rgba(217,69,95,.12);color:#B5334C}
+html[data-style="bauhaus"] .cy-q,html[data-style="bauhaus"] .cy-soon,html[data-style="bauhaus"] .cy-rep{border-radius:0}
 </style>
 
 </head><body>
@@ -4666,7 +4679,9 @@ function renderCycle(){
       <div class="cy-ph"><span class="cy-dot"></span>${esc(ph.n)}</div>
       ${C.next?`<div class="cy-next">${C.open?`Menstruatie bezig, dag ${C.day}. Verwacht tot ±${dshort(C.endOf(C.last))}.`:C.late?`<b>${C.late} ${C.late===1?'dag':'dagen'} later</b> dan verwacht (${dshort(C.next)}).`:`Volgende menstruatie <b>±${dshort(C.next)}</b> (over ${diffDays(C.next,t)} ${diffDays(C.next,t)===1?'dag':'dagen'})${C.recent.length>=2&&C.max-C.min>0?`<span class="muted">, tussen ${dshort(addDays(C.last.s,C.min))} en ${dshort(addDays(C.last.s,C.max))}</span>`:''}.`}</div>`:''}
       ${C.fert&&!C.late&&!C.open&&t<=C.fert[1]?`<div class="cy-next">Vruchtbare dagen ±${dshort(C.fert[0])} – ${dshort(C.fert[1])}, eisprong rond ${dshort(C.ov)}.</div>`:''}
-      <div class="cy-btns">${C.open?`<button class="btn primary" data-act="cy-stop">Menstruatie gestopt</button>`:`<button class="btn primary" data-act="cy-start">Menstruatie begonnen</button>`}<button class="btn" data-act="cy-day" data-v="${t}">Vandaag noteren</button></div>
+      ${(()=>{ const pt=cyPatterns(); return pt.soon.length?`<div class="cy-soon">🔮 Verwacht de komende dagen, zoals vorige cycli: <b>${pt.soon.map(x=>esc(x.toLowerCase())).join(', ')}</b></div>`:''; })()}
+      <div class="cy-quick"><span>Vandaag</span>${[['','Geen'],['spotting','Spotting'],['licht','Licht'],['normaal','Normaal'],['hevig','Hevig']].map(([v,l])=>{ const L=(CY.data.days||{})[t]||{}, cur=L.flow||(C.open?'normaal':''); return `<button class="cy-q ${v||'none'}" data-act="cy-flow" data-v="${v}" aria-pressed="${cur===v}">${l}</button>`; }).join('')}</div>
+      <div class="cy-btns">${C.open?`<button class="btn" data-act="cy-stop">Menstruatie gestopt</button>`:''}<button class="btn" data-act="cy-day" data-v="${t}">Klachten & stemming</button><button class="btn" data-act="cy-past">＋ Vroegere menstruatie</button></div>
     </div>`;
   /* kalender */
   const first=parse(m), y=first.getFullYear(), mo=first.getMonth(), start=addDays(m,-((first.getDay()+6)%7)), dim=new Date(y,mo+1,0).getDate();
@@ -4685,6 +4700,8 @@ function renderCycle(){
     <div class="cy-leg"><span><i class="p"></i>Menstruatie</span><span><i class="pp"></i>Verwacht</span><span><i class="fw"></i>Vruchtbaar</span><span><i class="ov"></i>Eisprong</span><span><i class="nt"></i>Notitie</span></div></div>`;
   /* uitleg */
   h+=`<div class="card cy-info" style="--pc:${ph.c}"><h3><span class="cy-dot"></span>${esc(ph.n)}</h3><p>${ph.t}</p></div>`;
+  { const pt=cyPatterns();
+    h+=`<div class="card"><h3 style="margin-top:0">Jouw patronen</h3>${pt.list.length||pt.pms?`<ul class="cy-pat">${pt.pms?`<li><b>PMS</b> begint gemiddeld <b>${pt.pms.days} dagen</b> vóór je menstruatie <span class="muted">(${pt.pms.n} cycli)</span></li>`:''}${pt.list.slice(0,8).map(x=>`<li><b>${esc(x.lab)}</b>: ${x.txt} <span class="muted">(${x.n} van ${x.tot} cycli)</span></li>`).join('')}</ul>`:`<p class="muted" style="margin:0">Noteer een paar cycli lang je klachten en stemming (tik op een dag). Dan toont de app hier wat bij jou telkens terugkomt, en waarschuwt ze vooraf.</p>`}</div>`; }
   /* cijfers */
   const reg=C.recent.length<3?'Nog te weinig cycli om iets te zeggen over de regelmaat. Na drie cycli worden de voorspellingen nauwkeuriger.':C.max-C.min<=7?'Je cyclus is regelmatig: de lengte schommelt hooguit een week.':`Je cyclus schommelt ${C.max-C.min} dagen (van ${C.min} tot ${C.max}). Dat komt vaak voor, maar de voorspellingen zijn dan minder precies.`;
   const flags=[];
@@ -4697,6 +4714,7 @@ function renderCycle(){
       <div><b>${C.avgP}</b><span>dagen menstruatie${C.plens.length?'':' (ingesteld)'}</span></div>
       <div><b>${C.recent.length?C.min+'–'+C.max:'–'}</b><span>kortste – langste</span></div>
       <div><b>${C.P.length}</b><span>menstruaties genoteerd</span></div></div>
+    <button class="btn" data-act="cy-report" style="margin-top:12px">📄 Overzicht voor de dokter</button>
     <p class="muted" style="margin:12px 0 0">${reg}</p>
     ${C.recent.length?`<div class="cy-hist">${C.lens.slice(-6).map((l,i,a)=>{ const p=C.P[C.P.length-a.length-1+i]; return `<div><span>${dshort(p.s)}</span><i style="width:${Math.min(100,l/45*100)}%"></i><b>${l} d</b></div>`; }).join('')}</div>`:''}
     ${flags.length?`<div class="cy-flag"><b>Bespreek dit gerust met je huisarts of gynaecoloog:</b><ul>${flags.map(f=>`<li>${f}</li>`).join('')}</ul></div>`:''}</div>`;
@@ -4757,6 +4775,87 @@ function cyDaySheet(d){
       if(Object.keys(n).length) CY.data.days[d]=n; else delete CY.data.days[d];
       await cySave(); render(); }});
 }
+/* vandaag de hevigheid in één tik */
+async function cySetFlow(d,flow){ const C=cyCalc(); const inPer=C.P.some(p=>d>=p.s&&d<=(p.e||(C.open&&p===C.last?today():C.endOf(p))));
+  const isP=!!flow&&flow!=='spotting'; if(isP!==inPer) cySetPeriodDay(d,isP);
+  CY.data.days=CY.data.days||{}; const n=Object.assign({},CY.data.days[d]); if(flow) n.flow=flow; else delete n.flow;
+  if(Object.keys(n).length) CY.data.days[d]=n; else delete CY.data.days[d]; await cySave(); }
+/* PATRONEN: wat komt bij haar telkens terug, gerekend t.o.v. de start van de menstruatie */
+const CY_PMS=['Gevoelige borsten','Opgeblazen','Trek','Puistjes','Hoofdpijn','Moe','mood:prikkelbaar','mood:somber','mood:angstig'];
+function cyPatterns(){
+  const C=cyCalc(), days=CY.data.days||{}, P=C.P; if(P.length<2) return {list:[],pms:null,soon:[]};
+  const starts=P.map(p=>p.s), ev={};   /* key -> [{cyc, before|null, cday}] */
+  for(const [d,L] of Object.entries(days)){
+    let k=-1; for(let i=0;i<starts.length;i++) if(starts[i]<=d) k=i; if(k<0) continue;
+    const next=starts[k+1]||null, cday=diffDays(d,starts[k])+1, before=next?diffDays(next,d):null;
+    const keys=[...(L.sym||[]),...(L.mood&&['prikkelbaar','somber','angstig'].includes(L.mood)?['mood:'+L.mood]:[])];
+    for(const key of keys) (ev[key]=ev[key]||[]).push({cyc:k,cday,before});
+  }
+  const nCyc=starts.length, lab=k=>k.startsWith('mood:')?{'mood:prikkelbaar':'Prikkelbaar','mood:somber':'Somber','mood:angstig':'Onrustig'}[k]:k;
+  const med=a=>{const b=a.slice().sort((x,y)=>x-y);return b[Math.floor((b.length-1)/2)]};
+  const list=[];
+  for(const [key,arr] of Object.entries(ev)){
+    const cycs=new Set(arr.map(x=>x.cyc)); if(cycs.size<2) continue;
+    const pre=arr.filter(x=>x.before!=null&&x.before>=1&&x.before<=12&&x.cday>(C.avgP+1)), dur=arr.filter(x=>x.cday<=C.avgP+1);
+    if(pre.length>=dur.length&&new Set(pre.map(x=>x.cyc)).size>=2){ const b=pre.map(x=>x.before), lo=Math.min(...b), hi=Math.max(...b), m=med(b);
+      list.push({key,lab:lab(key),when:'pre',lo:Math.max(1,Math.min(lo,m-1)),hi:Math.min(hi,m+1),m,n:new Set(pre.map(x=>x.cyc)).size,tot:nCyc-1,
+        txt:`meestal ${m===1?'de dag':m+' dagen'} vóór je menstruatie`}); }
+    else if(new Set(dur.map(x=>x.cyc)).size>=2){ const c=dur.map(x=>x.cday), m=med(c);
+      list.push({key,lab:lab(key),when:'dur',m,n:new Set(dur.map(x=>x.cyc)).size,tot:nCyc,txt:`meestal op dag ${Math.min(...c)===Math.max(...c)?m:Math.min(...c)+'–'+Math.max(...c)} van je menstruatie`}); }
+  }
+  list.sort((a,b)=>b.n-a.n);
+  /* PMS: per afgeronde cyclus het eerste PMS-teken vóór de menstruatie */
+  const firsts=[]; for(let k=0;k<nCyc-1;k++){ const b=Object.entries(ev).filter(([key])=>CY_PMS.includes(key)).flatMap(([,a])=>a.filter(x=>x.cyc===k&&x.before!=null&&x.before<=12&&x.cday>(C.avgP+1)).map(x=>x.before)); if(b.length) firsts.push(Math.max(...b)); }
+  const pms=firsts.length>=2?{days:Math.round(firsts.reduce((a,b)=>a+b,0)/firsts.length),n:firsts.length}:null;
+  /* wat staat er de komende dagen te verwachten */
+  const soon=[]; const nx=C.open?null:(C.late?null:C.next);
+  if(nx){ const until=diffDays(nx,today());
+    for(const x of list.filter(x=>x.when==='pre')) if(until>=x.lo-1&&until<=x.hi+1) soon.push(x.lab);
+    if(pms&&until<=pms.days+1&&until>=1) soon.unshift('PMS'); }
+  if(C.open){ const cd=C.day; for(const x of list.filter(x=>x.when==='dur')) if(Math.abs(cd-x.m)<=1) soon.push(x.lab); }
+  return {list,pms,soon:[...new Set(soon)]};
+}
+const CY_FLOWN={spotting:'spotting',licht:'licht',normaal:'normaal',hevig:'hevig'};
+function cyReportText(){
+  const C=cyCalc(), days=CY.data.days||{}, P=C.P.slice(-7), lines=[];
+  lines.push(`Overzicht menstruatiecyclus – ${nm(me)}`,`Opgemaakt op ${dlong(today())}`,'');
+  lines.push(`Gemiddelde cyclus: ${C.avg} dagen${C.recent.length?` (kortste ${C.min}, langste ${C.max}, laatste ${C.recent.length} cycli)`:' (nog te weinig gegevens)'}`);
+  lines.push(`Gemiddelde duur menstruatie: ${C.avgP} dagen`);
+  if(C.last) lines.push(`Laatste menstruatie begonnen op ${dlong(C.last.s)}${C.late?` · nu ${C.late} dagen later dan verwacht`:''}`);
+  lines.push('','Per cyclus:');
+  P.forEach((p,i)=>{ const nx=C.P[C.P.indexOf(p)+1]; const len=nx?diffDays(nx.s,p.s):null, dur=p.e?diffDays(p.e,p.s)+1:null;
+    const fl=[];for(let d=p.s;d<=(p.e||p.s);d=addDays(d,1)){const f=(days[d]||{}).flow;if(f)fl.push(f)}
+    const heavy=fl.includes('hevig')?'hevig':fl.includes('normaal')?'normaal':fl.includes('licht')?'licht':'';
+    const symC={}; const end=nx?nx.s:addDays(today(),1); for(const [d,L] of Object.entries(days)) if(d>=p.s&&d<end) (L.sym||[]).forEach(x=>symC[x]=(symC[x]||0)+1);
+    const sym=Object.entries(symC).sort((a,b)=>b[1]-a[1]).map(([k,v])=>`${k.toLowerCase()} (${v}×)`).join(', ');
+    lines.push(`• ${dshort(p.s)}: menstruatie ${dur?dur+' dagen':'bezig'}${heavy?`, max. ${heavy}`:''}${len?`, cyclus ${len} dagen`:''}${sym?`; klachten: ${sym}`:''}`); });
+  const pat=cyPatterns(); if(pat.list.length||pat.pms){ lines.push('','Terugkerende klachten:'); if(pat.pms) lines.push(`• PMS begint gemiddeld ${pat.pms.days} dagen vóór de menstruatie`); pat.list.forEach(x=>lines.push(`• ${x.lab}: ${x.txt.replace('je menstruatie','de menstruatie')} (${x.n} van ${x.tot} cycli)`)); }
+  const spot=Object.entries(days).filter(([d,L])=>L.flow==='spotting'&&!C.P.some(p=>d>=p.s&&d<=(p.e||p.s))).map(([d])=>dshort(d));
+  if(spot.length) lines.push('',`Spotting tussen menstruaties: ${spot.slice(-8).join(', ')}`);
+  const notes=Object.entries(days).filter(([,L])=>L.note).sort().slice(-6).map(([d,L])=>`• ${dshort(d)}: ${L.note}`);
+  if(notes.length) lines.push('','Notities:',...notes);
+  return lines.join('\n');
+}
+function cyReportSheet(){ const txt=cyReportText();
+  openSheet('Overzicht voor de dokter',`<div class="form"><pre class="cy-rep">${esc(txt)}</pre>
+    <div class="row" style="gap:8px;flex-wrap:wrap">${navigator.share?'<button class="btn primary" id="cy-share">Delen</button>':''}<button class="btn" id="cy-copy">Kopiëren</button><button class="btn" id="cy-print">Afdrukken / PDF</button></div></div>`,{
+    mount:p=>{ const sh=p.querySelector('#cy-share'); if(sh) sh.addEventListener('click',()=>navigator.share({title:'Overzicht cyclus',text:txt}).catch(()=>{}));
+      p.querySelector('#cy-copy').addEventListener('click',async()=>{ try{ await navigator.clipboard.writeText(txt); toast('Gekopieerd'); }catch(e){ toast('Kopiëren lukte niet'); } });
+      p.querySelector('#cy-print').addEventListener('click',()=>{ const w=window.open('','_blank'); if(!w) return toast('Sta pop-ups toe om af te drukken'); w.document.write(`<!doctype html><meta charset="utf-8"><title>Overzicht cyclus</title><pre style="font:14px/1.5 system-ui;white-space:pre-wrap;padding:24px">${esc(txt)}</pre><script>print()<\/script>`); w.document.close(); }); }});
+}
+/* vroegere menstruaties ineens toevoegen */
+function cyPastSheet(){
+  openSheet('Vroegere menstruatie toevoegen',`<div class="form"><p class="muted" style="margin:0">Hoe meer vroegere menstruaties je invult, hoe beter de voorspellingen meteen kloppen.</p>
+    <div class="row" style="gap:10px"><label class="field" style="flex:1"><span>Van</span><input class="in" type="date" id="cyp-s" max="${today()}"></label><label class="field" style="flex:1"><span>Tot en met</span><input class="in" type="date" id="cyp-e" max="${today()}"></label></div>
+    <div id="cyp-list" class="cy-plist">${(CY.data.periods||[]).slice().sort((a,b)=>b.s.localeCompare(a.s)).slice(0,8).map(p=>`<span>${dshort(p.s)}${p.e&&p.e!==p.s?' – '+dshort(p.e):''}</span>`).join('')}</div>
+    <button class="btn" id="cyp-more" type="button">Toevoegen en nog een</button></div>`,{saveLabel:'Toevoegen',
+    mount:p=>{ const s1=p.querySelector('#cyp-s'), e1=p.querySelector('#cyp-e');
+      s1.addEventListener('change',()=>{ if(s1.value&&!e1.value) e1.value=addDays(s1.value,(Number(CY.data.settings.periodLen)||5)-1)>today()?today():addDays(s1.value,(Number(CY.data.settings.periodLen)||5)-1); });
+      p.querySelector('#cyp-more').addEventListener('click',async()=>{ if(await cyAddPast(s1.value,e1.value)){ s1.value='';e1.value=''; p.querySelector('#cyp-list').innerHTML=(CY.data.periods||[]).slice().sort((a,b)=>b.s.localeCompare(a.s)).slice(0,8).map(q=>`<span>${dshort(q.s)}${q.e&&q.e!==q.s?' – '+dshort(q.e):''}</span>`).join(''); s1.focus(); render(); } }); },
+    onSave:async p=>{ const a=p.querySelector('#cyp-s').value; if(a){ if(!(await cyAddPast(a,p.querySelector('#cyp-e').value))) return false; } render(); }});
+}
+async function cyAddPast(s1,e1){ if(!s1){ toast('Kies de eerste dag'); return false; } const e=e1&&e1>=s1?e1:s1;
+  const P=(CY.data.periods||[]).filter(p=>!(p.s<=e&&(p.e||p.s)>=s1)); P.push({s:s1,e}); P.sort((a,b)=>a.s.localeCompare(b.s)); CY.data.periods=P; await cySave(); toast(`Toegevoegd: ${dshort(s1)}`); return true; }
 function cyHomeCard(){
   if(!cyOwner()||!CY.data||!CY.data.settings.home) return '';
   const C=cyCalc(); if(!C.last) return ''; const ph=CY_PHASE[C.phase];
@@ -4863,6 +4962,9 @@ const ACT={
   'cy-m':v=>{ const m=CY.month||today().slice(0,7)+'-01', d=parse(m); d.setMonth(d.getMonth()+Number(v)); CY.month=iso(d).slice(0,8)+'01'; render(); },
   'cy-start':async()=>{ const t=today(); cySetPeriodDay(t,true); CY.data.days=CY.data.days||{}; CY.data.days[t]=Object.assign({},CY.data.days[t],{flow:'normaal'}); await cySave(); toast('🌸 Genoteerd: menstruatie begonnen'); render(); },
   'cy-stop':async()=>{ const P=(CY.data.periods||[]).slice().sort((a,b)=>a.s.localeCompare(b.s)), l=P[P.length-1]; if(l){ l.e=today()<l.s?l.s:today(); CY.data.periods=P; await cySave(); toast('Genoteerd: menstruatie gestopt'); render(); } },
+  'cy-flow':async v=>{ await cySetFlow(today(),v); toast(v?`Vandaag: ${v}`:'Vandaag: geen menstruatie'); render(); },
+  'cy-past':()=>cyPastSheet(),
+  'cy-report':()=>cyReportSheet(),
   'cy-saveset':async()=>{ const s2=CY.data.settings; s2.cycleLen=Math.min(60,Math.max(15,Number($('#cy-len').value)||28)); s2.periodLen=Math.min(14,Math.max(1,Number($('#cy-plen').value)||5)); s2.home=$('#cy-home').checked; await cySave(); toast('Bewaard'); render(); },
   'cy-wipe':()=>openSheet('Alles wissen?',`<p>Al je cyclusgegevens worden definitief verwijderd. Dit kan niet ongedaan gemaakt worden.</p>`,{saveLabel:'Definitief wissen',onSave:async()=>{ await del('privaat',cyId()); CY.data=null; toast('Gewist'); render(); }}),
   'stock-step':v=>{const [id,d]=v.split('|');const s=S.stock.find(x=>x.id===id);if(s)stockStepQty(id,Number(d)*qStep(s))},
