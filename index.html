@@ -1523,6 +1523,23 @@ html[data-style="bauhaus"] .cy-stats div,html[data-style="bauhaus"] .cy-flag{bor
 .cy-rep{white-space:pre-wrap;font:13.5px/1.5 ui-monospace,Menlo,monospace;background:var(--surface-2);padding:12px;border-radius:10px;max-height:50vh;overflow:auto;margin:0}
 .cy-plist{display:flex;flex-wrap:wrap;gap:6px}.cy-plist span{font-size:12.5px;padding:3px 8px;border-radius:999px;background:rgba(217,69,95,.12);color:#B5334C}
 html[data-style="bauhaus"] .cy-q,html[data-style="bauhaus"] .cy-soon,html[data-style="bauhaus"] .cy-rep{border-radius:0}
+
+/* doorlopende lijn voor activiteiten over meerdere dagen */
+.mbars{position:absolute;left:0;right:0;bottom:5px;height:22px;pointer-events:none;z-index:2}
+.mb{position:absolute;left:-4px;right:-4px;bottom:calc(var(--lane) * 8px);height:5px;background:var(--c)}
+.mb.s{left:7px;border-top-left-radius:3px;border-bottom-left-radius:3px}
+.mb.e{right:7px;border-top-right-radius:3px;border-bottom-right-radius:3px}
+.mgrid.coll .mb{bottom:calc(var(--lane) * 7px)}
+
+.mbt{display:none}
+@media (min-width:900px){
+  .mbars{height:40px}
+  .mb{bottom:calc(var(--lane) * 17px)}
+  .mbt{display:block;position:absolute;left:2px;bottom:6px;font-size:11px;font-weight:700;line-height:1.1;color:var(--c);white-space:nowrap;max-width:calc(100% * 7);overflow:hidden;text-overflow:ellipsis;filter:brightness(.8)}
+  .mb.s .mbt{left:0}
+  .mb:not(.s) .mbt{left:8px}
+  .mbt{font-style:normal}
+}
 </style>
 
 </head><body>
@@ -2071,15 +2088,22 @@ function renderAgenda(){
     const coll=ui.mColl, gStart=coll?monday(ui.agSel):start, gDays=coll?7:weeks*7;
     let g=`<div class="mgrid ${coll?'coll':''}">${['ma','di','wo','do','vr','za','zo'].map(x=>`<div class="wd">${x}</div>`).join('')}`;
     const isVac=o=>o.ev.virtual==='holiday'||o.ev.type==='Vakantie';
-    const vacAt=[...Array(gDays)].map((_,i)=>{const m=eventsOn(addDays(gStart,i),ui.filter).find(o=>o.len>0||isVac(o));return m?m.ev:null});
+    const vacAt=[...Array(gDays)].map((_,i)=>{const m=eventsOn(addDays(gStart,i),ui.filter).find(o=>isVac(o));return m?m.ev:null});
+    /* activiteiten over meerdere dagen (kamp, weekend weg…): een doorlopende lijn onderaan de dagen, elk op een eigen baan */
+    const isSpan=o=>o.len>0&&!isVac(o)&&o.ev.virtual!=='school'&&o.ev.virtual!=='waste'&&!o.ev.info;
+    const laneOf=new Map(), spanAt=[];
+    for(let i=0;i<gDays;i++){ const d=addDays(gStart,i), sp=eventsOn(d,ui.filter).filter(isSpan).map(o=>({o,key:o.ev.id+'@'+addDays(d,-o.k)}));
+      const used=new Set(sp.filter(x=>laneOf.has(x.key)).map(x=>laneOf.get(x.key)));
+      sp.sort((a,b)=>b.o.len-a.o.len).forEach(x=>{ if(!laneOf.has(x.key)){ let l=0; while(used.has(l)) l++; laneOf.set(x.key,l); used.add(l); } });
+      spanAt.push(sp.filter(x=>laneOf.get(x.key)<3)); }
     for(let i=0;i<gDays;i++){
       const d=addDays(gStart,i), evs=eventsOn(d,ui.filter);
-      const dots=evs.filter(o=>!isVac(o)&&o.ev.virtual!=='school'&&o.ev.virtual!=='waste'&&!isRoutine(o.ev)&&!o.ev.info&&o.ev.type!=='Werk'&&o.ev.type!=='School'&&o.ev.type!=='Crèche').map(o=>{ const g=whoGroups(o.ev.who); return Object.assign(g.map(x=>x.c),{t:g.map(x=>x.t).join(', ')}); }).filter(w=>w.length);
+      const dots=evs.filter(o=>!isVac(o)&&!isSpan(o)&&o.ev.virtual!=='school'&&o.ev.virtual!=='waste'&&!isRoutine(o.ev)&&!o.ev.info&&o.ev.type!=='Werk'&&o.ev.type!=='School'&&o.ev.type!=='Crèche').map(o=>{ const g=whoGroups(o.ev.who); return Object.assign(g.map(x=>x.c),{t:g.map(x=>x.t).join(', ')}); }).filter(w=>w.length);
       const multi=evs.find(o=>o.len>0);
       const V=vacAt[i], same=j=>j>=0&&j<gDays&&!!vacAt[j]&&!!V;
       const vs=V?{t:!same(i-7),b:!same(i+7),l:i%7===0||!same(i-1),r:i%7===6||!same(i+1)}:null;
       const vStyle=V?`--vc:${V.type==='Vakantie'||V.virtual==='holiday'?'#E0A21B':evColor(V)};--vt:-3px;--vb:-3px;--vl:-3px;--vr:-3px;--bt:${vs.t?1.5:0}px;--bb:${vs.b?1.5:0}px;--bl:${vs.l?1.5:0}px;--br:${vs.r?1.5:0}px;--rtl:${vs.t&&vs.l?15:0}px;--rtr:${vs.t&&vs.r?15:0}px;--rbl:${vs.b&&vs.l?15:0}px;--rbr:${vs.b&&vs.r?15:0}px`:'';
-      g+=`<button class="mcell ${V?'vacd':''} ${parse(d).getMonth()!==a.getMonth()?'out':''} ${d===t?'today':''}" ${V?`style="${vStyle}" title="${esc(V.title)}"`:''} data-act="ag-sel" data-v="${d}" aria-pressed="${d===ui.agSel}" aria-label="${dlong(d)}, ${evs.length} items${d===ui.agSel&&isParent(me)?'. Tik nog eens voor een nieuwe afspraak':''}"><span class="n">${parse(d).getDate()}</span><span class="mdots">${dots.slice(0,6).map(w=>`<i class="${w.length>1?'multi':''}" style="background:${w.length===1?w[0]:`conic-gradient(${w.map((x,j)=>`${x} ${(j/w.length*100).toFixed(1)}% ${((j+1)/w.length*100).toFixed(1)}%`).join(',')})`}" title="${esc(w.t)}"></i>`).join('')}</span></button>`;
+      g+=`<button class="mcell ${V?'vacd':''} ${parse(d).getMonth()!==a.getMonth()?'out':''} ${d===t?'today':''}" ${V?`style="${vStyle}" title="${esc(V.title)}"`:''} data-act="ag-sel" data-v="${d}" aria-pressed="${d===ui.agSel}" aria-label="${dlong(d)}, ${evs.length} items${d===ui.agSel&&isParent(me)?'. Tik nog eens voor een nieuwe afspraak':''}"><span class="n">${parse(d).getDate()}</span><span class="mdots">${dots.slice(0,6).map(w=>`<i class="${w.length>1?'multi':''}" style="background:${w.length===1?w[0]:`conic-gradient(${w.map((x,j)=>`${x} ${(j/w.length*100).toFixed(1)}% ${((j+1)/w.length*100).toFixed(1)}%`).join(',')})`}" title="${esc(w.t)}"></i>`).join('')}</span>${spanAt[i].length?`<span class="mbars" aria-hidden="true">${spanAt[i].map(x=>`<i class="mb${x.o.k===0?' s':''}${x.o.k===x.o.len?' e':''}" style="--c:${evColor(x.o.ev)};--lane:${laneOf.get(x.key)}" title="${esc(x.o.ev.title)}">${x.o.k===0||i%7===0?`<b class="mbt">${esc(x.o.ev.title)}</b>`:''}</i>`).join('')}</span>`:''}</button>`;
     }
     g+=`</div>`;
     const sel=ui.agSel, evsAll=eventsOn(sel,ui.filter), meal=mealOf(sel);
