@@ -51,4 +51,14 @@ def tone():
         w.setnchannels(1); w.setsampwidth(2); w.setframerate(sr)
         w.writeframes(b''.join(struct.pack('<h', int(x / peak * 26000)) for x in buf))
 
-write('live', False); write('proef', True); tone(); print('ok')
+def shortcut():
+    # icoon voor de snelkoppeling "Praat met Jonah" (Jonah uit de webapp, met ruimte rond zoals het app-icoon)
+    src = Image.open(os.path.join(SRC, '..', 'jonah', 'icon-maskable-512.png')).convert('RGBA')
+    s = 192; k = s; im = Image.new('RGBA', (s, s), BG)
+    im.paste(src.resize((k, k), Image.LANCZOS), ((s - k) // 2, (s - k) // 2))
+    m = Image.new('L', (s, s), 0); ImageDraw.Draw(m).ellipse([0, 0, s - 1, s - 1], fill=255)
+    out = Image.new('RGBA', (s, s), (0, 0, 0, 0)); out.paste(im, (0, 0), m)
+    d = os.path.join(RES, 'main', 'res', 'drawable-nodpi'); os.makedirs(d, exist_ok=True)
+    out.save(os.path.join(d, 'ic_shortcut_jonah.png'))
+
+write('live', False); write('proef', True); tone(); shortcut(); print('ok')

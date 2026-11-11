@@ -112,6 +112,13 @@ final class Scheduler {
         PendingIntent tick = firePi(c, "tick", "machines", null, PendingIntent.FLAG_UPDATE_CURRENT);
         if (next != Long.MAX_VALUE) am.setAndAllowWhileIdle(AlarmManager.RTC, next, tick);
         else am.cancel(tick);
+
+        // widget "Vandaag": nu bijwerken, en net na middernacht opnieuw (nieuwe dag)
+        java.util.Calendar mid = java.util.Calendar.getInstance();
+        mid.add(java.util.Calendar.DAY_OF_MONTH, 1);
+        mid.set(java.util.Calendar.HOUR_OF_DAY, 0); mid.set(java.util.Calendar.MINUTE, 1); mid.set(java.util.Calendar.SECOND, 0);
+        am.setAndAllowWhileIdle(AlarmManager.RTC, mid.getTimeInMillis(), firePi(c, "tick", "middernacht", null, PendingIntent.FLAG_UPDATE_CURRENT));
+        VandaagWidget.update(c);
     }
 
     /** "10 min later": meteen op dit toestel opnieuw inplannen, los van de server */

@@ -27,6 +27,24 @@ public class ThuisPlugin extends Plugin {
     private static volatile String pendingGo = null;
     private volatile boolean loaded = false;
 
+    static android.app.Activity activity() { ThuisPlugin p = current.get(); return p == null ? null : p.getActivity(); }
+    static WebView webView() { ThuisPlugin p = current.get(); return p == null || p.bridge == null ? null : p.bridge.getWebView(); }
+
+    /** snelkoppeling "Praat met Jonah": gespreksmodus openen (zelfde als ?praat=1 in de webapp) */
+    static void praat() {
+        pendingPraat = true;
+        ThuisPlugin p = current.get();
+        if (p != null && p.loaded) p.getActivity().runOnUiThread(p::runPraat);
+    }
+    private static volatile boolean pendingPraat = false;
+    private void runPraat() {
+        if (!pendingPraat || bridge == null || bridge.getWebView() == null) return;
+        pendingPraat = false;
+        bridge.getWebView().evaluateJavascript(
+            "(function(){var n=0;(function t(){if(typeof praatStart==='function'&&typeof me!=='undefined'&&me&&document.querySelector('.top')){praatStart();}" +
+            "else if(n++<60){setTimeout(t,250);}else{location.href=location.pathname+'?praat=1';}})();})()", null);
+    }
+
     /** tik op een melding: naar de juiste plek in de app (zelfde 'go' als bij de webapp) */
     static void go(String g) {
         if (g == null || g.isEmpty()) return;
@@ -77,6 +95,7 @@ public class ThuisPlugin extends Plugin {
                 inject(webView);
                 loaded = true;
                 runGo();
+                runPraat();
             }
         });
     }

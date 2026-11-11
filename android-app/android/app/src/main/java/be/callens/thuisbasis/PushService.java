@@ -32,6 +32,7 @@ public class PushService extends FirebaseMessagingService {
                     timers.put(new JSONObject().put("id", x.optString("i")).put("label", x.optString("l")).put("start", x.optLong("s")).put("end", x.optLong("e")).put("ring", x.optInt("r", 1) == 1));
                 }
                 Notif.channels(this);
+                if (d.containsKey("day")) Store.str(this, "day", d.get("day")); // voor de widget "Vandaag"
                 Scheduler.plan(this, alarms, timers);
             } catch (Exception ignored) {}
         } else if ("msg".equals(type)) {

@@ -38,6 +38,11 @@ public class MainActivity extends BridgeActivity {
             ThuisPlugin.go(go);
             return;
         }
+        if (in != null && "be.callens.thuisbasis.PRAAT".equals(in.getAction())) {
+            in.setAction(Intent.ACTION_MAIN);
+            ThuisPlugin.praat();
+            return;
+        }
         if (in != null && "be.callens.thuisbasis.STATUS".equals(in.getAction())) {
             in.setAction(Intent.ACTION_MAIN);
             showStatus();
@@ -133,5 +138,6 @@ public class MainActivity extends BridgeActivity {
     public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
         if (requestCode == 7) askNext();
+        if (requestCode == Voice.REQ_MIC) Voice.onPermission(this, bridge.getWebView(), grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED);
     }
 }

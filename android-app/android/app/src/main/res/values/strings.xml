@@ -6,4 +6,8 @@
     <string name="sc_proef_lang">Proefalarm over 10 seconden</string>
     <string name="sc_status">Status</string>
     <string name="sc_status_lang">Status: werkt alles?</string>
+    <string name="sc_praat">Praat met Jonah</string>
+    <string name="sc_praat_lang">Praat met Jonah</string>
+    <string name="widget_naam">Vandaag</string>
+    <string name="widget_uitleg">Afspraken en herinneringen van vandaag, de machine die aftelt en de ophaling van morgen</string>
 </resources>

@@ -167,7 +167,7 @@ Deno.serve(async (req) => {
     if (!src) continue;
     const p = planFor(src, s.member), h = await hash(JSON.stringify(p));
     if (s.sub.plan === h && Date.now() - (Number(s.sub.planAt) || 0) < 6 * 3600e3) continue;
-    if (await fcmSend(sb, s, { type: "plan", alarms: JSON.stringify(p.alarms), timers: JSON.stringify(p.timers) }, "86400s")) {
+    if (await fcmSend(sb, s, { type: "plan", alarms: JSON.stringify(p.alarms), timers: JSON.stringify(p.timers), day: JSON.stringify(p.day) }, "86400s")) {
       plans++;
       await sb.from("push_subs").update({ sub: { ...s.sub, plan: h, planAt: Date.now() } }).eq("endpoint", s.endpoint);
     }
@@ -206,7 +206,23 @@ function planFor(C: Record<string, any[]>, me: string) {
     const ring = Array.isArray(m.alarmFor) ? m.alarmFor.includes(me) : m.by === me;
     timers.push({ i: m.id, l: cut(m.label || "Machine"), s: m.startedAt, e: end, r: ring ? 1 : 0 });
   }
-  return { alarms: alarms.slice(0, 20), timers };
+  return { alarms: alarms.slice(0, 20), timers, day: dayFor(C, me) };
+}
+/* widget "Vandaag": afspraken van vandaag (zoals in de ochtendmelding) en de ophaling van morgen */
+const COLORS: Record<string, string> = { charlotte: "#DB3F76", ruben: "#4A5370", nant: "#1F9858", abel: "#1E8FB8", max: "#E07A1F" };
+function dayFor(C: Record<string, any[]>, me: string) {
+  const t = local().date, parent = PARENTS.includes(me);
+  const fam = ((C.settings.find((x) => x.id === "family") || {}).members || {}) as Record<string, any>;
+  const colorOf = (who: string[]) => (who || []).length > 1 ? "#F2B705" : ((fam[(who || [])[0]] || {}).color || COLORS[(who || [])[0]] || "#8A8578");
+  const on = (ev: any, d: string) => occursOn(ev, d) || (!!ev.endDate && (ev.repeat || "none") === "none" && d >= ev.date && d <= ev.endDate);
+  const ev = C.events.filter((e) => e.date && !e.info && !(e.squad && e.sel === "nee") && on(e, t) && !(e.conge || []).includes(t))
+    .filter((e) => !(e.repeat && e.repeat !== "none" && (e.type === "Werk" || e.type === "Crèche")))
+    .filter((e) => parent ? true : (e.who || []).includes(me))
+    .sort((a, b) => (a.allDay || !a.start ? "00" : a.start).localeCompare(b.allDay || !b.start ? "00" : b.start))
+    .slice(0, 8)
+    .map((e) => ({ t: e.allDay || !e.start ? "" : e.start, n: String(e.title || "").slice(0, 42), c: colorOf(e.who) }));
+  const w = parent ? C.waste.find((x) => (x.date || x.id) === addDays(t, 1)) : null;
+  return { d: t, ev, w: w ? (w.types || []).map((x: string) => WASTE[x] || x).join(" + ") : "" };
 }
 /* "JJJJ-MM-DD UU:MM" in Belgische tijd → tijdstip in ms */
 function bxMs(key: string) {

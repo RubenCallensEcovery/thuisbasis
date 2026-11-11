@@ -23,6 +23,47 @@
   };
   report('script', 'actief (' + (N ? 'eigen kanaal' : 'Capacitor') + ')');
 
+  /* spraak voor "Praat met Jonah": Androids spraakherkenning en voorleesstem, in dezelfde vorm als in de browser.
+     Dit loopt vóór de webapp start, zodat die ziet dat spraak beschikbaar is. */
+  if (N && N.speechStart) {
+    var srs = {}, srSeq = 0;
+    window.__thuisSR = function (id, type, data) {
+      var r = srs[id]; if (!r) return;
+      try {
+        if (type === 'start') { r.onstart && r.onstart({}); }
+        else if (type === 'result') { var item = [{ transcript: data.text, confidence: 1 }]; item.isFinal = !!data.final; var res = [item]; r.onresult && r.onresult({ results: res, resultIndex: 0 }); }
+        else if (type === 'error') { r.onerror && r.onerror({ error: data }); }
+        else if (type === 'end') { delete srs[id]; r.onend && r.onend({}); }
+      } catch (e) { console.warn('spraak', e); }
+    };
+    var SR = function () { this.lang = 'nl-BE'; this.interimResults = false; this.continuous = false; this.maxAlternatives = 1; };
+    SR.prototype.start = function () { this._id = ++srSeq; srs[this._id] = this; N.speechStart(this._id, this.lang || 'nl-BE', !!this.interimResults); };
+    SR.prototype.stop = function () { N.speechStop(this._id || 0); };
+    SR.prototype.abort = function () { N.speechAbort(this._id || 0); };
+    SR.prototype.addEventListener = function (t, f) { this['on' + t] = f; };
+    window.SpeechRecognition = window.webkitSpeechRecognition = SR;
+    // kwam dit script pas na de webapp (oude WebView)? dan de webapp laten weten dat spraak er nu is
+    setTimeout(function () { try { if (typeof VOICE !== 'undefined' && VOICE) VOICE.ok = true; } catch (e) {} }, 0);
+  }
+  if (N && N.ttsSpeak) {
+    var utts = {}, uSeq = 0;
+    window.__thuisTTS = function (id, type) {
+      var u = utts[id]; if (!u) return; delete utts[id];
+      try { if (type === 'end') { u.onend && u.onend({}); } else { u.onerror && u.onerror({}); } } catch (e) {}
+    };
+    var Utt = function (t) { this.text = t || ''; this.lang = 'nl-BE'; this.rate = 1; this.voice = null; };
+    var synth = {
+      speaking: false, pending: false, paused: false,
+      speak: function (u) { var id = ++uSeq; utts[id] = u; N.ttsSpeak(id, String(u.text || ''), u.lang || 'nl-BE', Number(u.rate) || 1); },
+      cancel: function () { utts = {}; N.ttsStop(); },
+      pause: function () {}, resume: function () {},
+      getVoices: function () { return []; },
+      addEventListener: function () {}
+    };
+    try { Object.defineProperty(window, 'speechSynthesis', { value: synth, configurable: true, writable: true }); } catch (e) {}
+    try { Object.defineProperty(window, 'SpeechSynthesisUtterance', { value: Utt, configurable: true, writable: true }); } catch (e) {}
+  }
+
   /* alarmen rinkelen in de app via Android (eigen beltoon, volledig scherm); het alarmvenster van de webapp
      zou dubbel zijn en blijft anders staan nadat je al op Gedaan/Later/Stop tikte → hier onderdrukken */
   (function quietWebAlarm() {

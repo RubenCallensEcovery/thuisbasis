@@ -65,6 +65,37 @@ final class NativeApi {
         }
     }
 
+    /* ---------- spraak (Praat met Jonah) ---------- */
+    @JavascriptInterface
+    public void speechStart(int id, String lang, boolean interim) {
+        android.app.Activity a = ThuisPlugin.activity();
+        if (a != null) Voice.start(a, ThuisPlugin.webView(), id, lang, interim);
+    }
+
+    @JavascriptInterface
+    public void speechStop(int id) {
+        android.app.Activity a = ThuisPlugin.activity();
+        if (a != null) Voice.stop(a);
+    }
+
+    @JavascriptInterface
+    public void speechAbort(int id) {
+        android.app.Activity a = ThuisPlugin.activity();
+        if (a != null) Voice.abort(a);
+    }
+
+    @JavascriptInterface
+    public void ttsSpeak(int id, String text, String lang, float rate) {
+        android.app.Activity a = ThuisPlugin.activity();
+        if (a != null) Voice.speak(a, ThuisPlugin.webView(), id, text, lang, rate);
+    }
+
+    @JavascriptInterface
+    public void ttsStop() {
+        android.app.Activity a = ThuisPlugin.activity();
+        if (a != null) Voice.silence(a);
+    }
+
     /** Firebase-pushcode van dit toestel ("" als die er (nog) niet is) */
     @JavascriptInterface
     public String pushToken() {
