@@ -60,7 +60,7 @@
   }
 
   function build(rows, me) {
-    var now = Date.now(), alarms = [], timers = [], horizon = now + 21 * 864e5;
+    var now = Date.now(), alarms = [], timers = [], ask = [], horizon = now + 21 * 864e5;
     rows.forEach(function (row) {
       var col = row.col.slice(PFX.length), x = row.data || {};
       if (col === 'reminders') {
@@ -79,11 +79,14 @@
         if (!PARENTS.includes(me) || !x.startedAt || !x.minutes) return;
         var end = x.startedAt + x.minutes * 6e4;
         if (now - end > 60 * 6e4) return;
-        timers.push({ id: row.id, label: x.label || 'Machine', start: x.startedAt, end: end });
+        // alarm als ze klaar is: wie gekozen werd (popup bij het starten), anders wie ze startte
+        var ring = Array.isArray(x.alarmFor) ? x.alarmFor.includes(me) : x.by === me;
+        timers.push({ id: row.id, label: x.label || 'Machine', start: x.startedAt, end: end, ring: ring });
+        if (x.by === me && !Array.isArray(x.alarmFor) && end > now && now - x.startedAt < 3 * 6e4) ask.push({ id: row.id, label: x.label || 'Machine', start: x.startedAt, me: me });
       }
     });
     alarms.sort(function (a, b) { return a.at - b.at; });
-    return { alarms: alarms.slice(0, 60), timers: timers };
+    return { alarms: alarms.slice(0, 60), timers: timers, ask: ask };
   }
 
   var busy = false, last = '';
@@ -102,6 +105,13 @@
       });
       if (!r.ok) { report('error', 'gegevens lezen mislukt: ' + r.status); return; }
       var out = build(await r.json(), me);
+      // net een machine gestart? vraag wie een alarm krijgt (één keer per machine)
+      out.ask.forEach(function (q) {
+        var k = 'tbAppAsked:' + q.id + ':' + q.start, done = false;
+        try { done = !!localStorage.getItem(k); localStorage.setItem(k, '1'); } catch (e) {}
+        if (!done && N && N.askMachine) N.askMachine(JSON.stringify(q));
+      });
+      delete out.ask;
       out.conn = { url: C.supabaseUrl, key: C.supabaseKey, token: token, pfx: PFX };
       out.me = me;
       register(C, token, me);
@@ -136,6 +146,9 @@
   // even wachten tot de app ingelogd is; daarna om de 20 s zolang de app open is, en bij terugkeren
   setTimeout(sync, 1500);
   setInterval(function () { if (document.visibilityState === 'visible') sync(); }, 20000);
+  // na een tik in de app (bv. machine gestart, herinnering bewaard) snel bijwerken
+  var soon = null;
+  document.addEventListener('click', function () { clearTimeout(soon); soon = setTimeout(function () { last = ''; sync(); }, 1500); }, { capture: true, passive: true });
   document.addEventListener('visibilitychange', function () { if (document.visibilityState === 'visible') { last = ''; setTimeout(sync, 800); } });
   window.addEventListener('storage', function (e) { if (e.key === 'tb_me') { last = ''; sync(); } });
 

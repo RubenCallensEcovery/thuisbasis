@@ -45,6 +45,12 @@ final class NativeApi {
         }
     }
 
+    /** popup "wie krijgt een alarm als de machine klaar is?" ({id, label, start, me}) */
+    @JavascriptInterface
+    public void askMachine(String json) {
+        try { ThuisPlugin.askMachine(new JSONObject(json)); } catch (Exception ignored) {}
+    }
+
     /** Firebase-pushcode van dit toestel ("" als die er (nog) niet is) */
     @JavascriptInterface
     public String pushToken() {

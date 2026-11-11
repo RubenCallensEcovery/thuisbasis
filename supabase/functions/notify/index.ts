@@ -202,7 +202,9 @@ function planFor(C: Record<string, any[]>, me: string) {
     if (!m.startedAt || !m.minutes) continue;
     const end = m.startedAt + m.minutes * 6e4;
     if (now - end > 60 * 6e4) continue;
-    timers.push({ i: m.id, l: cut(m.label || "Machine"), s: m.startedAt, e: end });
+    // r: alarm als ze klaar is (wie gekozen werd bij het starten, anders wie ze startte)
+    const ring = Array.isArray(m.alarmFor) ? m.alarmFor.includes(me) : m.by === me;
+    timers.push({ i: m.id, l: cut(m.label || "Machine"), s: m.startedAt, e: end, r: ring ? 1 : 0 });
   }
   return { alarms: alarms.slice(0, 20), timers };
 }

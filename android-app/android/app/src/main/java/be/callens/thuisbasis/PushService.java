@@ -29,7 +29,7 @@ public class PushService extends FirebaseMessagingService {
                 JSONArray t = new JSONArray(d.containsKey("timers") ? d.get("timers") : "[]"), timers = new JSONArray();
                 for (int i = 0; i < t.length(); i++) {
                     JSONObject x = t.getJSONObject(i);
-                    timers.put(new JSONObject().put("id", x.optString("i")).put("label", x.optString("l")).put("start", x.optLong("s")).put("end", x.optLong("e")));
+                    timers.put(new JSONObject().put("id", x.optString("i")).put("label", x.optString("l")).put("start", x.optLong("s")).put("end", x.optLong("e")).put("ring", x.optInt("r", 1) == 1));
                 }
                 Notif.channels(this);
                 Scheduler.plan(this, alarms, timers);
