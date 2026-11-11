@@ -176,4 +176,22 @@
             android:textSize="13.5sp"
             android:textStyle="bold" />
     </LinearLayout>
+
+    <TextView
+        android:id="@+id/w_sum"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:background="@drawable/widget_pill"
+        android:ellipsize="end"
+        android:maxLines="2"
+        android:paddingStart="12dp"
+        android:paddingEnd="12dp"
+        android:paddingTop="5dp"
+        android:paddingBottom="5dp"
+        android:shadowColor="#80000000"
+        android:shadowRadius="3"
+        android:textColor="#FFFFFF"
+        android:textSize="12.5sp"
+        android:visibility="gone" />
 </LinearLayout>

@@ -42,8 +42,21 @@ public class VandaagWidget extends AppWidgetProvider {
     private static final int[] TEXT = { R.id.w_t1, R.id.w_t2, R.id.w_t3, R.id.w_t4 };
     private static final int RED = 0xFFD7301F;
 
+    static final String PAGE = "be.callens.thuisbasis.WIDGET_PAGE";
+
     @Override
     public void onUpdate(Context c, AppWidgetManager m, int[] ids) { update(c); }
+
+    /** tik op de bolletjes: naar de andere pagina (icoontjes ↔ samenvatting) */
+    @Override
+    public void onReceive(Context c, android.content.Intent in) {
+        if (PAGE.equals(in.getAction())) {
+            Store.p(c).edit().putInt("widget_page", 1 - Store.p(c).getInt("widget_page", 0)).apply();
+            update(c);
+            return;
+        }
+        super.onReceive(c, in);
+    }
 
     @Override
     public void onAppWidgetOptionsChanged(Context c, AppWidgetManager m, int id, Bundle o) { update(c); }
@@ -54,16 +67,17 @@ public class VandaagWidget extends AppWidgetProvider {
             int[] ids = m.getAppWidgetIds(new ComponentName(c, VandaagWidget.class));
             if (ids == null || ids.length == 0) return;
             List<Item> items = load(c);
+            String sum = summary(c);
             for (int id : ids) {
                 if (Build.VERSION.SDK_INT >= 31) {
                     Map<SizeF, RemoteViews> map = new HashMap<>();
-                    map.put(new SizeF(100, 40), build(c, items, 0));
-                    map.put(new SizeF(210, 40), build(c, items, 1));
-                    map.put(new SizeF(300, 40), build(c, items, 2));
+                    map.put(new SizeF(100, 40), build(c, items, sum, 0));
+                    map.put(new SizeF(210, 40), build(c, items, sum, 1));
+                    map.put(new SizeF(300, 40), build(c, items, sum, 2));
                     m.updateAppWidget(id, new RemoteViews(map));
                 } else {
                     int w = m.getAppWidgetOptions(id).getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH, 300);
-                    m.updateAppWidget(id, build(c, items, w < 200 ? 0 : w < 300 ? 1 : 2));
+                    m.updateAppWidget(id, build(c, items, sum, w < 200 ? 0 : w < 300 ? 1 : 2));
                 }
             }
             scheduleNext(c, items);
@@ -164,6 +178,15 @@ public class VandaagWidget extends AppWidgetProvider {
         return out;
     }
 
+    /** samenvatting van de dag in één zin (van de server), enkel als ze van vandaag is */
+    static String summary(Context c) {
+        try {
+            JSONObject day = new JSONObject(Store.str(c, "day"));
+            if (fmt("yyyy-MM-dd", System.currentTimeMillis()).equals(day.optString("d"))) return day.optString("s");
+        } catch (Exception ignored) {}
+        return "";
+    }
+
     /** "straks" schuift door: opnieuw tekenen als een item voorbij is */
     private static void scheduleNext(Context c, List<Item> items) {
         long now = System.currentTimeMillis(), next = Long.MAX_VALUE;
@@ -200,12 +223,34 @@ public class VandaagWidget extends AppWidgetProvider {
         return b;
     }
 
-    /** mode: 0 = enkel icoontjes, 1 = icoon + uur/tijd, 2 = eerstvolgende met titel */
-    static RemoteViews build(Context c, List<Item> items, int mode) {
-        RemoteViews v = new RemoteViews(c.getPackageName(), R.layout.widget_vandaag);
+    /**
+     * mode: 0 = enkel icoontjes, 1 = icoon + uur/tijd, 2 = eerstvolgende met titel.
+     * Samenvatting: past ze erbij (niets of één item op een brede widget), dan staat ze naast de icoontjes;
+     * anders wisselt de widget tussen icoontjes en samenvatting, met bolletjes rechtsonder.
+     */
+    static RemoteViews build(Context c, List<Item> items, String sum, int mode) {
         long now = System.currentTimeMillis();
-        int max = mode == 0 ? 4 : mode == 1 ? 3 : 3;
-        boolean titled = false;
+        boolean hasSum = sum != null && !sum.isEmpty();
+        boolean inline = !hasSum || items.isEmpty() || (mode == 2 && items.size() <= 1);
+        RemoteViews v = new RemoteViews(c.getPackageName(), inline ? R.layout.widget_vandaag : R.layout.widget_vandaag_flip);
+        PendingIntent openDay = Notif.openApp(c, "day:" + fmt("yyyy-MM-dd", now));
+        if (hasSum) {
+            v.setTextViewText(R.id.w_sum, sum);
+            v.setViewVisibility(R.id.w_sum, View.VISIBLE);
+            v.setOnClickPendingIntent(R.id.w_sum, openDay);
+        }
+        if (!inline) {
+            android.content.Intent pg = new android.content.Intent(c, VandaagWidget.class).setAction(PAGE);
+            PendingIntent flip = PendingIntent.getBroadcast(c, 77, pg, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+            v.setTextViewText(R.id.w_dots0, "●  ○");
+            v.setTextViewText(R.id.w_dots1, "○  ●");
+            v.setOnClickPendingIntent(R.id.w_dots0, flip);
+            v.setOnClickPendingIntent(R.id.w_dots1, flip);
+            v.setDisplayedChild(R.id.w_flip, Store.p(c).getInt("widget_page", 0) == 1 ? 1 : 0);
+        }
+        int max = mode == 0 ? 4 : 3;
+        if (inline && hasSum) max = 1;      // één item + de zin ernaast
+        boolean titled = inline && hasSum;   // de zin vertelt al wat er komt: item kort houden
         for (int i = 0; i < SLOT.length; i++) {
             if (i >= max || i >= items.size()) { v.setViewVisibility(SLOT[i], View.GONE); continue; }
             Item it = items.get(i);

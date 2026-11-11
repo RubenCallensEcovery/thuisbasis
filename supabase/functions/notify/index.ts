@@ -224,7 +224,27 @@ function dayFor(C: Record<string, any[]>, me: string) {
     .map((e) => ({ t: e.allDay || !e.start ? "" : e.start, n: String(e.title || "").slice(0, 42), c: colorOf(e.who),
       y: e.type === "Match" || e.type === "Training" ? "s" : e.type === "Feest" ? "f" : e.type === "Uitstap" ? "u" : "" }));
   const w = parent ? C.waste.find((x) => (x.date || x.id) === addDays(t, 1)) : null;
-  return { d: t, ev, w: w ? (w.types || []).map((x: string) => WASTE[x] || x).join(" + ") : "" };
+  const wt = w ? (w.types || []).map((x: string) => WASTE[x] || x).join(" + ") : "";
+  return { d: t, ev, w: wt, s: summary(C, me, ev, wt) };
+}
+/* één zin over de rest van de dag, voor de widget (bv. "Nog 2 dingen: Scouts om 14u, als laatste Etentje om 19u30.") */
+function summary(C: Record<string, any[]>, me: string, ev: any[], waste: string) {
+  const { date: t, time: hm } = local(), parent = PARENTS.includes(me), parts: string[] = [];
+  const uur = (x: string) => { const [h, m] = x.split(":"); return `${Number(h)}u${m === "00" ? "" : m}`; };
+  const timed = ev.filter((e) => e.t), up = timed.filter((e) => e.t >= hm), allDay = ev.filter((e) => !e.t);
+  // niets meer te doen vandaag = geen zin (de widget blijft dan leeg)
+  {
+    if (up.length === 1) parts.push(`${timed.length > 1 ? "Nog" : "Vandaag"} ${up[0].n} om ${uur(up[0].t)}.`);
+    else if (up.length > 1) parts.push(`Nog ${up.length} dingen: eerst ${up[0].n} om ${uur(up[0].t)}, als laatste ${up[up.length - 1].n} om ${uur(up[up.length - 1].t)}.`);
+    if (allDay.length) parts.push(`${allDay.map((e) => e.n).slice(0, 2).join(" en ")} ${allDay.length > 1 ? "lopen" : "loopt"} vandaag.`);
+  }
+  if (parent) {
+    const conge = C.events.filter((e) => e.type === "Werk" && occursOn(e, t) && (e.conge || []).includes(t)).flatMap((e) => (e.who || []).map((w: string) => NAMES[w] || w));
+    if (conge.length) parts.push(`${conge.join(" en ")} ${conge.length > 1 ? "hebben" : "heeft"} congé.`);
+    if (C.events.some((e) => e.type === "Crèche" && occursOn(e, t) && (e.conge || []).includes(t))) parts.push("Max blijft thuis.");
+    if (waste) parts.push(Number(hm.slice(0, 2)) >= 12 ? `Vanavond ${waste.replace(" + ", " en ")} buiten zetten.` : `Morgen ophaling ${waste.replace(" + ", " en ")}.`);
+  }
+  return parts.join(" ").slice(0, 160);
 }
 /* weer van vandaag voor de widget (Open-Meteo, Tielt), 20 minuten bewaard */
 let wxCache: { at: number; v: any } | null = null;
