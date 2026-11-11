@@ -180,30 +180,37 @@ final class Notif {
         return new SimpleDateFormat("HH:mm", Locale.getDefault()).format(new Date(t));
     }
 
-    /** draaiende machine: blijvende melding die zelf aftelt */
+    /** draaiende machine: blijvende melding; resterende tijd groot bovenaan (telt zelf af), uitgeklapt ook eindtijd en voortgang */
     static void running(Context c, String id, String label, long start, long end) {
-        int max = (int) Math.max(1, (end - start) / 60000), done = (int) Math.max(0, Math.min(max, (System.currentTimeMillis() - start) / 60000));
-        NotificationCompat.Builder b = new NotificationCompat.Builder(c, CH_MACHINE)
+        long now = System.currentTimeMillis();
+        int max = (int) Math.max(1, (end - start) / 60000), done = (int) Math.max(0, Math.min(max, (now - start) / 60000));
+        long base = android.os.SystemClock.elapsedRealtime() + (end - now); // aftellen tot 'end'
+        android.widget.RemoteViews small = new android.widget.RemoteViews(c.getPackageName(), R.layout.notif_machine);
+        android.widget.RemoteViews big = new android.widget.RemoteViews(c.getPackageName(), R.layout.notif_machine_big);
+        for (android.widget.RemoteViews v : new android.widget.RemoteViews[] { small, big }) {
+            v.setChronometer(R.id.chrono, base, null, true);
+            v.setChronometerCountDown(R.id.chrono, true);
+            v.setTextViewText(R.id.label, label);
+        }
+        big.setTextViewText(R.id.end, "Klaar om " + hhmm(end));
+        big.setProgressBar(R.id.progress, max, done, false);
+        Notification n = new NotificationCompat.Builder(c, CH_MACHINE)
             .setSmallIcon(R.drawable.ic_stat_wash)
             .setLargeIcon(bitmap(c, R.drawable.ic_large_wash))
             .setContentTitle(label + " draait")
             .setContentText("Klaar om " + hhmm(end))
-            .setWhen(end)
-            .setShowWhen(true)
-            .setUsesChronometer(true)
-            .setChronometerCountDown(true)
-            .setProgress(max, done, false)
+            .setStyle(new NotificationCompat.DecoratedCustomViewStyle())
+            .setCustomContentView(small)
+            .setCustomBigContentView(big)
+            .setShowWhen(false)
             .setOngoing(true)
             .setOnlyAlertOnce(true)
             .setSilent(true)
             .setPriority(NotificationCompat.PRIORITY_DEFAULT)
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
             .setCategory(NotificationCompat.CATEGORY_STOPWATCH)
-            .setContentIntent(openApp(c, "k:machines"));
-        // Android 16+: als "live update" (aftellend chipje in de statusbalk en groot op het vergrendelscherm)
-        b.getExtras().putBoolean("android.requestPromotedOngoing", true);
-        b.getExtras().putCharSequence("android.shortCriticalText", hhmm(end));
-        Notification n = b.build();
+            .setContentIntent(openApp(c, "k:machines"))
+            .build();
         show(c, ("m" + id).hashCode(), n);
     }
 
