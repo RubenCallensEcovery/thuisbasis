@@ -53,6 +53,12 @@ public class ThuisPlugin extends Plugin {
         bridge.getWebView().addJavascriptInterface(new NativeApi(getContext()), "ThuisNative");
         // geen Android-uitrekeffect aan de randen: swipen voelt anders als twee stappen
         bridge.getWebView().setOverScrollMode(android.view.View.OVER_SCROLL_NEVER);
+        // vloeiender schuiven/swipen: pagina ook buiten beeld al voortekenen, en de weergave voorrang geven
+        try {
+            if (androidx.webkit.WebViewFeature.isFeatureSupported(androidx.webkit.WebViewFeature.OFF_SCREEN_PRERASTER))
+                androidx.webkit.WebSettingsCompat.setOffscreenPreRaster(bridge.getWebView().getSettings(), true);
+            bridge.getWebView().setRendererPriorityPolicy(android.webkit.WebView.RENDERER_PRIORITY_IMPORTANT, true);
+        } catch (Throwable ignored) {}
         fetchPushToken(getContext());
         // 1. koppelscript bij de start van elke pagina van de site (vóór de scripts van de pagina zelf)
         try {

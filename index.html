@@ -1574,10 +1574,14 @@ const ls={get(k,d){try{const v=localStorage.getItem(k);return v==null?d:JSON.par
 const pad=n=>String(n).padStart(2,'0');
 const iso=d=>d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
 const parse=s=>{const [y,m,d]=s.split('-').map(Number);return new Date(y,m-1,d)};
-const addDays=(s,n)=>{const d=parse(s);d.setDate(d.getDate()+n);return iso(d)};
-const diffDays=(a,b)=>Math.round((parse(a)-parse(b))/864e5);
+/* datumrekening als dagnummers (met geheugen): zelfde uitkomst als met Date-objecten, maar veel sneller (swipen, kalender) */
+const _dn=new Map(),_ds=new Map();
+const dayNum=s=>{let v=_dn.get(s);if(v===undefined){const p=String(s).split('-');v=Math.round(Date.UTC(+p[0],(+p[1]||1)-1,+p[2]||1)/864e5);if(_dn.size>4000)_dn.clear();_dn.set(s,v)}return v};
+const fromNum=n=>{let v=_ds.get(n);if(v===undefined){const d=new Date(n*864e5);v=d.getUTCFullYear()+'-'+pad(d.getUTCMonth()+1)+'-'+pad(d.getUTCDate());if(_ds.size>4000)_ds.clear();_ds.set(n,v)}return v};
+const addDays=(s,n)=>fromNum(dayNum(s)+n);
+const diffDays=(a,b)=>dayNum(a)-dayNum(b);
 const today=()=>iso(new Date());
-const monday=s=>{const d=parse(s);return addDays(s,-((d.getDay()+6)%7))};
+const monday=s=>addDays(s,-((dayNum(s)+4+6)%7)); /* 1/1/1970 was een donderdag (4) */
 const DAYS=['zo','ma','di','wo','do','vr','za'], DAYSL=['zondag','maandag','dinsdag','woensdag','donderdag','vrijdag','zaterdag'];
 const MON=['jan','feb','mrt','apr','mei','jun','jul','aug','sep','okt','nov','dec'], MONL=['januari','februari','maart','april','mei','juni','juli','augustus','september','oktober','november','december'];
 const dshort=s=>{const d=parse(s);return `${DAYS[d.getDay()]} ${d.getDate()} ${MON[d.getMonth()]}`};
