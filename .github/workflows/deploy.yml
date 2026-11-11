@@ -17,10 +17,11 @@ jobs:
         with: { node-version: 20 }
       - name: Code geldig?
         run: node tests/check.mjs
-      - name: Testbrowser installeren (tot 3 pogingen, bij een storing bij GitHub)
+      - name: Testbrowser installeren (tot 3 pogingen)
         run: |
           npm i --no-save playwright@1.47.2
-          for i in 1 2 3; do npx playwright install --with-deps chromium && exit 0; echo "poging $i mislukt, opnieuw over 30 s"; sleep 30; done
+          # de systeembibliotheken staan al op de GitHub-server; enkel de browser zelf ophalen (geen apt, dus geen last van storingen bij Ubuntu)
+          for i in 1 2 3; do npx playwright install chromium && exit 0; echo "poging $i mislukt, opnieuw over 30 s"; sleep 30; done
           exit 1
       - name: App start en alle schermen werken?
         run: node tests/smoke.mjs
