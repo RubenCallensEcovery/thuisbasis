@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- doorschijnend pilletje achter icoon + tekst, zodat de tekst op elke achtergrond leesbaar is -->
 <shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
-    <solid android:color="#1E6FD9" />
+    <solid android:color="#59000000" />
     <corners android:radius="999dp" />
 </shape>

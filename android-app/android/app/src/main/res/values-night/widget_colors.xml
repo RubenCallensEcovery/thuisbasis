@@ -1,8 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<resources>
-    <color name="w_bg">#18181A</color>
-    <color name="w_card">#26262A</color>
-    <color name="w_ink">#F4F0E6</color>
-    <color name="w_muted">#A8A399</color>
-    <color name="w_accent">#FF5A45</color>
-</resources>

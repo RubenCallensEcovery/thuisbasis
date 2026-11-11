@@ -221,7 +221,8 @@ function dayFor(C: Record<string, any[]>, me: string) {
     .filter((e) => parent ? true : (e.who || []).includes(me))
     .sort((a, b) => (a.allDay || !a.start ? "00" : a.start).localeCompare(b.allDay || !b.start ? "00" : b.start))
     .slice(0, 8)
-    .map((e) => ({ t: e.allDay || !e.start ? "" : e.start, n: String(e.title || "").slice(0, 42), c: colorOf(e.who) }));
+    .map((e) => ({ t: e.allDay || !e.start ? "" : e.start, n: String(e.title || "").slice(0, 42), c: colorOf(e.who),
+      y: e.type === "Match" || e.type === "Training" ? "s" : e.type === "Feest" ? "f" : e.type === "Uitstap" ? "u" : "" }));
   const w = parent ? C.waste.find((x) => (x.date || x.id) === addDays(t, 1)) : null;
   return { d: t, ev, w: w ? (w.types || []).map((x: string) => WASTE[x] || x).join(" + ") : "" };
 }

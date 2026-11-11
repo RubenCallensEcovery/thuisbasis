@@ -1,431 +1,179 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- widget "Vandaag" (Bauhaus-stijl van de app): datum + weer, machine met voortgangsring, "straks", de dag, ophaling morgen -->
+<!-- widget "Vandaag" (4×1, doorzichtig): per item een rond icoontje; hoe breder, hoe meer uitleg; niets gepland = niets zichtbaar -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/w_root"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical"
-    android:background="@drawable/widget_bg"
-    android:clipToOutline="true"
-    android:paddingStart="16dp"
-    android:paddingEnd="16dp"
-    android:paddingTop="14dp"
-    android:paddingBottom="12dp">
-
-    <!-- kop: grote datum, vormen, weer -->
+    android:gravity="center_vertical|start"
+    android:orientation="horizontal"
+    android:paddingStart="4dp"
+    android:paddingEnd="4dp">
     <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        android:id="@+id/w_s1"
+        android:layout_width="wrap_content"
+        android:layout_height="40dp"
+        android:layout_marginEnd="6dp"
+        android:background="@drawable/widget_pill"
         android:gravity="center_vertical"
-        android:orientation="horizontal">
-        <TextView
-            android:id="@+id/w_daynum"
+        android:orientation="horizontal"
+        android:paddingStart="4dp"
+        android:paddingEnd="12dp"
+        android:visibility="visible">
+        <ImageView
+            android:id="@+id/w_i1"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:src="@drawable/wp_wash" />
+        <Chronometer
+            android:id="@+id/w_c1"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:includeFontPadding="false"
-            android:text="11"
-            android:textColor="@color/w_ink"
-            android:textSize="42sp"
+            android:layout_marginStart="7dp"
+            android:shadowColor="#80000000"
+            android:shadowRadius="3"
+            android:textColor="#FFFFFF"
+            android:textSize="14sp"
+            android:textStyle="bold"
+            android:visibility="gone" />
+        <TextView
+            android:id="@+id/w_t1"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="7dp"
+            android:maxWidth="170dp"
+            android:shadowColor="#80000000"
+            android:shadowRadius="3"
+            android:singleLine="true"
+            android:ellipsize="end"
+            android:text="1:12"
+            android:textColor="#FFFFFF"
+            android:textSize="13.5sp"
             android:textStyle="bold" />
-        <LinearLayout
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:layout_marginStart="10dp"
-            android:orientation="vertical">
-            <TextView
-                android:id="@+id/w_weekday"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:letterSpacing="0.14"
-                android:singleLine="true"
-                android:textColor="@color/w_accent"
-                android:textSize="11sp"
-                android:textStyle="bold" />
-            <TextView
-                android:id="@+id/w_month"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:singleLine="true"
-                android:textColor="@color/w_ink"
-                android:textSize="15sp"
-                android:textStyle="bold" />
-            <TextView
-                android:id="@+id/w_shapes"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:letterSpacing="0.2"
-                android:textSize="9sp" />
-        </LinearLayout>
-        <LinearLayout
-            android:id="@+id/w_wxbox"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:gravity="end"
-            android:orientation="vertical"
-            android:visibility="gone">
-            <TextView
-                android:id="@+id/w_wx"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:singleLine="true"
-                android:textColor="@color/w_ink"
-                android:textSize="22sp"
-                android:textStyle="bold" />
-            <TextView
-                android:id="@+id/w_wx2"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:singleLine="true"
-                android:textColor="@color/w_muted"
-                android:textSize="11sp" />
-        </LinearLayout>
     </LinearLayout>
-
-    <!-- machine: voortgangsring + resterende tijd -->
     <LinearLayout
-        android:id="@+id/w_machine"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="10dp"
-        android:background="@drawable/widget_card"
+        android:id="@+id/w_s2"
+        android:layout_width="wrap_content"
+        android:layout_height="40dp"
+        android:layout_marginEnd="6dp"
+        android:background="@drawable/widget_pill"
         android:gravity="center_vertical"
         android:orientation="horizontal"
-        android:padding="9dp"
-        android:visibility="gone">
+        android:paddingStart="4dp"
+        android:paddingEnd="12dp"
+        android:visibility="visible">
         <ImageView
-            android:id="@+id/w_ring"
-            android:layout_width="42dp"
-            android:layout_height="42dp" />
-        <LinearLayout
-            android:layout_width="0dp"
+            android:id="@+id/w_i2"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:src="@drawable/wp_cal" />
+        <Chronometer
+            android:id="@+id/w_c2"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:layout_marginStart="10dp"
-            android:orientation="vertical">
-            <Chronometer
-                android:id="@+id/w_chrono"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:includeFontPadding="false"
-                android:textColor="@color/w_ink"
-                android:textSize="22sp"
-                android:textStyle="bold" />
-            <TextView
-                android:id="@+id/w_mlabel"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:singleLine="true"
-                android:ellipsize="end"
-                android:textColor="@color/w_muted"
-                android:textSize="12sp" />
-        </LinearLayout>
+            android:layout_marginStart="7dp"
+            android:shadowColor="#80000000"
+            android:shadowRadius="3"
+            android:textColor="#FFFFFF"
+            android:textSize="14sp"
+            android:textStyle="bold"
+            android:visibility="gone" />
+        <TextView
+            android:id="@+id/w_t2"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="7dp"
+            android:maxWidth="170dp"
+            android:shadowColor="#80000000"
+            android:shadowRadius="3"
+            android:singleLine="true"
+            android:ellipsize="end"
+            android:text="14:00 Scouts"
+            android:textColor="#FFFFFF"
+            android:textSize="13.5sp"
+            android:textStyle="bold" />
     </LinearLayout>
-
-    <!-- straks: eerstvolgende afspraak of herinnering -->
     <LinearLayout
-        android:id="@+id/w_next"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
-        android:background="@drawable/widget_card"
+        android:id="@+id/w_s3"
+        android:layout_width="wrap_content"
+        android:layout_height="40dp"
+        android:layout_marginEnd="6dp"
+        android:background="@drawable/widget_pill"
         android:gravity="center_vertical"
         android:orientation="horizontal"
-        android:padding="9dp"
+        android:paddingStart="4dp"
+        android:paddingEnd="12dp"
+        android:visibility="visible">
+        <ImageView
+            android:id="@+id/w_i3"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:src="@drawable/wp_trash" />
+        <Chronometer
+            android:id="@+id/w_c3"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="7dp"
+            android:shadowColor="#80000000"
+            android:shadowRadius="3"
+            android:textColor="#FFFFFF"
+            android:textSize="14sp"
+            android:textStyle="bold"
+            android:visibility="gone" />
+        <TextView
+            android:id="@+id/w_t3"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="7dp"
+            android:maxWidth="170dp"
+            android:shadowColor="#80000000"
+            android:shadowRadius="3"
+            android:singleLine="true"
+            android:ellipsize="end"
+            android:text="PMD"
+            android:textColor="#FFFFFF"
+            android:textSize="13.5sp"
+            android:textStyle="bold" />
+    </LinearLayout>
+    <LinearLayout
+        android:id="@+id/w_s4"
+        android:layout_width="wrap_content"
+        android:layout_height="40dp"
+        android:layout_marginEnd="6dp"
+        android:background="@drawable/widget_pill"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingStart="4dp"
+        android:paddingEnd="12dp"
         android:visibility="gone">
         <ImageView
-            android:id="@+id/w_nextbar"
-            android:layout_width="5dp"
-            android:layout_height="34dp"
-            android:src="@drawable/widget_bar" />
-        <LinearLayout
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:layout_marginStart="10dp"
-            android:orientation="vertical">
-            <TextView
-                android:id="@+id/w_nextlbl"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:letterSpacing="0.14"
-                android:singleLine="true"
-                android:textColor="@color/w_muted"
-                android:textSize="10sp"
-                android:textStyle="bold" />
-            <TextView
-                android:id="@+id/w_nexttxt"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:singleLine="true"
-                android:ellipsize="end"
-                android:textColor="@color/w_ink"
-                android:textSize="16sp"
-                android:textStyle="bold" />
-        </LinearLayout>
-    </LinearLayout>
-
-    <!-- de rest van de dag -->
-    <LinearLayout
-        android:id="@+id/w_rows"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="4dp"
-        android:orientation="vertical">
-        <LinearLayout
-            android:id="@+id/w_row1"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="5dp"
-            android:gravity="center_vertical"
-            android:orientation="horizontal"
-            android:visibility="gone">
-            <ImageView
-                android:id="@+id/w_bar1"
-                android:layout_width="4dp"
-                android:layout_height="16dp"
-                android:src="@drawable/widget_bar" />
-            <TextView
-                android:id="@+id/w_time1"
-                android:layout_width="46dp"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="8dp"
-                android:singleLine="true"
-                android:fontFeatureSettings="tnum"
-                android:textColor="@color/w_ink"
-                android:textSize="13sp"
-                android:textStyle="bold" />
-            <TextView
-                android:id="@+id/w_title1"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:singleLine="true"
-                android:ellipsize="end"
-                android:textColor="@color/w_ink"
-                android:textSize="13sp" />
-        </LinearLayout>
-        <LinearLayout
-            android:id="@+id/w_row2"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="5dp"
-            android:gravity="center_vertical"
-            android:orientation="horizontal"
-            android:visibility="gone">
-            <ImageView
-                android:id="@+id/w_bar2"
-                android:layout_width="4dp"
-                android:layout_height="16dp"
-                android:src="@drawable/widget_bar" />
-            <TextView
-                android:id="@+id/w_time2"
-                android:layout_width="46dp"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="8dp"
-                android:singleLine="true"
-                android:fontFeatureSettings="tnum"
-                android:textColor="@color/w_ink"
-                android:textSize="13sp"
-                android:textStyle="bold" />
-            <TextView
-                android:id="@+id/w_title2"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:singleLine="true"
-                android:ellipsize="end"
-                android:textColor="@color/w_ink"
-                android:textSize="13sp" />
-        </LinearLayout>
-        <LinearLayout
-            android:id="@+id/w_row3"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="5dp"
-            android:gravity="center_vertical"
-            android:orientation="horizontal"
-            android:visibility="gone">
-            <ImageView
-                android:id="@+id/w_bar3"
-                android:layout_width="4dp"
-                android:layout_height="16dp"
-                android:src="@drawable/widget_bar" />
-            <TextView
-                android:id="@+id/w_time3"
-                android:layout_width="46dp"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="8dp"
-                android:singleLine="true"
-                android:fontFeatureSettings="tnum"
-                android:textColor="@color/w_ink"
-                android:textSize="13sp"
-                android:textStyle="bold" />
-            <TextView
-                android:id="@+id/w_title3"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:singleLine="true"
-                android:ellipsize="end"
-                android:textColor="@color/w_ink"
-                android:textSize="13sp" />
-        </LinearLayout>
-        <LinearLayout
-            android:id="@+id/w_row4"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="5dp"
-            android:gravity="center_vertical"
-            android:orientation="horizontal"
-            android:visibility="gone">
-            <ImageView
-                android:id="@+id/w_bar4"
-                android:layout_width="4dp"
-                android:layout_height="16dp"
-                android:src="@drawable/widget_bar" />
-            <TextView
-                android:id="@+id/w_time4"
-                android:layout_width="46dp"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="8dp"
-                android:singleLine="true"
-                android:fontFeatureSettings="tnum"
-                android:textColor="@color/w_ink"
-                android:textSize="13sp"
-                android:textStyle="bold" />
-            <TextView
-                android:id="@+id/w_title4"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:singleLine="true"
-                android:ellipsize="end"
-                android:textColor="@color/w_ink"
-                android:textSize="13sp" />
-        </LinearLayout>
-        <LinearLayout
-            android:id="@+id/w_row5"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="5dp"
-            android:gravity="center_vertical"
-            android:orientation="horizontal"
-            android:visibility="gone">
-            <ImageView
-                android:id="@+id/w_bar5"
-                android:layout_width="4dp"
-                android:layout_height="16dp"
-                android:src="@drawable/widget_bar" />
-            <TextView
-                android:id="@+id/w_time5"
-                android:layout_width="46dp"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="8dp"
-                android:singleLine="true"
-                android:fontFeatureSettings="tnum"
-                android:textColor="@color/w_ink"
-                android:textSize="13sp"
-                android:textStyle="bold" />
-            <TextView
-                android:id="@+id/w_title5"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:singleLine="true"
-                android:ellipsize="end"
-                android:textColor="@color/w_ink"
-                android:textSize="13sp" />
-        </LinearLayout>
-        <TextView
-            android:id="@+id/w_more"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="12dp"
-            android:layout_marginTop="3dp"
-            android:textColor="@color/w_muted"
-            android:textSize="11.5sp"
-            android:visibility="gone" />
-    </LinearLayout>
-
-    <FrameLayout
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1" />
-
-    <!-- onderaan: ophaling morgen + knoppen -->
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="6dp"
-        android:gravity="center_vertical"
-        android:orientation="horizontal">
-        <TextView
-            android:id="@+id/w_wastelbl"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Morgen"
-            android:textColor="@color/w_muted"
-            android:textSize="11sp"
-            android:visibility="gone" />
-        <TextView
-            android:id="@+id/w_chip1"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="5dp"
-            android:paddingStart="8dp"
-            android:paddingEnd="8dp"
-            android:paddingTop="2dp"
-            android:paddingBottom="2dp"
-            android:background="@drawable/chip_other"
-            android:textColor="#FFFFFF"
-            android:textSize="11sp"
-            android:textStyle="bold"
-            android:visibility="gone" />
-        <TextView
-            android:id="@+id/w_chip2"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="5dp"
-            android:paddingStart="8dp"
-            android:paddingEnd="8dp"
-            android:paddingTop="2dp"
-            android:paddingBottom="2dp"
-            android:background="@drawable/chip_other"
-            android:textColor="#FFFFFF"
-            android:textSize="11sp"
-            android:textStyle="bold"
-            android:visibility="gone" />
-        <TextView
-            android:id="@+id/w_chip3"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="5dp"
-            android:paddingStart="8dp"
-            android:paddingEnd="8dp"
-            android:paddingTop="2dp"
-            android:paddingBottom="2dp"
-            android:background="@drawable/chip_other"
-            android:textColor="#FFFFFF"
-            android:textSize="11sp"
-            android:textStyle="bold"
-            android:visibility="gone" />
-        <FrameLayout
-            android:layout_width="0dp"
-            android:layout_height="1dp"
-            android:layout_weight="1" />
-        <ImageView
-            android:id="@+id/w_jonah"
+            android:id="@+id/w_i4"
             android:layout_width="32dp"
             android:layout_height="32dp"
-            android:contentDescription="Praat met Jonah"
-            android:src="@drawable/ic_shortcut_jonah" />
-        <ImageView
-            android:id="@+id/w_add"
-            android:layout_width="32dp"
-            android:layout_height="32dp"
-            android:layout_marginStart="8dp"
-            android:contentDescription="Nieuwe afspraak"
-            android:src="@drawable/widget_add" />
+            android:src="@drawable/wp_cal" />
+        <Chronometer
+            android:id="@+id/w_c4"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="7dp"
+            android:shadowColor="#80000000"
+            android:shadowRadius="3"
+            android:textColor="#FFFFFF"
+            android:textSize="14sp"
+            android:textStyle="bold"
+            android:visibility="gone" />
+        <TextView
+            android:id="@+id/w_t4"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="7dp"
+            android:maxWidth="170dp"
+            android:shadowColor="#80000000"
+            android:shadowRadius="3"
+            android:singleLine="true"
+            android:ellipsize="end"
+            android:text=""
+            android:textColor="#FFFFFF"
+            android:textSize="13.5sp"
+            android:textStyle="bold" />
     </LinearLayout>
 </LinearLayout>

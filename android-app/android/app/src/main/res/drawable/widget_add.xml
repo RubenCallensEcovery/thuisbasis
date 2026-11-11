@@ -1,6 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<!-- knop "nieuwe afspraak": plusje op een rondje -->
-<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
-    <item><shape android:shape="oval"><solid android:color="@color/w_ink" /></shape></item>
-    <item android:drawable="@drawable/ic_plus_bg" android:top="8dp" android:bottom="8dp" android:left="8dp" android:right="8dp" />
-</layer-list>

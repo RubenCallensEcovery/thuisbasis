@@ -9,5 +9,5 @@
     <string name="sc_praat">Praat met Jonah</string>
     <string name="sc_praat_lang">Praat met Jonah</string>
     <string name="widget_naam">Vandaag</string>
-    <string name="widget_uitleg">Afspraken en herinneringen van vandaag, de machine die aftelt en de ophaling van morgen</string>
+    <string name="widget_uitleg">Doorzichtige strook met wat er vandaag is: machine, afspraken, herinneringen en ophaling morgen</string>
 </resources>
