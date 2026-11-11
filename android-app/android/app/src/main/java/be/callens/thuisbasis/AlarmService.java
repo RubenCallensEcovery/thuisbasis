@@ -123,6 +123,14 @@ public class AlarmService extends Service {
         Notif.cancel(c, ("g" + id).hashCode());
         if (key != null) Store.markFired(c, "alarm|" + id + "|" + key);
         long now = System.currentTimeMillis();
+        if (id.startsWith("machine:")) {
+            // machine klaar: enkel op dit toestel; "10 min later" = over 10 minuten nog eens
+            if ("snooze".equals(act)) {
+                long at = (now + 10 * 60_000L) / 60_000L * 60_000L;
+                Scheduler.snooze(c, id, title == null ? "Machine is klaar" : title, keyOf(at), at);
+            }
+            return;
+        }
         if (id.startsWith("proef")) {
             if ("snooze".equals(act)) Scheduler.snooze(c, id, "Proefalarm", keyOf(now + 60_000L), now + 60_000L);
             return;

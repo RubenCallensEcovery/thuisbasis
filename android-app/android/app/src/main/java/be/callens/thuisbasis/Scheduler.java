@@ -160,7 +160,8 @@ final class Scheduler {
             if (o == null) continue;
             String id = o.optString("id");
             // proefalarmen bestaan enkel op dit toestel; uitgestelde alarmen in afwachting van de server ook bewaren
-            boolean keep = (id.startsWith("proef") && o.optLong("at") > System.currentTimeMillis() - 10 * 60_000L) || waiting.contains(id);
+            boolean local = id.startsWith("proef") || id.startsWith("machine:"); // bestaan enkel op dit toestel
+            boolean keep = (local && o.optLong("at") > System.currentTimeMillis() - 10 * 60_000L) || waiting.contains(id);
             if (keep && Store.find(merged, id) == null) merged.put(o);
         }
         Store.alarms(c, merged);

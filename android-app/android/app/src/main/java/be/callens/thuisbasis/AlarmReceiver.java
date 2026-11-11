@@ -37,7 +37,17 @@ public class AlarmReceiver extends BroadcastReceiver {
             String fk = "machine|" + id + "|" + t.optLong("start");
             if (Store.fired(c, fk)) return;
             Store.markFired(c, fk);
-            Notif.machineDone(c, id, t.optString("label", "Machine"));
+            // machine klaar: echt alarm (eigen beltoon, volledig scherm), zoals een herinnering met alarm
+            Notif.cancel(c, ("m" + id).hashCode());
+            String label = t.optString("label", "Machine");
+            Intent ring = new Intent(c, AlarmService.class).setAction(AlarmService.RING)
+                .putExtra("id", "machine:" + id).putExtra("key", String.valueOf(t.optLong("end")))
+                .putExtra("title", label + " is klaar").putExtra("body", "Tijd om uit te halen");
+            try {
+                ContextCompat.startForegroundService(c, ring);
+            } catch (Exception e) {
+                Notif.machineDone(c, id, label);
+            }
             return;
         }
         // alarm of herinnering: kijk of het nog actueel is (niet intussen gedaan of verschoven)
