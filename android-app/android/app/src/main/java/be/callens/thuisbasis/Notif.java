@@ -161,6 +161,21 @@ final class Notif {
         show(c, id, n);
     }
 
+    /** vector-icoon als bitmap (groot icoon in de melding) */
+    static android.graphics.Bitmap bitmap(Context c, int res) {
+        try {
+            android.graphics.drawable.Drawable d = androidx.core.content.ContextCompat.getDrawable(c, res);
+            int px = (int) (64 * c.getResources().getDisplayMetrics().density);
+            android.graphics.Bitmap b = android.graphics.Bitmap.createBitmap(px, px, android.graphics.Bitmap.Config.ARGB_8888);
+            android.graphics.Canvas cv = new android.graphics.Canvas(b);
+            d.setBounds(0, 0, px, px);
+            d.draw(cv);
+            return b;
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
     static String hhmm(long t) {
         return new SimpleDateFormat("HH:mm", Locale.getDefault()).format(new Date(t));
     }
@@ -170,6 +185,7 @@ final class Notif {
         int max = (int) Math.max(1, (end - start) / 60000), done = (int) Math.max(0, Math.min(max, (System.currentTimeMillis() - start) / 60000));
         NotificationCompat.Builder b = new NotificationCompat.Builder(c, CH_MACHINE)
             .setSmallIcon(R.drawable.ic_stat_wash)
+            .setLargeIcon(bitmap(c, R.drawable.ic_large_wash))
             .setContentTitle(label + " draait")
             .setContentText("Klaar om " + hhmm(end))
             .setWhen(end)
@@ -194,6 +210,7 @@ final class Notif {
     static void machineDone(Context c, String id, String label) {
         Notification n = new NotificationCompat.Builder(c, CH_KLAAR)
             .setSmallIcon(R.drawable.ic_stat_wash)
+            .setLargeIcon(bitmap(c, R.drawable.ic_large_wash))
             .setContentTitle(label + " is klaar")
             .setContentText("Tijd om uit te halen.")
             .setAutoCancel(true)

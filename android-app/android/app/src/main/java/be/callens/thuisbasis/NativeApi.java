@@ -19,6 +19,12 @@ final class NativeApi {
     /** {alarms:[…], timers:[…], conn:{url,key,token,pfx}, me} → plant alles in */
     @JavascriptInterface
     public String sync(String json) {
+        // op de achtergrond: de pagina (en dus swipen/scrollen) wacht hier nooit op
+        new Thread(() -> doSync(json)).start();
+        return "{\"ok\":true}";
+    }
+
+    private synchronized void doSync(String json) {
         try {
             JSONObject o = new JSONObject(json);
             JSONObject conn = o.optJSONObject("conn");
@@ -34,10 +40,8 @@ final class NativeApi {
             Store.str(c, "diag_me", o.optString("me"));
             Store.str(c, "diag_counts", (alarms == null ? 0 : alarms.length()) + " herinneringen/alarmen, " + (timers == null ? 0 : timers.length()) + " machines");
             Remote.flush(c);
-            return "{\"ok\":true}";
         } catch (Exception e) {
             Store.str(c, "diag_error", "sync: " + e);
-            return "{\"ok\":false}";
         }
     }
 
