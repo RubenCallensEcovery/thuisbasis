@@ -103,7 +103,7 @@ final class Notif {
     static Notification alarm(Context c, String id, String key, String title, String body) {
         PendingIntent full = PendingIntent.getActivity(c, 1, screen(c, id, key, title, body), flags());
         return new NotificationCompat.Builder(c, CH_ALARM)
-            .setSmallIcon(R.drawable.ic_stat_thuis)
+            .setSmallIcon(R.drawable.ic_stat_bell)
             .setContentTitle("⏰ " + title)
             .setContentText(body)
             .setCategory(NotificationCompat.CATEGORY_ALARM)
@@ -121,7 +121,7 @@ final class Notif {
 
     static void missed(Context c, String id, String key, String title) {
         Notification n = new NotificationCompat.Builder(c, CH_GEMIST)
-            .setSmallIcon(R.drawable.ic_stat_thuis)
+            .setSmallIcon(R.drawable.ic_stat_bell)
             .setContentTitle("Gemist alarm")
             .setContentText(title)
             .setAutoCancel(true)
@@ -134,8 +134,8 @@ final class Notif {
 
     static void note(Context c, String id, String title, String body) {
         Notification n = new NotificationCompat.Builder(c, CH_NOTE)
-            .setSmallIcon(R.drawable.ic_stat_thuis)
-            .setContentTitle("🔔 Herinnering")
+            .setSmallIcon(R.drawable.ic_stat_bell)
+            .setContentTitle("Herinnering")
             .setContentText(title)
             .setStyle(new NotificationCompat.BigTextStyle().bigText(title + (body == null || body.isEmpty() ? "" : "\n" + body)))
             .setCategory(NotificationCompat.CATEGORY_REMINDER)
@@ -169,8 +169,8 @@ final class Notif {
     static void running(Context c, String id, String label, long start, long end) {
         int max = (int) Math.max(1, (end - start) / 60000), done = (int) Math.max(0, Math.min(max, (System.currentTimeMillis() - start) / 60000));
         NotificationCompat.Builder b = new NotificationCompat.Builder(c, CH_MACHINE)
-            .setSmallIcon(R.drawable.ic_stat_thuis)
-            .setContentTitle("🫧 " + label + " draait")
+            .setSmallIcon(R.drawable.ic_stat_wash)
+            .setContentTitle(label + " draait")
             .setContentText("Klaar om " + hhmm(end))
             .setWhen(end)
             .setShowWhen(true)
@@ -193,9 +193,9 @@ final class Notif {
 
     static void machineDone(Context c, String id, String label) {
         Notification n = new NotificationCompat.Builder(c, CH_KLAAR)
-            .setSmallIcon(R.drawable.ic_stat_thuis)
-            .setContentTitle("🫧 Klaar")
-            .setContentText(label + " is klaar. Tijd om uit te halen.")
+            .setSmallIcon(R.drawable.ic_stat_wash)
+            .setContentTitle(label + " is klaar")
+            .setContentText("Tijd om uit te halen.")
             .setAutoCancel(true)
             .setContentIntent(openApp(c, "k:machines"))
             .build();
