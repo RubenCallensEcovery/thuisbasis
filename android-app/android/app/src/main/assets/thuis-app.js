@@ -10,11 +10,18 @@
   window.__thuisApp = 1;
 
   var plugin = function () { return window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Thuis; };
-  if (!plugin()) {
-    // pagina kwam uit een cache zonder Android-brug: één keer vers laden
+  var N = window.ThuisNative; // eigen kanaal naar Android (staat los van de Capacitor-brug)
+  var report = function (k, v) { try { if (N) N.report(k, String(v)); } catch (e) {} };
+  if (!N && !plugin()) {
+    // geen verbinding met Android: één keer vers laden
     try { if (!sessionStorage.getItem('tbAppReload')) { sessionStorage.setItem('tbAppReload', '1'); setTimeout(function () { location.reload(); }, 300); } } catch (e) {}
     return;
   }
+  var nat = {
+    sync: function (o) { return N ? Promise.resolve(JSON.parse(N.sync(JSON.stringify(o)))) : plugin().sync(o); },
+    token: function () { return N ? Promise.resolve({ token: N.pushToken() }) : plugin().pushToken(); }
+  };
+  report('script', 'actief (' + (N ? 'eigen kanaal' : 'Capacitor') + ')');
 
   var ENV = /\/test\/?/.test(location.pathname) ? 'test' : 'live';
   var PFX = ENV === 'test' ? 'test~' : '';
@@ -66,21 +73,26 @@
     try {
       var C = window.TB_CONFIG || {}, s = json('tb-auth'), me = json('tb_me');
       var token = s && (s.access_token || (s.currentSession && s.currentSession.access_token));
-      if (!C.supabaseUrl || !C.supabaseKey || !token || !me) return;
+      if (!C.supabaseUrl || !C.supabaseKey) { report('error', 'instellingen van de site niet gevonden'); return; }
+      if (!token) { report('error', 'niet ingelogd (nog geen sessie)'); return; }
+      if (!me) { report('error', 'nog geen gezinslid gekozen'); return; }
       if (s.expires_at && s.expires_at * 1000 < Date.now()) return; // de app vernieuwt de sessie zelf; straks opnieuw
       var cols = '(' + [PFX + 'reminders', PFX + 'timers'].map(function (c) { return '"' + c + '"'; }).join(',') + ')';
       var r = await fetch(C.supabaseUrl + '/rest/v1/docs?select=col,id,data&col=in.' + encodeURIComponent(cols), {
         headers: { apikey: C.supabaseKey, authorization: 'Bearer ' + token }
       });
-      if (!r.ok) return;
+      if (!r.ok) { report('error', 'gegevens lezen mislukt: ' + r.status); return; }
       var out = build(await r.json(), me);
       out.conn = { url: C.supabaseUrl, key: C.supabaseKey, token: token, pfx: PFX };
+      out.me = me;
       register(C, token, me);
       var sig = JSON.stringify([out.alarms, out.timers, token]);
       if (sig === last) return; // niets veranderd
       last = sig;
-      await plugin().sync(out);
+      await nat.sync(out);
+      report('error', '');
     } catch (e) {
+      report('error', 'sync: ' + (e && e.message || e));
       console.warn('thuis-app sync', e);
     } finally { busy = false; }
   }
@@ -89,15 +101,17 @@
   var registered = '';
   async function register(C, token, me) {
     try {
-      var r = await plugin().pushToken(); var fcm = r && r.token;
-      if (!fcm || registered === fcm + me) return;
+      var r = await nat.token(); var fcm = r && r.token;
+      if (!fcm) { report('push', 'wacht op pushcode'); return; }
+      if (registered === fcm + me) return;
       var res = await fetch(C.supabaseUrl + '/rest/v1/push_subs?on_conflict=endpoint', {
         method: 'POST',
         headers: { apikey: C.supabaseKey, authorization: 'Bearer ' + token, 'content-type': 'application/json', prefer: 'resolution=merge-duplicates,return=minimal' },
         body: JSON.stringify({ endpoint: 'fcm:' + fcm, member: me, sub: { fcm: fcm, env: ENV, app: 'planner' }, updated_at: new Date().toISOString() })
       });
-      if (res.ok) registered = fcm + me;
-    } catch (e) { console.warn('thuis-app push', e); }
+      if (res.ok) { registered = fcm + me; report('push', 'ja, als ' + me + ' (' + ENV + ')'); }
+      else report('push', 'mislukt: ' + res.status + ' ' + (await res.text()).slice(0, 120));
+    } catch (e) { report('push', 'fout: ' + (e && e.message || e)); console.warn('thuis-app push', e); }
   }
 
   // even wachten tot de app ingelogd is; daarna om de 20 s zolang de app open is, en bij terugkeren
@@ -106,5 +120,5 @@
   document.addEventListener('visibilitychange', function () { if (document.visibilityState === 'visible') { last = ''; setTimeout(sync, 800); } });
   window.addEventListener('storage', function (e) { if (e.key === 'tb_me') { last = ''; sync(); } });
 
-  window.ThuisApp = { sync: function () { last = ''; return sync(); }, test: function (s) { return plugin().testAlarm({ seconds: s || 5 }); } };
+  window.ThuisApp = { sync: function () { last = ''; return sync(); } };
 })();

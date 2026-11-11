@@ -11,4 +11,15 @@
             android:targetPackage="be.callens.thuisbasis.test"
             android:targetClass="be.callens.thuisbasis.MainActivity" />
     </shortcut>
+    <shortcut
+        android:shortcutId="status"
+        android:enabled="true"
+        android:icon="@mipmap/ic_launcher"
+        android:shortcutShortLabel="@string/sc_status"
+        android:shortcutLongLabel="@string/sc_status_lang">
+        <intent
+            android:action="be.callens.thuisbasis.STATUS"
+            android:targetPackage="be.callens.thuisbasis.test"
+            android:targetClass="be.callens.thuisbasis.MainActivity" />
+    </shortcut>
 </shortcuts>

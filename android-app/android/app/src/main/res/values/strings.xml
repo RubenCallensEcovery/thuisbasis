@@ -4,4 +4,6 @@
     <string name="custom_url_scheme">be.callens.thuisbasis</string>
     <string name="sc_proef">Proefalarm</string>
     <string name="sc_proef_lang">Proefalarm over 10 seconden</string>
+    <string name="sc_status">Status</string>
+    <string name="sc_status_lang">Status: werkt alles?</string>
 </resources>

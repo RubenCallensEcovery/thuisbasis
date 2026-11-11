@@ -17,6 +17,7 @@ public class PushService extends FirebaseMessagingService {
     public void onMessageReceived(@NonNull RemoteMessage m) {
         Map<String, String> d = m.getData();
         String type = d.get("type");
+        Store.str(this, "diag_pushin", new java.text.SimpleDateFormat("dd/MM HH:mm", java.util.Locale.getDefault()).format(new java.util.Date()) + " (" + type + ")");
         if ("plan".equals(type)) {
             try {
                 JSONArray a = new JSONArray(d.containsKey("alarms") ? d.get("alarms") : "[]"), alarms = new JSONArray();

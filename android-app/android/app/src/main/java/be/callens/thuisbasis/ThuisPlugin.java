@@ -49,6 +49,9 @@ public class ThuisPlugin extends Plugin {
     public void load() {
         Notif.channels(getContext());
         current = new java.lang.ref.WeakReference<>(this);
+        // eigen kanaal pagina → Android (werkt ook als de Capacitor-brug niet in de pagina zit)
+        bridge.getWebView().addJavascriptInterface(new NativeApi(getContext()), "ThuisNative");
+        fetchPushToken(getContext());
         bridge.addWebViewListener(new WebViewListener() {
             @Override
             public void onPageLoaded(WebView webView) {
@@ -57,6 +60,26 @@ public class ThuisPlugin extends Plugin {
                 runGo();
             }
         });
+    }
+
+    /** Firebase-pushcode ophalen en bewaren (de pagina schrijft ze weg in push_subs) */
+    static void fetchPushToken(android.content.Context ctx) {
+        final android.content.Context c = ctx.getApplicationContext();
+        try {
+            com.google.firebase.messaging.FirebaseMessaging.getInstance().getToken().addOnCompleteListener(t -> {
+                if (t.isSuccessful() && t.getResult() != null) { Store.str(c, "fcm", t.getResult()); Store.str(c, "diag_fcmerr", ""); }
+                else Store.str(c, "diag_fcmerr", String.valueOf(t.getException()));
+            });
+        } catch (Throwable e) {
+            Store.str(c, "diag_fcmerr", "Firebase niet beschikbaar: " + e.getClass().getSimpleName());
+        }
+    }
+
+    @Override
+    protected void handleOnResume() {
+        super.handleOnResume();
+        // bij terugkeren: koppelscript opnieuw aanbieden (doet niets als het al draait)
+        if (loaded && bridge != null && bridge.getWebView() != null) inject(bridge.getWebView());
     }
 
     private void inject(WebView w) {

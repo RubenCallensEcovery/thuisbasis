@@ -38,6 +38,11 @@ public class MainActivity extends BridgeActivity {
             ThuisPlugin.go(go);
             return;
         }
+        if (in != null && "be.callens.thuisbasis.STATUS".equals(in.getAction())) {
+            in.setAction(Intent.ACTION_MAIN);
+            showStatus();
+            return;
+        }
         if (in != null && "be.callens.thuisbasis.PROEF".equals(in.getAction())) {
             in.setAction(Intent.ACTION_MAIN);
             Scheduler.proef(this, 10);
@@ -75,6 +80,40 @@ public class MainActivity extends BridgeActivity {
                 "Sta 'Meldingen op volledig scherm' toe, zodat een alarm ook op het vergrendelscherm groot verschijnt.",
                 new Intent(Settings.ACTION_MANAGE_APP_USE_FULL_SCREEN_INTENT, Uri.parse("package:" + getPackageName())));
         }
+    }
+
+    /** Status: wat werkt er (voor nakijken zonder computer) */
+    private void showStatus() {
+        ThuisPlugin.fetchPushToken(this);
+        String sync = Store.str(this, "diag_sync");
+        String when = sync.isEmpty() ? "nog nooit" : new java.text.SimpleDateFormat("dd/MM HH:mm:ss", java.util.Locale.getDefault()).format(new java.util.Date(Long.parseLong(sync)));
+        boolean notif = androidx.core.app.NotificationManagerCompat.from(this).areNotificationsEnabled();
+        boolean fsi = Build.VERSION.SDK_INT < 34 || getSystemService(NotificationManager.class).canUseFullScreenIntent();
+        String ver = "";
+        try { ver = getPackageManager().getPackageInfo(getPackageName(), 0).versionName; } catch (Exception ignored) {}
+        String fcm = Store.str(this, "fcm");
+        StringBuilder t = new StringBuilder();
+        t.append("Versie: ").append(ver).append("\n\n");
+        t.append("Koppeling met de app: ").append(Store.str(this, "diag_script").isEmpty() ? "niet gestart" : Store.str(this, "diag_script")).append("\n");
+        t.append("Laatst bijgewerkt: ").append(when).append("\n");
+        t.append("Gezinslid: ").append(Store.str(this, "diag_me").isEmpty() ? "?" : Store.str(this, "diag_me")).append("\n");
+        t.append("Ingepland: ").append(Store.str(this, "diag_counts").isEmpty() ? "-" : Store.str(this, "diag_counts")).append("\n\n");
+        t.append("Pushcode: ").append(fcm.isEmpty() ? "geen" + (Store.str(this, "diag_fcmerr").isEmpty() ? "" : " (" + Store.str(this, "diag_fcmerr") + ")") : "ok").append("\n");
+        t.append("Push ingeschreven: ").append(Store.str(this, "diag_push").isEmpty() ? "nog niet" : Store.str(this, "diag_push")).append("\n");
+        t.append("Laatste push ontvangen: ").append(Store.str(this, "diag_pushin").isEmpty() ? "nog geen" : Store.str(this, "diag_pushin")).append("\n\n");
+        t.append("Meldingen: ").append(notif ? "aan" : "UIT").append("\n");
+        t.append("Exacte alarmen: ").append(Scheduler.exactAllowed(this) ? "aan" : "UIT").append("\n");
+        t.append("Volledig scherm: ").append(fsi ? "aan" : "UIT").append("\n");
+        String err = Store.str(this, "diag_error");
+        if (!err.isEmpty()) t.append("\nLaatste fout: ").append(err);
+        new AlertDialog.Builder(this)
+            .setTitle("Planner — status")
+            .setMessage(t.toString())
+            .setPositiveButton("Sluiten", null)
+            .setNeutralButton("Meldingen-instellingen", (d, w) -> {
+                try { startActivity(new Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).putExtra(Settings.EXTRA_APP_PACKAGE, getPackageName())); } catch (Exception ignored) {}
+            })
+            .show();
     }
 
     private void explain(String title, String msg, Intent go) {
