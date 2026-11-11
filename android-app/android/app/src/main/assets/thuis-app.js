@@ -26,7 +26,10 @@
   /* alarmen rinkelen in de app via Android (eigen beltoon, volledig scherm); het alarmvenster van de webapp
      zou dubbel zijn en blijft anders staan nadat je al op Gedaan/Later/Stop tikte → hier onderdrukken */
   (function quietWebAlarm() {
-    var css = '.alarm-ov{display:none!important}';
+    var css = '.alarm-ov{display:none!important}'
+      /* swipen in de kalender: de webweergave mag horizontaal niets zelf doen (anders hapert het gebaar) */
+      + 'html,body{overscroll-behavior-x:none}'
+      + '.mgrid,.day-panel{touch-action:pan-y}';
     var addCss = function () { if (document.getElementById('thuis-app-css')) return; var st = document.createElement('style'); st.id = 'thuis-app-css'; st.textContent = css; (document.head || document.documentElement).appendChild(st); };
     var sweep = function () {
       if (!document.querySelector('.alarm-ov')) return;

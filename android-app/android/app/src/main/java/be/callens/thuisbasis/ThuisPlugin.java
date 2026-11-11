@@ -51,6 +51,8 @@ public class ThuisPlugin extends Plugin {
         current = new java.lang.ref.WeakReference<>(this);
         // eigen kanaal pagina → Android (werkt ook als de Capacitor-brug niet in de pagina zit)
         bridge.getWebView().addJavascriptInterface(new NativeApi(getContext()), "ThuisNative");
+        // geen Android-uitrekeffect aan de randen: swipen voelt anders als twee stappen
+        bridge.getWebView().setOverScrollMode(android.view.View.OVER_SCROLL_NEVER);
         fetchPushToken(getContext());
         // 1. koppelscript bij de start van elke pagina van de site (vóór de scripts van de pagina zelf)
         try {
