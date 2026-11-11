@@ -6,6 +6,8 @@ SRC = os.path.join(ROOT, '..', 'icons', 'v3')
 RES = os.path.join(ROOT, 'android', 'app', 'src')
 SIZES = {'mdpi': 48, 'hdpi': 72, 'xhdpi': 96, 'xxhdpi': 144, 'xxxhdpi': 192}
 FG = {k: int(v * 108 / 48) for k, v in SIZES.items()}
+SCALE = 0.74          # grootte van de hond in het app-icoon (1 = zoals het web-icoon)
+BG = (244, 240, 230, 255)  # #F4F0E6
 
 def band(img):
     w, h = img.size; d = ImageDraw.Draw(img)
@@ -27,7 +29,10 @@ def write(flavor, test):
         r = Image.new('RGBA', (s, s), (0, 0, 0, 0)); m = Image.new('L', (s, s), 0)
         ImageDraw.Draw(m).ellipse([0, 0, s - 1, s - 1], fill=255); r.paste(ic, (0, 0), m)
         r.save(os.path.join(out, 'ic_launcher_round.png'))
-        fs = FG[dpi]; fg = mask.resize((fs, fs), Image.LANCZOS)
+        # Android toont enkel het midden van het voorgrondbeeld (72 van 108 dp) en maakt het rond:
+        # de hond daarom kleiner in het midden zetten, anders vult hij het hele icoon
+        fs = FG[dpi]; k = int(fs * SCALE)
+        fg = Image.new('RGBA', (fs, fs), BG); fg.paste(mask.resize((k, k), Image.LANCZOS), ((fs - k) // 2, (fs - k) // 2))
         if test: fg = band(fg)
         fg.save(os.path.join(out, 'ic_launcher_foreground.png'))
 
