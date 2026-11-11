@@ -162,10 +162,11 @@ Deno.serve(async (req) => {
 
   // plan per app-toestel: enkel versturen als het veranderde (of om de 6 uur, voor de zekerheid)
   let plans = 0;
+  const wxNow = (appLive.length || appTest.length) ? await weatherToday() : null;
   for (const s of [...appLive, ...appTest]) {
     const src = s.sub.env === "test" ? CT : C;
     if (!src) continue;
-    const p = planFor(src, s.member), h = await hash(JSON.stringify(p));
+    const p = planFor(src, s.member, wxNow), h = await hash(JSON.stringify(p));
     if (s.sub.plan === h && Date.now() - (Number(s.sub.planAt) || 0) < 6 * 3600e3) continue;
     if (await fcmSend(sb, s, { type: "plan", alarms: JSON.stringify(p.alarms), timers: JSON.stringify(p.timers), day: JSON.stringify(p.day) }, "86400s")) {
       plans++;
@@ -177,7 +178,7 @@ Deno.serve(async (req) => {
 });
 
 /* ---------- Planner (Android): plan per gezinslid, zelfde regels als in de app ---------- */
-function planFor(C: Record<string, any[]>, me: string) {
+function planFor(C: Record<string, any[]>, me: string, wx: any = null) {
   const now = Date.now(), horizon = now + 14 * 864e5, pad = (n: number) => String(n).padStart(2, "0");
   const cut = (x: string) => String(x || "").slice(0, 80);
   const alarms: any[] = [];
@@ -206,7 +207,7 @@ function planFor(C: Record<string, any[]>, me: string) {
     const ring = Array.isArray(m.alarmFor) ? m.alarmFor.includes(me) : m.by === me;
     timers.push({ i: m.id, l: cut(m.label || "Machine"), s: m.startedAt, e: end, r: ring ? 1 : 0 });
   }
-  return { alarms: alarms.slice(0, 20), timers, day: dayFor(C, me) };
+  return { alarms: alarms.slice(0, 20), timers, day: { ...dayFor(C, me), wx } };
 }
 /* widget "Vandaag": afspraken van vandaag (zoals in de ochtendmelding) en de ophaling van morgen */
 const COLORS: Record<string, string> = { charlotte: "#DB3F76", ruben: "#4A5370", nant: "#1F9858", abel: "#1E8FB8", max: "#E07A1F" };
@@ -223,6 +224,20 @@ function dayFor(C: Record<string, any[]>, me: string) {
     .map((e) => ({ t: e.allDay || !e.start ? "" : e.start, n: String(e.title || "").slice(0, 42), c: colorOf(e.who) }));
   const w = parent ? C.waste.find((x) => (x.date || x.id) === addDays(t, 1)) : null;
   return { d: t, ev, w: w ? (w.types || []).map((x: string) => WASTE[x] || x).join(" + ") : "" };
+}
+/* weer van vandaag voor de widget (Open-Meteo, Tielt), 20 minuten bewaard */
+let wxCache: { at: number; v: any } | null = null;
+async function weatherToday() {
+  if (wxCache && Date.now() - wxCache.at < 20 * 6e4) return wxCache.v;
+  try {
+    const r = await fetch("https://api.open-meteo.com/v1/forecast?latitude=51.0&longitude=3.33&current=temperature_2m,weather_code,is_day&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max&timezone=Europe%2FBrussels&forecast_days=1");
+    if (!r.ok) return wxCache ? wxCache.v : null;
+    const j = await r.json();
+    const v = { t: Math.round(j.current.temperature_2m), c: j.current.weather_code, n: j.current.is_day ? 0 : 1,
+      hi: Math.round(j.daily.temperature_2m_max[0]), lo: Math.round(j.daily.temperature_2m_min[0]), p: j.daily.precipitation_probability_max[0] ?? 0 };
+    wxCache = { at: Date.now(), v };
+    return v;
+  } catch (_) { return wxCache ? wxCache.v : null; }
 }
 /* "JJJJ-MM-DD UU:MM" in Belgische tijd → tijdstip in ms */
 function bxMs(key: string) {

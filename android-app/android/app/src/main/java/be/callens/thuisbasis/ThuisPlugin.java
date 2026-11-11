@@ -59,7 +59,9 @@ public class ThuisPlugin extends Plugin {
         pendingGo = null;
         String q = org.json.JSONObject.quote(g);
         bridge.getWebView().evaluateJavascript(
-            "(function(g){var n=0;(function t(){if(typeof goWhenReady==='function'){goWhenReady(g);}" +
+            "(function(g){var n=0;(function t(){" +
+            "if(g.indexOf('new:')===0){if(typeof ACT!=='undefined'&&ACT['ev-new']&&typeof me!=='undefined'&&me&&document.querySelector('.top')){ACT['ev-new'](g.slice(4));}else if(n++<60){setTimeout(t,250);}return;}" +
+            "if(typeof goWhenReady==='function'){goWhenReady(g);}" +
             "else if(n++<40){setTimeout(t,250);}else{location.replace(location.pathname+'#go='+encodeURIComponent(g));location.reload();}})();})(" + q + ")", null);
     }
 
