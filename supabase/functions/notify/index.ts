@@ -213,6 +213,14 @@ function planFor(C: Record<string, any[]>, me: string, wx: any = null) {
 const COLORS: Record<string, string> = { charlotte: "#DB3F76", ruben: "#4A5370", nant: "#1F9858", abel: "#1E8FB8", max: "#E07A1F" };
 function dayFor(C: Record<string, any[]>, me: string) {
   const t = local().date, parent = PARENTS.includes(me);
+  const ev = evFor(C, me, t);
+  const w = parent ? C.waste.find((x) => (x.date || x.id) === addDays(t, 1)) : null;
+  const wt = w ? (w.types || []).map((x: string) => WASTE[x] || x).join(" + ") : "";
+  return { d: t, ev, w: wt, s: summary(C, me, ev, wt) };
+}
+/* afspraken van één dag voor een gezinslid (zoals in de ochtendmelding: zonder vast werk en crèche) */
+function evFor(C: Record<string, any[]>, me: string, t: string) {
+  const parent = PARENTS.includes(me);
   const fam = ((C.settings.find((x) => x.id === "family") || {}).members || {}) as Record<string, any>;
   const colorOf = (who: string[]) => (who || []).length > 1 ? "#F2B705" : ((fam[(who || [])[0]] || {}).color || COLORS[(who || [])[0]] || "#8A8578");
   const on = (ev: any, d: string) => occursOn(ev, d) || (!!ev.endDate && (ev.repeat || "none") === "none" && d >= ev.date && d <= ev.endDate);
@@ -223,29 +231,44 @@ function dayFor(C: Record<string, any[]>, me: string) {
     .slice(0, 8)
     .map((e) => ({ t: e.allDay || !e.start ? "" : e.start, n: String(e.title || "").slice(0, 42), c: colorOf(e.who),
       y: e.type === "Match" || e.type === "Training" ? "s" : e.type === "Feest" ? "f" : e.type === "Uitstap" ? "u" : "" }));
-  const w = parent ? C.waste.find((x) => (x.date || x.id) === addDays(t, 1)) : null;
-  const wt = w ? (w.types || []).map((x: string) => WASTE[x] || x).join(" + ") : "";
-  return { d: t, ev, w: wt, s: summary(C, me, ev, wt) };
+  return ev;
 }
-/* één zin over de rest van de dag, voor de widget (bv. "Nog 2 dingen: Scouts om 14u, als laatste Etentje om 19u30.") */
+/* samenvatting voor de widget: wat er vandaag nog komt; vanaf 17u (of als vandaag voorbij is) ook wat nuttig is voor morgen */
 function summary(C: Record<string, any[]>, me: string, ev: any[], waste: string) {
-  const { date: t, time: hm } = local(), parent = PARENTS.includes(me), parts: string[] = [];
+  const { date: t, time: hm } = local(), parent = PARENTS.includes(me), H = Number(hm.slice(0, 2)), parts: string[] = [];
   const uur = (x: string) => { const [h, m] = x.split(":"); return `${Number(h)}u${m === "00" ? "" : m}`; };
   const timed = ev.filter((e) => e.t), up = timed.filter((e) => e.t >= hm), allDay = ev.filter((e) => !e.t);
-  // niets meer te doen vandaag = geen zin (de widget blijft dan leeg)
-  {
-    if (up.length === 1) parts.push(`${timed.length > 1 ? "Nog" : "Vandaag"} ${up[0].n} om ${uur(up[0].t)}.`);
-    else if (up.length > 1) parts.push(`Nog ${up.length} dingen: eerst ${up[0].n} om ${uur(up[0].t)}, als laatste ${up[up.length - 1].n} om ${uur(up[up.length - 1].t)}.`);
-    if (allDay.length) parts.push(`${allDay.map((e) => e.n).slice(0, 2).join(" en ")} ${allDay.length > 1 ? "lopen" : "loopt"} vandaag.`);
-  }
-  if (parent) {
-    const conge = C.events.filter((e) => e.type === "Werk" && occursOn(e, t) && (e.conge || []).includes(t)).flatMap((e) => (e.who || []).map((w: string) => NAMES[w] || w));
+  const evening = H >= 17 || (!up.length && H >= 12);
+  // vandaag (niets meer te doen = geen zin)
+  if (up.length === 1) parts.push(`${timed.length > 1 ? "Nog" : "Vandaag"} ${up[0].n} om ${uur(up[0].t)}.`);
+  else if (up.length > 1) parts.push(evening
+    ? `Nog ${up.length} dingen, eerst ${up[0].n} om ${uur(up[0].t)}.`
+    : `Nog ${up.length} dingen: eerst ${up[0].n} om ${uur(up[0].t)}, als laatste ${up[up.length - 1].n} om ${uur(up[up.length - 1].t)}.`);
+  if (allDay.length && !evening) parts.push(`${allDay.map((e) => e.n).slice(0, 2).join(" en ")} ${allDay.length > 1 ? "lopen" : "loopt"} vandaag.`);
+  if (parent && !evening) {
+    const conge = congeOn(C, t);
     if (conge.length) parts.push(`${conge.join(" en ")} ${conge.length > 1 ? "hebben" : "heeft"} congé.`);
-    if (C.events.some((e) => e.type === "Crèche" && occursOn(e, t) && (e.conge || []).includes(t))) parts.push("Max blijft thuis.");
-    if (waste) parts.push(Number(hm.slice(0, 2)) >= 12 ? `Vanavond ${waste.replace(" + ", " en ")} buiten zetten.` : `Morgen ophaling ${waste.replace(" + ", " en ")}.`);
+    if (crecheOff(C, t)) parts.push("Max blijft thuis.");
   }
-  return parts.join(" ").slice(0, 160);
+  if (parent && waste) parts.push(H >= 12 ? `Vanavond ${waste.replace(" + ", " en ")} buiten zetten.` : `Morgen ophaling ${waste.replace(" + ", " en ")}.`);
+  // morgen
+  if (evening) {
+    const tm = addDays(t, 1), et = evFor(C, me, tm), tt = et.filter((e) => e.t), ad = et.filter((e) => !e.t);
+    if (tt.length === 1) parts.push(`Morgen ${tt[0].t < "10:00" ? "al vroeg " : ""}${tt[0].n} om ${uur(tt[0].t)}.`);
+    else if (tt.length > 1) parts.push(`Morgen ${tt.length} dingen, ${tt[0].t < "10:00" ? "al vroeg" : "eerst"} ${tt[0].n} om ${uur(tt[0].t)}.`);
+    if (ad.length) parts.push(`Morgen: ${ad.map((e) => e.n).slice(0, 2).join(" en ")}.`);
+    if (parent) {
+      const conge = congeOn(C, tm);
+      if (conge.length) parts.push(`Morgen congé voor ${conge.join(" en ")}.`);
+      if (crecheOff(C, tm)) parts.push("Max blijft morgen thuis.");
+    }
+    const rem = C.reminders.filter((r) => !r.done && r.date === tm && (r.who || []).includes(me)).sort((a, b) => String(a.time || "").localeCompare(String(b.time || "")));
+    if (rem.length) parts.push(`${rem[0].alarm ? "Alarm" : "Herinnering"} morgen: ${String(rem[0].title || "").slice(0, 40)}${rem[0].time ? " om " + uur(rem[0].time) : ""}.`);
+  }
+  return parts.join(" ").slice(0, 220);
 }
+const congeOn = (C: Record<string, any[]>, d: string) => C.events.filter((e) => e.type === "Werk" && occursOn(e, d) && (e.conge || []).includes(d)).flatMap((e) => (e.who || []).map((w: string) => NAMES[w] || w));
+const crecheOff = (C: Record<string, any[]>, d: string) => C.events.some((e) => e.type === "Crèche" && occursOn(e, d) && (e.conge || []).includes(d));
 /* weer van vandaag voor de widget (Open-Meteo, Tielt), 20 minuten bewaard */
 let wxCache: { at: number; v: any } | null = null;
 async function weatherToday() {
