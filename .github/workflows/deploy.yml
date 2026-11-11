@@ -3,6 +3,8 @@ name: Controle
 on:
   push:
     branches: [main, test]
+    # enkel de Android-app (Planner) gewijzigd? dan verandert er niets aan de webapp: geen controle nodig
+    paths-ignore: ['android-app/**', '.github/workflows/android.yml']
   workflow_dispatch:
 permissions:
   contents: read
@@ -15,6 +17,10 @@ jobs:
         with: { node-version: 20 }
       - name: Code geldig?
         run: node tests/check.mjs
-      - run: npm i --no-save playwright@1.47.2 && npx playwright install --with-deps chromium
+      - name: Testbrowser installeren (tot 3 pogingen, bij een storing bij GitHub)
+        run: |
+          npm i --no-save playwright@1.47.2
+          for i in 1 2 3; do npx playwright install --with-deps chromium && exit 0; echo "poging $i mislukt, opnieuw over 30 s"; sleep 30; done
+          exit 1
       - name: App start en alle schermen werken?
         run: node tests/smoke.mjs

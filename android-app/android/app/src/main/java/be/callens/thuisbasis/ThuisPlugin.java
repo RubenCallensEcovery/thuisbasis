@@ -27,47 +27,6 @@ public class ThuisPlugin extends Plugin {
     private static volatile String pendingGo = null;
     private volatile boolean loaded = false;
 
-    /** machine gestart: vragen wie een alarm krijgt als ze klaar is; keuze gaat naar de machine (alarmFor) */
-    static void askMachine(org.json.JSONObject q) {
-        ThuisPlugin p = current.get();
-        if (p == null || p.getActivity() == null) return;
-        final String[] ids = { "ruben", "charlotte" }, names = { "Ruben", "Charlotte" };
-        final boolean[] on = new boolean[ids.length];
-        String me = q.optString("me");
-        for (int i = 0; i < ids.length; i++) on[i] = ids[i].equals(me);
-        final String id = q.optString("id"), label = q.optString("label", "Machine");
-        p.getActivity().runOnUiThread(() -> new android.app.AlertDialog.Builder(p.getActivity())
-            .setTitle("Wie krijgt een alarm als de " + label.toLowerCase() + " klaar is?")
-            .setMultiChoiceItems(names, on, (d, i, checked) -> on[i] = checked)
-            .setPositiveButton("OK", (d, w) -> {
-                try {
-                    org.json.JSONArray who = new org.json.JSONArray();
-                    for (int i = 0; i < ids.length; i++) if (on[i]) who.put(ids[i]);
-                    android.content.Context c = p.getContext();
-                    Store.addPending(c, new org.json.JSONObject().put("col", "timers").put("id", id)
-                        .put("patch", new org.json.JSONObject().put("alarmFor", who)));
-                    // meteen ook op dit toestel
-                    org.json.JSONArray ts = Store.timers(c);
-                    org.json.JSONObject t = Store.find(ts, id);
-                    int mi = java.util.Arrays.asList(ids).indexOf(me);
-                    if (t != null && mi >= 0) { t.put("ring", on[mi]); Store.timers(c, ts); }
-                    Remote.flush(c);
-                } catch (Exception ignored) {}
-            })
-            .setNegativeButton("Niemand", (d, w) -> {
-                try {
-                    android.content.Context c = p.getContext();
-                    Store.addPending(c, new org.json.JSONObject().put("col", "timers").put("id", id)
-                        .put("patch", new org.json.JSONObject().put("alarmFor", new org.json.JSONArray())));
-                    org.json.JSONArray ts = Store.timers(c);
-                    org.json.JSONObject t = Store.find(ts, id);
-                    if (t != null) { t.put("ring", false); Store.timers(c, ts); }
-                    Remote.flush(c);
-                } catch (Exception ignored) {}
-            })
-            .show());
-    }
-
     /** tik op een melding: naar de juiste plek in de app (zelfde 'go' als bij de webapp) */
     static void go(String g) {
         if (g == null || g.isEmpty()) return;

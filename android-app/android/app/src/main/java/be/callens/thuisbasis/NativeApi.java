@@ -45,10 +45,24 @@ final class NativeApi {
         }
     }
 
-    /** popup "wie krijgt een alarm als de machine klaar is?" ({id, label, start, me}) */
+    /** keuze uit het venster "wie krijgt een alarm?" ({id, who:[...], me}) → bij de machine bewaren */
     @JavascriptInterface
-    public void askMachine(String json) {
-        try { ThuisPlugin.askMachine(new JSONObject(json)); } catch (Exception ignored) {}
+    public void machineAlarm(String json) {
+        try {
+            JSONObject o = new JSONObject(json);
+            JSONArray who = o.optJSONArray("who");
+            if (who == null) who = new JSONArray();
+            String id = o.optString("id"), me = o.optString("me");
+            Store.addPending(c, new JSONObject().put("col", "timers").put("id", id).put("patch", new JSONObject().put("alarmFor", who)));
+            boolean mine = false;
+            for (int i = 0; i < who.length(); i++) if (me.equals(who.optString(i))) mine = true;
+            JSONArray ts = Store.timers(c);
+            JSONObject t = Store.find(ts, id);
+            if (t != null) { t.put("ring", mine); Store.timers(c, ts); }
+            Remote.flush(c);
+        } catch (Exception e) {
+            Store.str(c, "diag_error", "machine-alarm: " + e);
+        }
     }
 
     /** Firebase-pushcode van dit toestel ("" als die er (nog) niet is) */

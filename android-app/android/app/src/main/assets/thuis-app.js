@@ -29,7 +29,19 @@
     var css = '.alarm-ov{display:none!important}'
       /* swipen in de kalender: de webweergave mag horizontaal niets zelf doen (anders hapert het gebaar) */
       + 'html,body{overscroll-behavior-x:none}'
-      + '.mgrid,.day-panel{touch-action:pan-y}';
+      + '.mgrid,.day-panel{touch-action:pan-y}'
+      /* venster "wie krijgt een alarm?" (in de stijl van de app) */
+      + '#tb-ask{position:fixed;inset:0;z-index:9999;display:flex;align-items:flex-end;justify-content:center;background:rgba(0,0,0,.45)}'
+      + '.tb-ask-box{width:100%;max-width:520px;background:var(--surface,#fff);color:var(--text,#141414);border-radius:var(--r,18px) var(--r,18px) 0 0;padding:22px 20px max(18px,env(safe-area-inset-bottom))}'
+      + '.tb-ask-t{font-family:var(--f-display,inherit);font-size:20px;font-weight:600;line-height:1.25;margin-bottom:18px}'
+      + '.tb-ask-p{display:flex;gap:26px;justify-content:center;margin-bottom:20px}'
+      + '.tb-ask-who{background:none;border:0;padding:4px;display:flex;flex-direction:column;align-items:center;gap:8px;color:inherit;font:inherit}'
+      + '.tb-ask-who .av{transition:opacity .15s,box-shadow .15s}'
+      + '.tb-ask-who[aria-pressed=false] .av{opacity:.28}'
+      + '.tb-ask-who[aria-pressed=true] .av{box-shadow:0 0 0 3px var(--surface,#fff),0 0 0 6px var(--mc)}'
+      + '.tb-ask-who[aria-pressed=false] .tb-ask-n{opacity:.5}'
+      + '.tb-ask-n{font-weight:600}'
+      + '.tb-ask-b{display:flex;gap:10px;justify-content:flex-end}';
     var addCss = function () { if (document.getElementById('thuis-app-css')) return; var st = document.createElement('style'); st.id = 'thuis-app-css'; st.textContent = css; (document.head || document.documentElement).appendChild(st); };
     var sweep = function () {
       if (!document.querySelector('.alarm-ov')) return;
@@ -109,7 +121,7 @@
       out.ask.forEach(function (q) {
         var k = 'tbAppAsked:' + q.id + ':' + q.start, done = false;
         try { done = !!localStorage.getItem(k); localStorage.setItem(k, '1'); } catch (e) {}
-        if (!done && N && N.askMachine) N.askMachine(JSON.stringify(q));
+        if (!done) askWho(q);
       });
       delete out.ask;
       out.conn = { url: C.supabaseUrl, key: C.supabaseKey, token: token, pfx: PFX };
@@ -124,6 +136,34 @@
       report('error', 'sync: ' + (e && e.message || e));
       console.warn('thuis-app sync', e);
     } finally { busy = false; }
+  }
+
+  /* machine gestart: "wie krijgt een alarm?" met de bolletjes (beginletter) zoals in de app */
+  var esc = function (t) { return String(t).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); };
+  function askWho(q) {
+    if (!N || !N.machineAlarm || document.getElementById('tb-ask')) return;
+    var ppl = [['ruben', 'Ruben'], ['charlotte', 'Charlotte']], sel = {};
+    sel[q.me] = true;
+    var el = document.createElement('div');
+    el.id = 'tb-ask';
+    el.setAttribute('role', 'dialog');
+    el.innerHTML = '<div class="tb-ask-box"><div class="tb-ask-t">Wie krijgt een alarm als de ' + esc(String(q.label || 'machine').toLowerCase()) + ' klaar is?</div>'
+      + '<div class="tb-ask-p">' + ppl.map(function (p) {
+        return '<button type="button" class="tb-ask-who" data-id="' + p[0] + '" aria-pressed="' + !!sel[p[0]] + '">'
+          + '<span class="av" style="--mc:var(--c-' + p[0] + ');--s:64px">' + p[1][0] + '</span><span class="tb-ask-n">' + p[1] + '</span></button>';
+      }).join('') + '</div>'
+      + '<div class="tb-ask-b"><button type="button" class="btn ghost" data-k="none">Niemand</button><button type="button" class="btn primary" data-k="ok">Klaar</button></div></div>';
+    el.addEventListener('click', function (e) {
+      var w = e.target.closest('.tb-ask-who');
+      if (w) { var on = w.getAttribute('aria-pressed') !== 'true'; w.setAttribute('aria-pressed', String(on)); sel[w.dataset.id] = on; return; }
+      var b = e.target.closest('[data-k]');
+      if (!b) return;
+      var who = b.dataset.k === 'ok' ? ppl.map(function (p) { return p[0]; }).filter(function (id) { return sel[id]; }) : [];
+      try { N.machineAlarm(JSON.stringify({ id: q.id, who: who, me: q.me })); } catch (x) {}
+      el.remove();
+      last = '';
+    });
+    document.body.appendChild(el);
   }
 
   /* pushmeldingen: dit toestel (Firebase-code) bij het gezinslid zetten in push_subs; de server stuurt dan via Firebase */
