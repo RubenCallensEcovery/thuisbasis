@@ -23,6 +23,22 @@
   };
   report('script', 'actief (' + (N ? 'eigen kanaal' : 'Capacitor') + ')');
 
+  /* alarmen rinkelen in de app via Android (eigen beltoon, volledig scherm); het alarmvenster van de webapp
+     zou dubbel zijn en blijft anders staan nadat je al op Gedaan/Later/Stop tikte → hier onderdrukken */
+  (function quietWebAlarm() {
+    var css = '.alarm-ov{display:none!important}';
+    var addCss = function () { if (document.getElementById('thuis-app-css')) return; var st = document.createElement('style'); st.id = 'thuis-app-css'; st.textContent = css; (document.head || document.documentElement).appendChild(st); };
+    var sweep = function () {
+      if (!document.querySelector('.alarm-ov')) return;
+      try { if (typeof alarmStop === 'function') alarmStop(); else document.querySelectorAll('.alarm-ov').forEach(function (x) { x.remove(); }); } catch (e) {}
+    };
+    var start = function () {
+      addCss(); sweep();
+      try { new MutationObserver(sweep).observe(document.body, { childList: true }); } catch (e) {}
+    };
+    if (document.body) start(); else document.addEventListener('DOMContentLoaded', start);
+  })();
+
   var ENV = /\/test\/?/.test(location.pathname) ? 'test' : 'live';
   var PFX = ENV === 'test' ? 'test~' : '';
   var PARENTS = ['charlotte', 'ruben'];
