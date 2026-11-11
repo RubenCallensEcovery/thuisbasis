@@ -68,7 +68,16 @@ final class Notif {
     }
 
     static PendingIntent openApp(Context c) {
+        return openApp(c, null);
+    }
+
+    /** app openen, en met 'go' meteen naar de juiste plek (rem:<id> | ev:<id>:<datum> | day:<datum> | k:<scherm>) */
+    static PendingIntent openApp(Context c, String go) {
         Intent i = new Intent(c, MainActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+        if (go != null && !go.isEmpty()) {
+            i.setAction(MainActivity.GO).setData(Uri.parse("thuis://go/" + Uri.encode(go))).putExtra("go", go);
+            return PendingIntent.getActivity(c, ("go" + go).hashCode(), i, flags());
+        }
         return PendingIntent.getActivity(c, 0, i, flags());
     }
 
@@ -111,7 +120,7 @@ final class Notif {
             .setContentTitle("Gemist alarm")
             .setContentText(title)
             .setAutoCancel(true)
-            .setContentIntent(openApp(c))
+            .setContentIntent(openApp(c, "rem:" + id))
             .addAction(0, "Gedaan", action(c, "done", id, key, title))
             .addAction(0, "10 min later", action(c, "snooze", id, key, title))
             .build();
@@ -126,13 +135,13 @@ final class Notif {
             .setStyle(new NotificationCompat.BigTextStyle().bigText(title + (body == null || body.isEmpty() ? "" : "\n" + body)))
             .setCategory(NotificationCompat.CATEGORY_REMINDER)
             .setAutoCancel(true)
-            .setContentIntent(openApp(c))
+            .setContentIntent(openApp(c, "rem:" + id))
             .build();
         show(c, ("r" + id).hashCode(), n);
     }
 
     /** gewone melding van de server; zelfde 'tag' vervangt de vorige */
-    static void message(Context c, String tag, String title, String body) {
+    static void message(Context c, String tag, String title, String body, String go) {
         if (title == null) title = "Planner";
         if (body == null) body = "";
         Notification n = new NotificationCompat.Builder(c, CH_MSG)
@@ -141,7 +150,7 @@ final class Notif {
             .setContentText(body)
             .setStyle(new NotificationCompat.BigTextStyle().bigText(body))
             .setAutoCancel(true)
-            .setContentIntent(openApp(c))
+            .setContentIntent(openApp(c, go))
             .build();
         int id = tag != null && !tag.isEmpty() ? ("s" + tag).hashCode() : (int) (System.currentTimeMillis() % 1_000_000_000L);
         show(c, id, n);
@@ -168,7 +177,7 @@ final class Notif {
             .setOnlyAlertOnce(true)
             .setSilent(true)
             .setCategory(NotificationCompat.CATEGORY_PROGRESS)
-            .setContentIntent(openApp(c))
+            .setContentIntent(openApp(c, "k:machines"))
             .build();
         show(c, ("m" + id).hashCode(), n);
     }
@@ -179,7 +188,7 @@ final class Notif {
             .setContentTitle("🫧 Klaar")
             .setContentText(label + " is klaar. Tijd om uit te halen.")
             .setAutoCancel(true)
-            .setContentIntent(openApp(c))
+            .setContentIntent(openApp(c, "k:machines"))
             .build();
         show(c, ("m" + id).hashCode(), n);
     }

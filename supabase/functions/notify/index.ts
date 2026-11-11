@@ -133,7 +133,7 @@ Deno.serve(async (req) => {
 
   // alarmen, herinneringen en machines plant de app zelf in (via het plan); die gaan niet als gewone melding naar de app
   const appMsg = (m: Out) => !/^(ra|r|tr|t):/.test(m.key);
-  const toApp = async (s: any, m: Out) => (await fcmSend(sb, s, { type: "msg", title: m.title, body: m.body, tag: m.tag || "" })) ? 1 : 0;
+  const toApp = async (s: any, m: Out) => (await fcmSend(sb, s, { type: "msg", title: m.title, body: m.body, tag: m.tag || "", go: m.go || "" })) ? 1 : 0;
 
   let sent = 0;
   const C = await load("");

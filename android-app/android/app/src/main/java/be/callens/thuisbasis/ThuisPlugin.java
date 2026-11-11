@@ -23,14 +23,38 @@ import java.io.InputStream;
 @CapacitorPlugin(name = "Thuis")
 public class ThuisPlugin extends Plugin {
     private String script;
+    private static java.lang.ref.WeakReference<ThuisPlugin> current = new java.lang.ref.WeakReference<>(null);
+    private static volatile String pendingGo = null;
+    private volatile boolean loaded = false;
+
+    /** tik op een melding: naar de juiste plek in de app (zelfde 'go' als bij de webapp) */
+    static void go(String g) {
+        if (g == null || g.isEmpty()) return;
+        pendingGo = g;
+        ThuisPlugin p = current.get();
+        if (p != null && p.loaded) p.getActivity().runOnUiThread(p::runGo);
+    }
+
+    private void runGo() {
+        String g = pendingGo;
+        if (g == null || bridge == null || bridge.getWebView() == null) return;
+        pendingGo = null;
+        String q = org.json.JSONObject.quote(g);
+        bridge.getWebView().evaluateJavascript(
+            "(function(g){var n=0;(function t(){if(typeof goWhenReady==='function'){goWhenReady(g);}" +
+            "else if(n++<40){setTimeout(t,250);}else{location.replace(location.pathname+'#go='+encodeURIComponent(g));location.reload();}})();})(" + q + ")", null);
+    }
 
     @Override
     public void load() {
         Notif.channels(getContext());
+        current = new java.lang.ref.WeakReference<>(this);
         bridge.addWebViewListener(new WebViewListener() {
             @Override
             public void onPageLoaded(WebView webView) {
                 inject(webView);
+                loaded = true;
+                runGo();
             }
         });
     }

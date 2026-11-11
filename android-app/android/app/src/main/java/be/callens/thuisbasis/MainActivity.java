@@ -14,6 +14,8 @@ import androidx.core.content.ContextCompat;
 import com.getcapacitor.BridgeActivity;
 
 public class MainActivity extends BridgeActivity {
+    static final String GO = "be.callens.thuisbasis.GO";
+
     @Override
     public void onCreate(Bundle savedInstanceState) {
         registerPlugin(ThuisPlugin.class);
@@ -30,6 +32,12 @@ public class MainActivity extends BridgeActivity {
 
     /** snelkoppeling "Proefalarm" (lang drukken op het app-icoon) */
     private void handle(Intent in) {
+        if (in != null && GO.equals(in.getAction())) {
+            String go = in.getStringExtra("go");
+            in.setAction(Intent.ACTION_MAIN);
+            ThuisPlugin.go(go);
+            return;
+        }
         if (in != null && "be.callens.thuisbasis.PROEF".equals(in.getAction())) {
             in.setAction(Intent.ACTION_MAIN);
             Scheduler.proef(this, 10);

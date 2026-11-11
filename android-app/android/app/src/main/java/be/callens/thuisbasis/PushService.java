@@ -35,7 +35,7 @@ public class PushService extends FirebaseMessagingService {
             } catch (Exception ignored) {}
         } else if ("msg".equals(type)) {
             Notif.channels(this);
-            Notif.message(this, d.get("tag"), d.get("title"), d.get("body"));
+            Notif.message(this, d.get("tag"), d.get("title"), d.get("body"), d.get("go"));
         }
     }
 
