@@ -67,6 +67,7 @@ dependencies {
     implementation "androidx.core:core-splashscreen:$coreSplashScreenVersion"
     implementation project(':capacitor-android')
     implementation "androidx.core:core:$androidxCoreVersion"
+    implementation "androidx.webkit:webkit:$androidxWebkitVersion"
     // pushmeldingen via Firebase (werkt enkel als google-services.json bij het bouwen aanwezig is)
     implementation platform("com.google.firebase:firebase-bom:34.0.0")
     implementation "com.google.firebase:firebase-messaging"

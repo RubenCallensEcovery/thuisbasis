@@ -95,6 +95,8 @@ public class MainActivity extends BridgeActivity {
         StringBuilder t = new StringBuilder();
         t.append("Versie: ").append(ver).append("\n\n");
         t.append("Koppeling met de app: ").append(Store.str(this, "diag_script").isEmpty() ? "niet gestart" : Store.str(this, "diag_script")).append("\n");
+        t.append("Laden: ").append(Store.str(this, "diag_mode")).append("\n");
+        t.append("Pagina: ").append(Store.str(this, "diag_page").isEmpty() ? "?" : Store.str(this, "diag_page")).append("\n");
         t.append("Laatst bijgewerkt: ").append(when).append("\n");
         t.append("Gezinslid: ").append(Store.str(this, "diag_me").isEmpty() ? "?" : Store.str(this, "diag_me")).append("\n");
         t.append("Ingepland: ").append(Store.str(this, "diag_counts").isEmpty() ? "-" : Store.str(this, "diag_counts")).append("\n\n");

@@ -52,6 +52,17 @@ public class ThuisPlugin extends Plugin {
         // eigen kanaal pagina → Android (werkt ook als de Capacitor-brug niet in de pagina zit)
         bridge.getWebView().addJavascriptInterface(new NativeApi(getContext()), "ThuisNative");
         fetchPushToken(getContext());
+        // 1. koppelscript bij de start van elke pagina van de site (vóór de scripts van de pagina zelf)
+        try {
+            if (androidx.webkit.WebViewFeature.isFeatureSupported(androidx.webkit.WebViewFeature.DOCUMENT_START_SCRIPT)) {
+                androidx.webkit.WebViewCompat.addDocumentStartJavaScript(bridge.getWebView(), script(),
+                    java.util.Collections.singleton("https://rubencallensecovery.github.io"));
+                Store.str(getContext(), "diag_mode", "bij paginastart");
+            } else Store.str(getContext(), "diag_mode", "na laden (oude WebView)");
+        } catch (Throwable e) {
+            Store.str(getContext(), "diag_mode", "na laden (" + e.getClass().getSimpleName() + ")");
+        }
+        // 2. en voor de zekerheid nog eens na het laden (doet niets als het al draait)
         bridge.addWebViewListener(new WebViewListener() {
             @Override
             public void onPageLoaded(WebView webView) {
@@ -79,22 +90,36 @@ public class ThuisPlugin extends Plugin {
     protected void handleOnResume() {
         super.handleOnResume();
         // bij terugkeren: koppelscript opnieuw aanbieden (doet niets als het al draait)
-        if (loaded && bridge != null && bridge.getWebView() != null) inject(bridge.getWebView());
+        if (bridge != null && bridge.getWebView() != null) { loaded = true; inject(bridge.getWebView()); runGo(); }
+    }
+
+    private String script() {
+        if (script == null) {
+            try (InputStream in = getContext().getAssets().open("thuis-app.js")) {
+                java.io.ByteArrayOutputStream out = new java.io.ByteArrayOutputStream();
+                byte[] buf = new byte[8192];
+                for (int n; (n = in.read(buf)) > 0; ) out.write(buf, 0, n);
+                script = out.toString("UTF-8");
+            } catch (Exception e) {
+                Store.str(getContext(), "diag_error", "koppelscript niet gevonden: " + e);
+                script = "";
+            }
+        }
+        return script;
     }
 
     private void inject(WebView w) {
         try {
-            if (script == null) {
-                try (InputStream in = getContext().getAssets().open("thuis-app.js")) {
-                    java.io.ByteArrayOutputStream out = new java.io.ByteArrayOutputStream();
-                    byte[] buf = new byte[8192];
-                    for (int n; (n = in.read(buf)) > 0; ) out.write(buf, 0, n);
-                    script = out.toString("UTF-8");
-                }
-            }
-            w.evaluateJavascript(script, null);
-        } catch (Exception ignored) {}
+            w.evaluateJavascript(script(), null);
+            // wat ziet Android in de pagina? (voor het Status-scherm)
+            w.postDelayed(() -> w.evaluateJavascript(
+                "(function(){try{return [location.host+location.pathname, 'kanaal:'+typeof window.ThuisNative, 'brug:'+typeof window.Capacitor, 'script:'+(window.__thuisApp?'ja':'nee')].join(' ')}catch(e){return 'fout '+e}})()",
+                v -> Store.str(getContext(), "diag_page", v == null ? "" : v.replace("\"", ""))), 2500);
+        } catch (Exception e) {
+            Store.str(getContext(), "diag_error", "injectie: " + e);
+        }
     }
+
 
     /** de app geeft de actuele alarmen, herinneringen en machines voor dit gezinslid door */
     @PluginMethod
