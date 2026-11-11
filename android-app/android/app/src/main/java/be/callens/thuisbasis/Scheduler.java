@@ -101,6 +101,17 @@ final class Scheduler {
             Notif.cancel(c, ("m" + id).hashCode()); // leeggehaald of geschrapt
         }
         Store.p(c).edit().putStringSet("machines", running).apply();
+
+        // voortgangsbalk van een draaiende machine om de 5 minuten bijwerken (de klok telt zelf af)
+        long next = Long.MAX_VALUE;
+        for (int i = 0; i < timers.length(); i++) {
+            JSONObject t = timers.optJSONObject(i);
+            if (t != null && t.optLong("end") > now) next = Math.min(next, Math.min(now + 5 * 60_000L, t.optLong("end") - 1000));
+        }
+        AlarmManager am = c.getSystemService(AlarmManager.class);
+        PendingIntent tick = firePi(c, "tick", "machines", null, PendingIntent.FLAG_UPDATE_CURRENT);
+        if (next != Long.MAX_VALUE) am.setAndAllowWhileIdle(AlarmManager.RTC, next, tick);
+        else am.cancel(tick);
     }
 
     /** "10 min later": meteen op dit toestel opnieuw inplannen, los van de server */

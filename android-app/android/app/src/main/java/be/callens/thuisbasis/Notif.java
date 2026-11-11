@@ -22,7 +22,7 @@ final class Notif {
 
     static final String CH_ALARM = "alarm";
     static final String CH_NOTE = "herinnering";
-    static final String CH_MACHINE = "machine";
+    static final String CH_MACHINE = "machine_loopt"; // vroeger "machine" (stil, niet op vergrendelscherm)
     static final String CH_KLAAR = "klaar";
     static final String CH_GEMIST = "gemist";
     static final String CH_MSG = "meldingen";
@@ -44,9 +44,14 @@ final class Notif {
         n.setDescription("Gewone herinneringen zonder alarm");
         nm.createNotificationChannel(n);
 
-        NotificationChannel m = new NotificationChannel(CH_MACHINE, "Machine draait", NotificationManager.IMPORTANCE_LOW);
+        // zichtbaar in de statusbalk en op het vergrendelscherm, maar zonder geluid of trillen
+        nm.deleteNotificationChannel("machine");
+        NotificationChannel m = new NotificationChannel(CH_MACHINE, "Machine draait", NotificationManager.IMPORTANCE_DEFAULT);
         m.setDescription("Blijvende melding die aftelt tot de was- of droogmachine klaar is");
+        m.setSound(null, null);
+        m.enableVibration(false);
         m.setShowBadge(false);
+        m.setLockscreenVisibility(Notification.VISIBILITY_PUBLIC);
         nm.createNotificationChannel(m);
 
         NotificationChannel k = new NotificationChannel(CH_KLAAR, "Machine klaar", NotificationManager.IMPORTANCE_HIGH);
@@ -163,11 +168,10 @@ final class Notif {
     /** draaiende machine: blijvende melding die zelf aftelt */
     static void running(Context c, String id, String label, long start, long end) {
         int max = (int) Math.max(1, (end - start) / 60000), done = (int) Math.max(0, Math.min(max, (System.currentTimeMillis() - start) / 60000));
-        Notification n = new NotificationCompat.Builder(c, CH_MACHINE)
+        NotificationCompat.Builder b = new NotificationCompat.Builder(c, CH_MACHINE)
             .setSmallIcon(R.drawable.ic_stat_thuis)
             .setContentTitle("🫧 " + label + " draait")
             .setContentText("Klaar om " + hhmm(end))
-            .setSubText("klaar om " + hhmm(end))
             .setWhen(end)
             .setShowWhen(true)
             .setUsesChronometer(true)
@@ -176,9 +180,14 @@ final class Notif {
             .setOngoing(true)
             .setOnlyAlertOnce(true)
             .setSilent(true)
-            .setCategory(NotificationCompat.CATEGORY_PROGRESS)
-            .setContentIntent(openApp(c, "k:machines"))
-            .build();
+            .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+            .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+            .setCategory(NotificationCompat.CATEGORY_STOPWATCH)
+            .setContentIntent(openApp(c, "k:machines"));
+        // Android 16+: als "live update" (aftellend chipje in de statusbalk en groot op het vergrendelscherm)
+        b.getExtras().putBoolean("android.requestPromotedOngoing", true);
+        b.getExtras().putCharSequence("android.shortCriticalText", hhmm(end));
+        Notification n = b.build();
         show(c, ("m" + id).hashCode(), n);
     }
 

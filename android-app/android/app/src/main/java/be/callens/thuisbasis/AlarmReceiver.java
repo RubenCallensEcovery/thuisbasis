@@ -26,6 +26,10 @@ public class AlarmReceiver extends BroadcastReceiver {
         } catch (Exception e) {
             o = new JSONObject();
         }
+        if ("tick".equals(kind)) {
+            Scheduler.apply(c);
+            return;
+        }
         if ("machine".equals(kind)) {
             // enkel als de machine nog in de lijst staat (niet intussen leeggehaald)
             JSONObject t = Store.find(Store.timers(c), id);
